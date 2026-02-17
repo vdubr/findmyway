@@ -160,7 +160,7 @@ function createMarkerStyle(type: 'checkpoint' | 'user' | 'target'): Style {
     return new Style({
       image: new Circle({
         radius: 8,
-        fill: new Fill({ color: '#4ECDC4' }), // Tyrkysová z theme
+        fill: new Fill({ color: '#52B788' }), // Svěží zelená z theme
         stroke: new Stroke({
           color: '#fff',
           width: 3,
@@ -173,9 +173,9 @@ function createMarkerStyle(type: 'checkpoint' | 'user' | 'target'): Style {
     return new Style({
       image: new Circle({
         radius: 10,
-        fill: new Fill({ color: '#FFE66D' }), // Žlutá z theme
+        fill: new Fill({ color: '#E9C46A' }), // Písková žlutá z theme
         stroke: new Stroke({
-          color: '#1A535C',
+          color: '#1B4332',
           width: 2,
         }),
       }),
@@ -186,7 +186,7 @@ function createMarkerStyle(type: 'checkpoint' | 'user' | 'target'): Style {
   return new Style({
     image: new Circle({
       radius: 12,
-      fill: new Fill({ color: '#FF6B35' }), // Oranžová z theme
+      fill: new Fill({ color: '#2D6A4F' }), // Lesní zelená z theme
       stroke: new Stroke({
         color: '#fff',
         width: 3,

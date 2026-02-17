@@ -40,6 +40,7 @@ interface GameEditorState {
   // Actions
   setCurrentGame: (game: Game | null) => void;
   initNewGame: (gameData: CreateGameInput) => void;
+  initEditGame: (game: Game, checkpoints: any[]) => void;
 
   // Checkpoint management
   addTempCheckpoint: (latitude: number, longitude: number) => void;
@@ -88,6 +89,25 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
         updated_at: new Date().toISOString(),
       },
       tempCheckpoints: [],
+      isMapEditorOpen: true,
+    }),
+
+  initEditGame: (game, checkpoints) =>
+    set({
+      currentGame: game,
+      tempCheckpoints: checkpoints.map((cp) => ({
+        tempId: cp.id, // Use real ID as tempId for existing checkpoints
+        id: cp.id,
+        order_index: cp.order_index,
+        latitude: cp.latitude,
+        longitude: cp.longitude,
+        radius: cp.radius,
+        type: cp.type,
+        content: cp.content,
+        secret_solution: cp.secret_solution,
+        is_fake: cp.is_fake,
+      })),
+      selectedCheckpointId: null,
       isMapEditorOpen: true,
     }),
 

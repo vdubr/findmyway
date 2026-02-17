@@ -1,47 +1,47 @@
 import { createTheme } from '@mui/material/styles';
 
-// Hravé, dětsky přívětivé barvy pro GeoQuest
+// Přírodní zelené téma evokující cestu do přírody
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#FF6B35', // Živá oranžová - pro hlavní akce
-      light: '#FF8A5B',
-      dark: '#E55A2B',
+      main: '#2D6A4F', // Lesní zelená - pro hlavní akce
+      light: '#40916C',
+      dark: '#1B4332',
       contrastText: '#fff',
     },
     secondary: {
-      main: '#4ECDC4', // Tyrkysová - pro doplňkové prvky
-      light: '#7DDDD5',
-      dark: '#3BB5AC',
+      main: '#52B788', // Svěží zelená - pro doplňkové prvky
+      light: '#74C69D',
+      dark: '#40916C',
       contrastText: '#fff',
     },
     success: {
-      main: '#95E1D3', // Světle zelená - pro úspěch
-      dark: '#6BC9B8',
-      contrastText: '#1A535C',
+      main: '#95D5B2', // Světle zelená - pro úspěch
+      dark: '#74C69D',
+      contrastText: '#1B4332',
     },
     warning: {
-      main: '#FFE66D', // Veselá žlutá
-      dark: '#F5D942',
-      contrastText: '#1A535C',
+      main: '#E9C46A', // Teplá písková žlutá
+      dark: '#E76F51',
+      contrastText: '#1B4332',
     },
     error: {
-      main: '#F38181', // Jemná červená
-      dark: '#E86464',
+      main: '#E76F51', // Teplá cihlová
+      dark: '#D64933',
       contrastText: '#fff',
     },
     info: {
-      main: '#A8DADC', // Světle modrá
-      dark: '#7CC5C9',
-      contrastText: '#1A535C',
+      main: '#B7E4C7', // Jemná mátová
+      dark: '#95D5B2',
+      contrastText: '#1B4332',
     },
     background: {
-      default: '#F7F9FC',
+      default: '#F1FAEE', // Jemně krémová jako ranní mlha v lese
       paper: '#FFFFFF',
     },
     text: {
-      primary: '#1A535C', // Tmavě modrozelená pro text
-      secondary: '#457B9D',
+      primary: '#1B4332', // Tmavě lesní zelená pro text
+      secondary: '#2D6A4F',
     },
   },
   typography: {

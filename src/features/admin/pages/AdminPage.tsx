@@ -17,7 +17,13 @@ import MapEditor from '../components/MapEditor';
 import CheckpointEditor from '../components/CheckpointEditor';
 import GameList from '../components/GameList';
 import { useGameEditorStore } from '../store/gameEditorStore';
-import { createGame, createCheckpoint } from '../../../lib/api';
+import {
+  createGame,
+  createCheckpoint,
+  updateGame,
+  updateCheckpoint,
+  getCheckpointsByGameId,
+} from '../../../lib/api';
 import type { CreateGameInput, Game } from '../../../types';
 
 type AdminView = 'list' | 'create' | 'edit';
@@ -35,7 +41,7 @@ export default function AdminPage() {
     tempCheckpoints,
     selectedCheckpointId,
     initNewGame,
-    setCurrentGame,
+    initEditGame,
     selectCheckpoint,
     reset,
   } = useGameEditorStore();
@@ -96,10 +102,77 @@ export default function AdminPage() {
   };
 
   // Editovat existující hru
-  const handleEditGame = (game: Game) => {
-    setCurrentGame(game);
-    setCurrentView('edit');
-    // TODO: Načíst checkpointy z databáze
+  const handleEditGame = async (game: Game) => {
+    try {
+      setErrorMessage(null);
+      const checkpoints = await getCheckpointsByGameId(game.id);
+      initEditGame(game, checkpoints);
+      setCurrentView('edit');
+      setCreateStep('map'); // Jump directly to map editor
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Chyba při načítání checkpointů');
+    }
+  };
+
+  // Uložit změny v existující hře
+  const handleUpdateGame = async () => {
+    if (!currentGame || !currentGame.id) return;
+
+    try {
+      setIsSaving(true);
+      setErrorMessage(null);
+
+      // 1. Update game details
+      await updateGame(currentGame.id, {
+        title: currentGame.title,
+        description: currentGame.description || undefined,
+        is_public: currentGame.is_public,
+        difficulty: currentGame.difficulty,
+        settings: currentGame.settings,
+      });
+
+      // 2. Handle checkpoints - update existing, create new, delete removed
+      const existingCheckpoints = tempCheckpoints.filter((cp) => cp.id);
+      const newCheckpoints = tempCheckpoints.filter((cp) => !cp.id);
+
+      // Update existing checkpoints
+      for (const checkpoint of existingCheckpoints) {
+        await updateCheckpoint(checkpoint.id!, {
+          order_index: checkpoint.order_index,
+          latitude: checkpoint.latitude,
+          longitude: checkpoint.longitude,
+          radius: checkpoint.radius,
+          type: checkpoint.type,
+          content: checkpoint.content,
+          secret_solution: checkpoint.secret_solution || undefined,
+        });
+      }
+
+      // Create new checkpoints
+      for (const checkpoint of newCheckpoints) {
+        await createCheckpoint({
+          game_id: currentGame.id,
+          order_index: checkpoint.order_index,
+          latitude: checkpoint.latitude,
+          longitude: checkpoint.longitude,
+          radius: checkpoint.radius,
+          type: checkpoint.type,
+          content: checkpoint.content,
+          secret_solution: checkpoint.secret_solution || undefined,
+        });
+      }
+
+      // TODO: Delete removed checkpoints (need to track which were deleted)
+
+      setSuccessMessage(`Hra "${currentGame.title}" byla úspěšně aktualizována!`);
+      reset();
+      setCurrentView('list');
+      setCreateStep('form');
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Chyba při ukládání změn');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Zrušit vytváření/editaci
@@ -113,12 +186,7 @@ export default function AdminPage() {
     <Container maxWidth="xl">
       <Box sx={{ py: 4 }}>
         {/* Header */}
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={4}
-        >
+        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
           <Typography variant="h3" color="primary">
             Admin Panel
           </Typography>
@@ -141,21 +209,14 @@ export default function AdminPage() {
         {currentView === 'create' && (
           <Box>
             {/* Step indicator */}
-            <Tabs
-              value={createStep}
-              sx={{ mb: 3 }}
-              onChange={(_, value) => setCreateStep(value)}
-            >
+            <Tabs value={createStep} sx={{ mb: 3 }} onChange={(_, value) => setCreateStep(value)}>
               <Tab label="1. Základní info" value="form" disabled={createStep === 'map'} />
               <Tab label="2. Checkpointy" value="map" disabled={createStep === 'form'} />
             </Tabs>
 
             {/* Step content */}
             {createStep === 'form' && (
-              <GameCreatorForm
-                onSubmit={handleGameFormSubmit}
-                onCancel={handleCancel}
-              />
+              <GameCreatorForm onSubmit={handleGameFormSubmit} onCancel={handleCancel} />
             )}
 
             {createStep === 'map' && (
@@ -178,9 +239,20 @@ export default function AdminPage() {
         )}
 
         {currentView === 'edit' && (
-          <Alert severity="info">
-            Editace existující hry bude implementována v další iteraci.
-          </Alert>
+          <>
+            <MapEditor onSave={handleUpdateGame} isLoading={isSaving} />
+            <CheckpointEditor
+              open={selectedCheckpointId !== null}
+              onClose={() => selectCheckpoint(null)}
+            />
+
+            {/* Cancel button */}
+            <Box mt={3}>
+              <Button variant="outlined" onClick={handleCancel}>
+                Zrušit editaci
+              </Button>
+            </Box>
+          </>
         )}
       </Box>
 
@@ -195,11 +267,7 @@ export default function AdminPage() {
         </Alert>
       </Snackbar>
 
-      <Snackbar
-        open={!!errorMessage}
-        autoHideDuration={6000}
-        onClose={() => setErrorMessage(null)}
-      >
+      <Snackbar open={!!errorMessage} autoHideDuration={6000} onClose={() => setErrorMessage(null)}>
         <Alert severity="error" onClose={() => setErrorMessage(null)}>
           {errorMessage}
         </Alert>
