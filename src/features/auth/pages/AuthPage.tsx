@@ -127,6 +127,9 @@ export default function AuthPage() {
             <TextField
               label="Email"
               type="email"
+              name="email"
+              id="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
@@ -136,6 +139,9 @@ export default function AuthPage() {
             <TextField
               label="Heslo"
               type="password"
+              name="password"
+              id="password"
+              autoComplete={isSignUp ? 'new-password' : 'current-password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
