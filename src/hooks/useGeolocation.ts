@@ -1,6 +1,6 @@
 // Custom hook pro sledování GPS pozice uživatele
-import { useCallback, useEffect, useState } from 'react';
-import type { GPSPosition } from '../types';
+import { useCallback, useEffect, useState } from "react";
+import type { GPSPosition } from "../types";
 
 interface UseGeolocationReturn {
   position: GPSPosition | null;
@@ -16,7 +16,7 @@ export function useGeolocation(): UseGeolocationReturn {
   const [loading, setLoading] = useState(false); // Start with false, only set to true when requesting permission
   const [watchId, setWatchId] = useState<number | null>(null);
 
-  const isSupported = 'geolocation' in navigator;
+  const isSupported = "geolocation" in navigator;
 
   const handleSuccess = useCallback((pos: GeolocationPosition) => {
     setPosition({
@@ -30,27 +30,30 @@ export function useGeolocation(): UseGeolocationReturn {
   }, []);
 
   const handleError = useCallback((err: GeolocationPositionError) => {
-    let errorMessage = 'Neznámá chyba při získávání polohy';
+    let errorMessage = "Neznámá chyba při získávání polohy";
 
     switch (err.code) {
       case err.PERMISSION_DENIED:
-        errorMessage = 'Přístup k poloze byl zamítnut. Povolte přístup k poloze v nastavení.';
+        errorMessage =
+          "Přístup k poloze byl zamítnut. Povolte přístup k poloze v nastavení.";
         break;
       case err.POSITION_UNAVAILABLE:
-        errorMessage = 'Informace o poloze nejsou dostupné.';
+        errorMessage = "Informace o poloze nejsou dostupné. Zkuste to znovu.";
         break;
       case err.TIMEOUT:
-        errorMessage = 'Vypršel časový limit pro získání polohy.';
+        errorMessage =
+          "Vypršel časový limit pro získání polohy. Zkuste to znovu.";
         break;
     }
 
+    console.error("Geolocation error:", errorMessage, `(code: ${err.code})`);
     setError(errorMessage);
     setLoading(false);
   }, []);
 
   const requestPermission = useCallback(async () => {
     if (!isSupported) {
-      setError('Geolokace není podporována ve vašem prohlížeči.');
+      setError("Geolokace není podporována ve vašem prohlížeči.");
       setLoading(false);
       return;
     }
@@ -59,37 +62,45 @@ export function useGeolocation(): UseGeolocationReturn {
       setLoading(true);
       setError(null);
 
-      console.log('Requesting geolocation permission...');
+      console.log("Requesting geolocation permission...");
 
       // First request position to trigger permission prompt
       // Use longer timeout and allow lower accuracy for desktop
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          console.log('Geolocation permission granted, position received:', pos);
+          console.log(
+            "Geolocation permission granted, position received:",
+            pos,
+          );
           handleSuccess(pos);
 
           // After successful permission, start watching position
-          const id = navigator.geolocation.watchPosition(handleSuccess, handleError, {
-            enableHighAccuracy: false, // Desktop má obvykle jen WiFi/IP geolocation
-            timeout: 10000, // 10 sekund timeout
-            maximumAge: 30000, // Cache na 30 sekund je OK
-          });
+          const id = navigator.geolocation.watchPosition(
+            handleSuccess,
+            handleError,
+            {
+              enableHighAccuracy: false, // Desktop má obvykle jen WiFi/IP geolocation
+              timeout: 30000, // 30 sekund timeout
+              maximumAge: 30000, // Cache na 30 sekund je OK
+            },
+          );
 
           setWatchId(id);
         },
         (err) => {
-          console.error('Geolocation error:', err);
           handleError(err);
         },
         {
           enableHighAccuracy: false, // Desktop obvykle nemá GPS
-          timeout: 10000, // Delší timeout pro desktop
+          timeout: 30000, // Delší timeout pro desktop (30s)
           maximumAge: 0,
-        }
+        },
       );
     } catch (err) {
-      console.error('Exception in requestPermission:', err);
-      setError(err instanceof Error ? err.message : 'Chyba při získávání polohy');
+      console.error("Exception in requestPermission:", err);
+      setError(
+        err instanceof Error ? err.message : "Chyba při získávání polohy",
+      );
       setLoading(false);
     }
   }, [isSupported, handleSuccess, handleError]);
