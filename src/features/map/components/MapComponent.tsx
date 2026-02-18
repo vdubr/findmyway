@@ -42,16 +42,16 @@ export default function MapComponent({
   const [map, setMap] = useState<Map | null>(null);
   const markersLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const userLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
+  const clickHandlerRef = useRef<((event: any) => void) | null>(null);
 
   // Inicializace mapy
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || map) return; // Prevent multiple initializations
 
     // Vrstva s markery
     const markersSource = new VectorSource();
     const markersLayer = new VectorLayer({
       source: markersSource,
-      style: createMarkerStyle('checkpoint'),
     });
     markersLayerRef.current = markersLayer;
 
@@ -59,7 +59,6 @@ export default function MapComponent({
     const userSource = new VectorSource();
     const userLayer = new VectorLayer({
       source: userSource,
-      style: createMarkerStyle('user'),
     });
     userLayerRef.current = userLayer;
 
@@ -79,31 +78,65 @@ export default function MapComponent({
       }),
     });
 
-    // Handlery pro kliknutí
+    setMap(initialMap);
+
+    return () => {
+      initialMap.setTarget(undefined);
+      initialMap.dispose();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Spustit jen jednou při mountu
+
+  // Handle map click events
+  useEffect(() => {
+    if (!map) return;
+
+    // Remove old handler if exists
+    if (clickHandlerRef.current) {
+      map.un('click', clickHandlerRef.current);
+    }
+
+    // Add new handler if onMapClick is provided
     if (onMapClick) {
-      initialMap.on('click', (event) => {
+      const handler = (event: any) => {
         const coords = toLonLat(event.coordinate);
         onMapClick({
           longitude: coords[0],
           latitude: coords[1],
         });
-      });
+      };
+
+      map.on('click', handler);
+      clickHandlerRef.current = handler;
     }
 
-    setMap(initialMap);
-
     return () => {
-      initialMap.setTarget(undefined);
+      if (clickHandlerRef.current) {
+        map.un('click', clickHandlerRef.current);
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Spustit jen jednou při mountu
+  }, [map, onMapClick]);
 
-  // Aktualizace centra a zoomu
+  // Aktualizace centra a zoomu pouze pokud se významně změnily
+  // Aktualizace centra a zoomu pouze pokud se významně změnily
   useEffect(() => {
     if (!map) return;
     const view = map.getView();
-    view.setCenter(fromLonLat([center.longitude, center.latitude]));
-    view.setZoom(zoom);
+    const currentCenter = view.getCenter();
+    const newCenter = fromLonLat([center.longitude, center.latitude]);
+
+    // Only update if center changed significantly (more than ~10 meters)
+    if (currentCenter) {
+      const dx = Math.abs(currentCenter[0] - newCenter[0]);
+      const dy = Math.abs(currentCenter[1] - newCenter[1]);
+      if (dx < 1 && dy < 1) return; // Skip small changes
+    }
+
+    view.animate({
+      center: newCenter,
+      zoom: zoom,
+      duration: 300,
+    });
   }, [map, center.latitude, center.longitude, zoom]);
 
   // Aktualizace markerů
