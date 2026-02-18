@@ -1,11 +1,19 @@
 // Seznam vlastních her s možností editace a mazání
-import { useState, useEffect } from 'react';
+
 import {
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  Lock as LockIcon,
+  Public as PublicIcon,
+  Visibility as VisibilityIcon,
+} from '@mui/icons-material';
+import {
+  Alert,
   Box,
   Button,
   Card,
-  CardContent,
   CardActions,
+  CardContent,
   Chip,
   Dialog,
   DialogActions,
@@ -16,19 +24,12 @@ import {
   IconButton,
   Stack,
   Typography,
-  Alert,
 } from '@mui/material';
-import {
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  Visibility as VisibilityIcon,
-  Public as PublicIcon,
-  Lock as LockIcon,
-} from '@mui/icons-material';
-import { getMyGames, deleteGame, updateGame } from '../../../lib/api';
-import type { Game } from '../../../types';
-import LoadingSpinner from '../../../components/LoadingSpinner';
+import { useEffect, useState } from 'react';
 import ErrorDisplay from '../../../components/ErrorDisplay';
+import LoadingSpinner from '../../../components/LoadingSpinner';
+import { deleteGame, getMyGames, updateGame } from '../../../lib/api';
+import type { Game } from '../../../types';
 
 interface GameListProps {
   onEdit?: (game: Game) => void;
@@ -41,6 +42,7 @@ export default function GameList({ onEdit }: GameListProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [gameToDelete, setGameToDelete] = useState<Game | null>(null);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: loadGames je stabilní funkce, spouští se pouze při mountu
   useEffect(() => {
     loadGames();
   }, []);

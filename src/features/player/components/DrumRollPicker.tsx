@@ -1,6 +1,6 @@
 // iOS-style drum roll picker component
 import { Box, Typography } from '@mui/material';
-import { useRef, useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface DrumRollPickerProps {
   value: number;
@@ -42,7 +42,7 @@ export default function DrumRollPicker({
     const scrollTop = e.currentTarget.scrollTop;
     const index = Math.round(scrollTop / itemHeight);
     const newValue = min + index;
-    
+
     if (newValue !== value && newValue >= min && newValue <= max) {
       onChange(newValue);
     }
@@ -56,7 +56,7 @@ export default function DrumRollPicker({
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging || !containerRef.current) return;
-    
+
     const deltaY = e.clientY - startY;
     containerRef.current.scrollTop = scrollTop - deltaY;
   };
@@ -64,7 +64,7 @@ export default function DrumRollPicker({
   const handleMouseUp = () => {
     if (!isDragging) return;
     setIsDragging(false);
-    
+
     // Snap to nearest value
     if (containerRef.current) {
       const scrollTop = containerRef.current.scrollTop;
@@ -81,7 +81,7 @@ export default function DrumRollPicker({
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging || !containerRef.current) return;
-    
+
     const deltaY = e.touches[0].clientY - startY;
     containerRef.current.scrollTop = scrollTop - deltaY;
   };
@@ -89,7 +89,7 @@ export default function DrumRollPicker({
   const handleTouchEnd = () => {
     if (!isDragging) return;
     setIsDragging(false);
-    
+
     // Snap to nearest value
     if (containerRef.current) {
       const scrollTop = containerRef.current.scrollTop;
@@ -105,7 +105,7 @@ export default function DrumRollPicker({
           {label}
         </Typography>
       )}
-      
+
       <Box
         sx={{
           position: 'relative',
@@ -157,7 +157,7 @@ export default function DrumRollPicker({
         >
           {/* Padding top */}
           <Box sx={{ height: itemHeight * centerIndex }} />
-          
+
           {/* Items */}
           {items.map((item) => {
             const isSelected = item === value;
@@ -187,7 +187,7 @@ export default function DrumRollPicker({
               </Box>
             );
           })}
-          
+
           {/* Padding bottom */}
           <Box sx={{ height: itemHeight * centerIndex }} />
         </Box>

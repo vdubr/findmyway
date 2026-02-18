@@ -1,30 +1,31 @@
 // Admin Panel - správa her
-import { useState } from 'react';
+
+import { Add as AddIcon } from '@mui/icons-material';
 import {
+  Alert,
   Box,
   Button,
   Container,
+  Snackbar,
   Stack,
   Tab,
   Tabs,
   Typography,
-  Alert,
-  Snackbar,
 } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
-import GameCreatorForm from '../components/GameCreatorForm';
-import MapEditor from '../components/MapEditor';
-import CheckpointEditor from '../components/CheckpointEditor';
-import GameList from '../components/GameList';
-import { useGameEditorStore } from '../store/gameEditorStore';
+import { useState } from 'react';
 import {
-  createGame,
   createCheckpoint,
-  updateGame,
-  updateCheckpoint,
+  createGame,
   getCheckpointsByGameId,
+  updateCheckpoint,
+  updateGame,
 } from '../../../lib/api';
 import type { CreateGameInput, Game } from '../../../types';
+import CheckpointEditor from '../components/CheckpointEditor';
+import GameCreatorForm from '../components/GameCreatorForm';
+import GameList from '../components/GameList';
+import MapEditor from '../components/MapEditor';
+import { useGameEditorStore } from '../store/gameEditorStore';
 
 type AdminView = 'list' | 'create' | 'edit';
 type CreateStep = 'form' | 'map';

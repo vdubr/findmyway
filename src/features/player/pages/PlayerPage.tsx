@@ -1,36 +1,37 @@
 // Hlavní herní stránka pro hráče
-import { useEffect, useState } from 'react';
+
 import {
-  Button,
-  Container,
-  Stack,
-  Typography,
+  LocationOn as LocationIcon,
+  PlayArrow as PlayIcon,
+  EmojiEvents as TrophyIcon,
+} from '@mui/icons-material';
+import {
   Alert,
+  Button,
+  Card,
+  CardContent,
+  Container,
   Dialog,
   DialogContent,
   DialogTitle,
-  Card,
-  CardContent,
+  Stack,
+  Typography,
 } from '@mui/material';
-import { useParams, useNavigate } from 'react-router-dom';
-import {
-  PlayArrow as PlayIcon,
-  LocationOn as LocationIcon,
-  EmojiEvents as TrophyIcon,
-} from '@mui/icons-material';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import ErrorDisplay from '../../../components/ErrorDisplay';
+import LoadingSpinner from '../../../components/LoadingSpinner';
 import { useGeolocation } from '../../../hooks/useGeolocation';
-import { useGamePlayStore } from '../store/gamePlayStore';
 import {
-  getGameById,
-  getCheckpointsByGameId,
   getActiveSession,
+  getCheckpointsByGameId,
+  getGameById,
   startGameSession,
 } from '../../../lib/api';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
-import DistanceIndicator from '../components/DistanceIndicator';
 import CheckpointContentDialog from '../components/CheckpointContentDialog';
-import LoadingSpinner from '../../../components/LoadingSpinner';
-import ErrorDisplay from '../../../components/ErrorDisplay';
+import DistanceIndicator from '../components/DistanceIndicator';
+import { useGamePlayStore } from '../store/gamePlayStore';
 
 export default function PlayerPage() {
   const { gameId } = useParams<{ gameId: string }>();
@@ -69,6 +70,7 @@ export default function PlayerPage() {
   } = useGamePlayStore();
 
   // Load game data
+  // biome-ignore lint/correctness/useExhaustiveDependencies: loadGameData a resetGame jsou stabilní funkce
   useEffect(() => {
     if (!gameId) return;
 
@@ -77,7 +79,6 @@ export default function PlayerPage() {
     return () => {
       resetGame();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameId]);
 
   const loadGameData = async () => {
@@ -110,11 +111,11 @@ export default function PlayerPage() {
   };
 
   // Update user position in store
+  // biome-ignore lint/correctness/useExhaustiveDependencies: updateUserPosition je stabilní funkce ze store
   useEffect(() => {
     if (position && gameStarted) {
       updateUserPosition(position);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [position, gameStarted]);
 
   // Request GPS permission when starting game
@@ -163,7 +164,10 @@ export default function PlayerPage() {
   if (userPosition) {
     markers.push({
       id: 'user',
-      location: { latitude: userPosition.latitude, longitude: userPosition.longitude },
+      location: {
+        latitude: userPosition.latitude,
+        longitude: userPosition.longitude,
+      },
       type: 'user',
     });
   }
@@ -172,7 +176,10 @@ export default function PlayerPage() {
   if (currentCheckpoint) {
     markers.push({
       id: currentCheckpoint.id,
-      location: { latitude: currentCheckpoint.latitude, longitude: currentCheckpoint.longitude },
+      location: {
+        latitude: currentCheckpoint.latitude,
+        longitude: currentCheckpoint.longitude,
+      },
       type: 'target',
       label: `${currentCheckpointIndex + 1}`,
     });
@@ -191,7 +198,13 @@ export default function PlayerPage() {
       {/* Game not started - show intro */}
       {!gameStarted && (
         <Dialog open={!gameStarted} maxWidth="sm" fullWidth>
-          <DialogTitle sx={{ typography: 'h4', color: 'primary.main', textAlign: 'center' }}>
+          <DialogTitle
+            sx={{
+              typography: 'h4',
+              color: 'primary.main',
+              textAlign: 'center',
+            }}
+          >
             {game.title}
           </DialogTitle>
           <DialogContent>
@@ -268,13 +281,22 @@ export default function PlayerPage() {
           <MapComponent
             center={
               userPosition
-                ? { latitude: userPosition.latitude, longitude: userPosition.longitude }
-                : { latitude: currentCheckpoint.latitude, longitude: currentCheckpoint.longitude }
+                ? {
+                    latitude: userPosition.latitude,
+                    longitude: userPosition.longitude,
+                  }
+                : {
+                    latitude: currentCheckpoint.latitude,
+                    longitude: currentCheckpoint.longitude,
+                  }
             }
             zoom={15}
             userLocation={
               userPosition
-                ? { latitude: userPosition.latitude, longitude: userPosition.longitude }
+                ? {
+                    latitude: userPosition.latitude,
+                    longitude: userPosition.longitude,
+                  }
                 : null
             }
             markers={markers}

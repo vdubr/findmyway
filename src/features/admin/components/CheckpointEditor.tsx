@@ -1,14 +1,23 @@
 // Editor pro editaci checkpointu (obsah, typ, řešení)
-import { useState, useRef } from 'react';
+
 import {
+  Close as CloseIcon,
+  Delete as DeleteIcon,
+  Image as ImageIcon,
+  Save as SaveIcon,
+} from '@mui/icons-material';
+import {
+  Alert,
   Box,
   Button,
   Card,
   CardContent,
   CardMedia,
+  Divider,
   Drawer,
   FormControl,
   FormControlLabel,
+  IconButton,
   InputLabel,
   MenuItem,
   Select,
@@ -16,19 +25,11 @@ import {
   Switch,
   TextField,
   Typography,
-  IconButton,
-  Divider,
-  Alert,
 } from '@mui/material';
-import {
-  Close as CloseIcon,
-  Save as SaveIcon,
-  Image as ImageIcon,
-  Delete as DeleteIcon,
-} from '@mui/icons-material';
-import { useGameEditorStore, type TempCheckpoint } from '../store/gameEditorStore';
+import { useRef, useState } from 'react';
+import { deleteCheckpointImage, uploadCheckpointImage } from '../../../lib/api';
 import type { CheckpointType, CoordinateDMS } from '../../../types';
-import { uploadCheckpointImage, deleteCheckpointImage } from '../../../lib/api';
+import { type TempCheckpoint, useGameEditorStore } from '../store/gameEditorStore';
 
 interface CheckpointEditorProps {
   open: boolean;

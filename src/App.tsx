@@ -1,12 +1,12 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import theme from './theme';
+import { ThemeProvider } from '@mui/material/styles';
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import AppLayout from './components/AppLayout';
 
 // Components
 import ErrorBoundary from './components/ErrorBoundary';
-import AppLayout from './components/AppLayout';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminPage from './features/admin/pages/AdminPage';
 
 // Auth
 import { AuthProvider } from './features/auth/AuthContext';
@@ -14,8 +14,8 @@ import AuthPage from './features/auth/pages/AuthPage';
 
 // Pages
 import HomePage from './features/game/pages/HomePage';
-import AdminPage from './features/admin/pages/AdminPage';
 import PlayerPage from './features/player/pages/PlayerPage';
+import theme from './theme';
 
 function App() {
   return (

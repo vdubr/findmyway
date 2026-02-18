@@ -1,10 +1,10 @@
 // Zustand store pro správu stavu při vytváření/editaci hry
 import { create } from 'zustand';
 import type {
-  Game,
-  CreateGameInput,
-  CheckpointType,
   CheckpointContent,
+  CheckpointType,
+  CreateGameInput,
+  Game,
   SecretSolution,
 } from '../../../types';
 

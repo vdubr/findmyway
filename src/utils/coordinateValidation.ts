@@ -53,11 +53,7 @@ export function validateCoordinateInput(
   longitudeCorrect: boolean;
   message: string;
 } {
-  const latitudeCorrect = compareDMSCoordinates(
-    inputLatitude,
-    solution.latitude,
-    toleranceSeconds
-  );
+  const latitudeCorrect = compareDMSCoordinates(inputLatitude, solution.latitude, toleranceSeconds);
   const longitudeCorrect = compareDMSCoordinates(
     inputLongitude,
     solution.longitude,

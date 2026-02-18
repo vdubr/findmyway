@@ -1,27 +1,27 @@
-import type { ReactNode } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Box,
+  Create as CreateIcon,
+  Home as HomeIcon,
+  Logout as LogoutIcon,
+  Map as MapIcon,
+  Person as PersonIcon,
+} from '@mui/icons-material';
+import {
   AppBar,
-  Toolbar,
-  Typography,
-  IconButton,
   Avatar,
-  Menu,
-  MenuItem,
   BottomNavigation,
   BottomNavigationAction,
+  Box,
+  IconButton,
+  Menu,
+  MenuItem,
+  Toolbar,
+  Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import {
-  Map as MapIcon,
-  Home as HomeIcon,
-  Create as CreateIcon,
-  Person as PersonIcon,
-  Logout as LogoutIcon,
-} from '@mui/icons-material';
+import type { ReactNode } from 'react';
 import { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../features/auth/AuthContext';
 
 interface AppLayoutProps {
@@ -104,7 +104,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                 anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
               >
-                <MenuItem onClick={() => { handleMenuClose(); navigate('/profile'); }}>
+                <MenuItem
+                  onClick={() => {
+                    handleMenuClose();
+                    navigate('/profile');
+                  }}
+                >
                   <PersonIcon sx={{ mr: 1 }} />
                   Můj profil
                 </MenuItem>

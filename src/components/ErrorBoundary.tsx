@@ -1,7 +1,7 @@
-import { Component } from 'react';
-import type { ReactNode, ErrorInfo } from 'react';
-import { Box, Alert, AlertTitle, Button } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import { Alert, AlertTitle, Box, Button } from '@mui/material';
+import type { ErrorInfo, ReactNode } from 'react';
+import { Component } from 'react';
 
 interface ErrorBoundaryProps {
   children: ReactNode;

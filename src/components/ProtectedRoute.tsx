@@ -1,6 +1,6 @@
+import { Box, CircularProgress } from '@mui/material';
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Box, CircularProgress } from '@mui/material';
 import { useAuth } from '../features/auth/AuthContext';
 
 interface ProtectedRouteProps {

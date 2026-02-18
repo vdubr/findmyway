@@ -1,18 +1,19 @@
 // Formulář pro vytvoření nové hry nebo editaci existující
-import { useState } from 'react';
+
+import { Cancel as CancelIcon, Save as SaveIcon } from '@mui/icons-material';
 import {
   Box,
   Button,
   Card,
   CardContent,
   FormControlLabel,
+  Slider,
+  Stack,
   Switch,
   TextField,
   Typography,
-  Stack,
-  Slider,
 } from '@mui/material';
-import { Save as SaveIcon, Cancel as CancelIcon } from '@mui/icons-material';
+import { useState } from 'react';
 import type { CreateGameInput } from '../../../types';
 
 interface GameCreatorFormProps {
@@ -122,9 +123,7 @@ export default function GameCreatorForm({
 
             {/* Obtížnost */}
             <Box>
-              <Typography gutterBottom>
-                Obtížnost: {formData.difficulty}/5
-              </Typography>
+              <Typography gutterBottom>Obtížnost: {formData.difficulty}/5</Typography>
               <Slider
                 value={formData.difficulty}
                 onChange={(_, value) => handleChange('difficulty', value)}
@@ -159,9 +158,7 @@ export default function GameCreatorForm({
               label="Tolerance radiusu (m)"
               type="number"
               value={formData.settings?.radius_tolerance}
-              onChange={(e) =>
-                handleSettingsChange('radius_tolerance', Number(e.target.value))
-              }
+              onChange={(e) => handleSettingsChange('radius_tolerance', Number(e.target.value))}
               disabled={isLoading}
               helperText="Jak blízko musí hráč být k checkpointu (výchozí: 10m)"
               inputProps={{ min: 5, max: 100 }}
@@ -185,10 +182,7 @@ export default function GameCreatorForm({
               type="number"
               value={formData.settings?.max_players || ''}
               onChange={(e) =>
-                handleSettingsChange(
-                  'max_players',
-                  e.target.value ? Number(e.target.value) : null
-                )
+                handleSettingsChange('max_players', e.target.value ? Number(e.target.value) : null)
               }
               disabled={isLoading}
               helperText="Nechat prázdné pro neomezený počet"
@@ -201,10 +195,7 @@ export default function GameCreatorForm({
               type="number"
               value={formData.settings?.time_limit || ''}
               onChange={(e) =>
-                handleSettingsChange(
-                  'time_limit',
-                  e.target.value ? Number(e.target.value) : null
-                )
+                handleSettingsChange('time_limit', e.target.value ? Number(e.target.value) : null)
               }
               disabled={isLoading}
               helperText="Nechat prázdné pro neomezený čas"

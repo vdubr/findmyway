@@ -1,15 +1,16 @@
 // Helper funkce pro práci s Supabase databází
-import { supabase } from './supabase';
+
 import type {
-  Profile,
-  Game,
   Checkpoint,
-  GameSession,
-  CreateGameInput,
-  UpdateGameInput,
   CreateCheckpointInput,
+  CreateGameInput,
+  Game,
+  GameSession,
+  Profile,
   UpdateCheckpointInput,
+  UpdateGameInput,
 } from '../types';
+import { supabase } from './supabase';
 
 // ============================================================================
 // PROFILES

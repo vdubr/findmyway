@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { calculateDistance, isWithinRadius, decimalToDMS, dmsToDecimal } from './geo';
+import { describe, expect, it } from 'vitest';
+import { calculateDistance, decimalToDMS, dmsToDecimal, isWithinRadius } from './geo';
 
 describe('Geo Utils', () => {
   describe('calculateDistance', () => {

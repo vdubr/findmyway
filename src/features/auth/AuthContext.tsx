@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import type { Session, User } from '@supabase/supabase-js';
 import type { ReactNode } from 'react';
-import type { User, Session } from '@supabase/supabase-js';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Profile } from '../../types';
 
@@ -107,6 +107,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   // Sledovat změny autentizace
+  // biome-ignore lint/correctness/useExhaustiveDependencies: loadProfile je stabilní funkce, spouští se pouze při mountu
   useEffect(() => {
     // Načíst aktuální session
     supabase.auth.getSession().then(({ data: { session } }) => {

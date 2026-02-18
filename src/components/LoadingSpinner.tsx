@@ -5,7 +5,10 @@ interface LoadingSpinnerProps {
   size?: number;
 }
 
-export default function LoadingSpinner({ message = 'Načítání...', size = 60 }: LoadingSpinnerProps) {
+export default function LoadingSpinner({
+  message = 'Načítání...',
+  size = 60,
+}: LoadingSpinnerProps) {
   return (
     <Box
       sx={{

@@ -1,29 +1,29 @@
-import { useEffect, useState } from 'react';
 import {
+  Create as CreateIcon,
+  LocationOn as LocationIcon,
+  Login as LoginIcon,
+  Map as MapIcon,
+  PlayArrow as PlayIcon,
+} from '@mui/icons-material';
+import {
+  Alert,
   Box,
-  Container,
-  Typography,
   Button,
   Card,
-  CardContent,
   CardActions,
-  Grid,
+  CardContent,
   Chip,
-  Alert,
+  Container,
+  Grid,
+  Typography,
 } from '@mui/material';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Map as MapIcon,
-  Login as LoginIcon,
-  PlayArrow as PlayIcon,
-  LocationOn as LocationIcon,
-  Create as CreateIcon,
-} from '@mui/icons-material';
-import { useAuth } from '../../auth/AuthContext';
-import { getPublicGames } from '../../../lib/api';
-import LoadingSpinner from '../../../components/LoadingSpinner';
 import ErrorDisplay from '../../../components/ErrorDisplay';
+import LoadingSpinner from '../../../components/LoadingSpinner';
+import { getPublicGames } from '../../../lib/api';
 import type { Game } from '../../../types';
+import { useAuth } from '../../auth/AuthContext';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -32,6 +32,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: loadGames je stabilní funkce, spouští se pouze při mountu
   useEffect(() => {
     loadGames();
   }, []);
@@ -71,7 +72,15 @@ export default function HomePage() {
           Dobrodružná geolokační hra pro děti i dospělé
         </Typography>
 
-        <Box sx={{ display: 'flex', gap: 2, mt: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 2,
+            mt: 4,
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
           {user ? (
             <Button
               variant="contained"

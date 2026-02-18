@@ -1,10 +1,11 @@
 // Komponenta pro zobrazení vzdálenosti a směru k checkpointu
-import { Box, Card, CardContent, LinearProgress, Stack, Typography, Chip } from '@mui/material';
+
 import {
-  Navigation as NavigationIcon,
-  LocationOn as LocationIcon,
   CheckCircle as CheckIcon,
+  LocationOn as LocationIcon,
+  Navigation as NavigationIcon,
 } from '@mui/icons-material';
+import { Box, Card, CardContent, Chip, LinearProgress, Stack, Typography } from '@mui/material';
 
 interface DistanceIndicatorProps {
   distance: number | null; // v metrech
@@ -51,7 +52,11 @@ export default function DistanceIndicator({
                 {currentIndex + 1} / {totalCheckpoints}
               </Typography>
             </Stack>
-            <LinearProgress variant="determinate" value={progress} sx={{ height: 8, borderRadius: 4 }} />
+            <LinearProgress
+              variant="determinate"
+              value={progress}
+              sx={{ height: 8, borderRadius: 4 }}
+            />
           </Box>
 
           {/* Distance display */}

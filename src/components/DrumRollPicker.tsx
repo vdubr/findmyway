@@ -40,12 +40,13 @@ export default function DrumRollPicker({
   };
 
   // Scroll na aktuální hodnotu při změně z vnějšku
+  // biome-ignore lint/correctness/useExhaustiveDependencies: getScrollForIndex je čistá funkce bez závislostí
   useEffect(() => {
     if (!isDragging && containerRef.current) {
       const targetScroll = getScrollForIndex(currentIndex);
       containerRef.current.scrollTop = targetScroll;
     }
-  }, [value, isDragging, currentIndex]);
+  }, [isDragging, currentIndex]);
 
   const handleScroll = () => {
     if (!containerRef.current || isDragging) return;

@@ -1,5 +1,13 @@
 // Komponenta pro zadávání GPS souřadnic ve formátu DMS pomocí iOS-style drum roll pickers
-import { Box, Grid, Paper, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import {
+  Box,
+  Grid,
+  Paper,
+  Stack,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+} from '@mui/material';
 import { useState } from 'react';
 import type { CoordinateDMS } from '../../../types';
 import DrumRollPicker from './DrumRollPicker';
@@ -34,7 +42,10 @@ export default function CoordinatePicker({
     });
   };
 
-  const handleLatDirectionChange = (_: React.MouseEvent<HTMLElement>, newDirection: 'N' | 'S' | null) => {
+  const handleLatDirectionChange = (
+    _: React.MouseEvent<HTMLElement>,
+    newDirection: 'N' | 'S' | null
+  ) => {
     if (newDirection) {
       setLatDirection(newDirection);
       onLatitudeChange({
@@ -44,7 +55,10 @@ export default function CoordinatePicker({
     }
   };
 
-  const handleLonDirectionChange = (_: React.MouseEvent<HTMLElement>, newDirection: 'E' | 'W' | null) => {
+  const handleLonDirectionChange = (
+    _: React.MouseEvent<HTMLElement>,
+    newDirection: 'E' | 'W' | null
+  ) => {
     if (newDirection) {
       setLonDirection(newDirection);
       onLongitudeChange({
@@ -61,7 +75,7 @@ export default function CoordinatePicker({
         <Typography variant="h6" gutterBottom align="center" color="primary">
           Zeměpisná šířka (Latitude)
         </Typography>
-        
+
         <Stack spacing={2}>
           <Grid container spacing={2}>
             <Grid size={{ xs: 4 }}>
@@ -121,7 +135,7 @@ export default function CoordinatePicker({
         <Typography variant="h6" gutterBottom align="center" color="secondary">
           Zeměpisná délka (Longitude)
         </Typography>
-        
+
         <Stack spacing={2}>
           <Grid container spacing={2}>
             <Grid size={{ xs: 4 }}>

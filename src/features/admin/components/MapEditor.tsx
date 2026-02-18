@@ -1,5 +1,12 @@
 // Map Editor pro přidávání a správu checkpointů při vytváření hry
-import { useState, useMemo } from 'react';
+
+import {
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  DragIndicator as DragIcon,
+  Edit as EditIcon,
+  Save as SaveIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -15,16 +22,10 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  DragIndicator as DragIcon,
-  Save as SaveIcon,
-} from '@mui/icons-material';
+import { useMemo, useState } from 'react';
+import type { GeoLocation } from '../../../types';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
 import { useGameEditorStore } from '../store/gameEditorStore';
-import type { GeoLocation } from '../../../types';
 
 interface MapEditorProps {
   onSave?: () => void;

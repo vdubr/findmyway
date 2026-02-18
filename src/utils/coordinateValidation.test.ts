@@ -1,11 +1,11 @@
 // Testy pro validaci souřadnic
 import { describe, expect, it } from 'vitest';
+import type { CoordinateDMS, SecretSolution } from '../types';
 import {
   compareDMSCoordinates,
-  validateCoordinateInput,
   createFakeCheckpoint,
+  validateCoordinateInput,
 } from './coordinateValidation';
-import type { CoordinateDMS, SecretSolution } from '../types';
 
 describe('compareDMSCoordinates', () => {
   it('should return true for identical coordinates', () => {

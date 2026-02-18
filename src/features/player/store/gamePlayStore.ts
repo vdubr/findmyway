@@ -1,11 +1,11 @@
 // Zustand store pro herní stav během hraní
 import { create } from 'zustand';
 import type {
-  Game,
   Checkpoint,
+  CheckpointCompletion,
+  Game,
   GameSession,
   GPSPosition,
-  CheckpointCompletion,
 } from '../../../types';
 import { calculateDistance } from '../../../utils/geo';
 

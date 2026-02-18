@@ -1,5 +1,5 @@
 // Custom hook pro sledování GPS pozice uživatele
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { GPSPosition } from '../types';
 
 interface UseGeolocationReturn {

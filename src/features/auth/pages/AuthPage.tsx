@@ -1,17 +1,17 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import GoogleIcon from '@mui/icons-material/Google';
 import {
-  Box,
-  Container,
-  Typography,
-  Button,
   Alert,
+  Box,
+  Button,
   CircularProgress,
-  TextField,
+  Container,
   Divider,
   Stack,
+  TextField,
+  Typography,
 } from '@mui/material';
-import GoogleIcon from '@mui/icons-material/Google';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 
 export default function AuthPage() {

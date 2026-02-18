@@ -1,4 +1,6 @@
 // Komponenta pro zobrazení obsahu checkpointu
+
+import { CheckCircle as CheckIcon, Close as CloseIcon } from '@mui/icons-material';
 import {
   Alert,
   Button,
@@ -13,11 +15,10 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { Close as CloseIcon, CheckCircle as CheckIcon } from '@mui/icons-material';
 import { useState } from 'react';
 import type { Checkpoint, CoordinateDMS } from '../../../types';
-import CoordinatePicker from './CoordinatePicker';
 import { validateCoordinateInput } from '../../../utils/coordinateValidation';
+import CoordinatePicker from './CoordinatePicker';
 
 interface CheckpointContentDialogProps {
   open: boolean;

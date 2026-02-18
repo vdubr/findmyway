@@ -1,5 +1,5 @@
-import { Box, Alert, AlertTitle, Button } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import { Alert, AlertTitle, Box, Button } from '@mui/material';
 
 interface ErrorDisplayProps {
   title?: string;
@@ -27,12 +27,7 @@ export default function ErrorDisplay({
         sx={{ maxWidth: 600 }}
         action={
           onRetry && (
-            <Button
-              color="inherit"
-              size="small"
-              startIcon={<RefreshIcon />}
-              onClick={onRetry}
-            >
+            <Button color="inherit" size="small" startIcon={<RefreshIcon />} onClick={onRetry}>
               Zkusit znovu
             </Button>
           )
