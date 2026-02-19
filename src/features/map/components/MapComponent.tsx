@@ -1,24 +1,25 @@
-import { Box, Paper } from "@mui/material";
-import { Feature } from "ol";
-import { Circle as CircleGeom, Point } from "ol/geom";
-import TileLayer from "ol/layer/Tile";
-import VectorLayer from "ol/layer/Vector";
-import Map from "ol/Map";
-import { fromLonLat, toLonLat } from "ol/proj";
-import OSM from "ol/source/OSM";
-import VectorSource from "ol/source/Vector";
-import { Circle, Fill, Stroke, Style } from "ol/style";
-import View from "ol/View";
-import { useEffect, useRef, useState } from "react";
-import "ol/ol.css";
-import type { GeoLocation } from "../../../types";
-import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from "../../../utils/constants";
+import { Box, Paper } from '@mui/material';
+import { Feature } from 'ol';
+import { Circle as CircleGeom, Point } from 'ol/geom';
+import TileLayer from 'ol/layer/Tile';
+import VectorLayer from 'ol/layer/Vector';
+import Map from 'ol/Map';
+import { fromLonLat, toLonLat } from 'ol/proj';
+import OSM from 'ol/source/OSM';
+import VectorSource from 'ol/source/Vector';
+import { Circle, Fill, Icon, Stroke, Style } from 'ol/style';
+import View from 'ol/View';
+import { useEffect, useRef, useState } from 'react';
+import 'ol/ol.css';
+import type { GeoLocation } from '../../../types';
+import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../../utils/constants';
 
 interface MapComponentProps {
   center?: GeoLocation;
   zoom?: number;
   userLocation?: GeoLocation | null;
   userAccuracy?: number | null; // GPS přesnost v metrech
+  userHeading?: number | null; // Azimut (směr) v stupních (0-360)
   markers?: MapMarker[];
   onMapClick?: (location: GeoLocation) => void;
   height?: string | number;
@@ -27,7 +28,7 @@ interface MapComponentProps {
 export interface MapMarker {
   id: string;
   location: GeoLocation;
-  type: "checkpoint" | "user" | "target";
+  type: 'checkpoint' | 'user' | 'target';
   label?: string;
 }
 
@@ -36,9 +37,10 @@ export default function MapComponent({
   zoom = DEFAULT_MAP_ZOOM,
   userLocation,
   userAccuracy,
+  userHeading,
   markers = [],
   onMapClick,
-  height = "500px",
+  height = '500px',
 }: MapComponentProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<Map | null>(null);
@@ -104,7 +106,7 @@ export default function MapComponent({
 
     // Remove old handler if exists
     if (clickHandlerRef.current) {
-      map.un("click", clickHandlerRef.current);
+      map.un('click', clickHandlerRef.current);
     }
 
     // Add new handler if onMapClick is provided
@@ -117,13 +119,13 @@ export default function MapComponent({
         });
       };
 
-      map.on("click", handler);
+      map.on('click', handler);
       clickHandlerRef.current = handler;
     }
 
     return () => {
       if (clickHandlerRef.current) {
-        map.un("click", clickHandlerRef.current);
+        map.un('click', clickHandlerRef.current);
       }
     };
   }, [map, onMapClick]);
@@ -163,9 +165,7 @@ export default function MapComponent({
 
     markers.forEach((marker) => {
       const feature = new Feature({
-        geometry: new Point(
-          fromLonLat([marker.location.longitude, marker.location.latitude]),
-        ),
+        geometry: new Point(fromLonLat([marker.location.longitude, marker.location.latitude])),
         markerType: marker.type,
         markerId: marker.id,
         markerLabel: marker.label,
@@ -176,7 +176,7 @@ export default function MapComponent({
     });
   }, [markers]);
 
-  // Aktualizace uživatelovy pozice
+  // Aktualizace uživatelovy pozice a směru
   useEffect(() => {
     if (!userLayerRef.current) return;
 
@@ -187,15 +187,14 @@ export default function MapComponent({
 
     if (userLocation) {
       const feature = new Feature({
-        geometry: new Point(
-          fromLonLat([userLocation.longitude, userLocation.latitude]),
-        ),
+        geometry: new Point(fromLonLat([userLocation.longitude, userLocation.latitude])),
       });
 
-      feature.setStyle(createMarkerStyle("user"));
+      // Pokud máme heading, zobrazit šipku, jinak kruh
+      feature.setStyle(createMarkerStyle('user', userHeading ?? undefined));
       source.addFeature(feature);
     }
-  }, [userLocation]);
+  }, [userLocation, userHeading]);
 
   // Aktualizace kružnice přesnosti
   useEffect(() => {
@@ -208,10 +207,7 @@ export default function MapComponent({
 
     if (userLocation && userAccuracy && userAccuracy > 0) {
       // Vytvoření kružnice s poloměrem podle GPS přesnosti
-      const center = fromLonLat([
-        userLocation.longitude,
-        userLocation.latitude,
-      ]);
+      const center = fromLonLat([userLocation.longitude, userLocation.latitude]);
       const circle = new CircleGeom(center, userAccuracy);
 
       const feature = new Feature({
@@ -222,13 +218,13 @@ export default function MapComponent({
       feature.setStyle(
         new Style({
           fill: new Fill({
-            color: "rgba(82, 183, 136, 0.15)", // Světle zelená s 15% opacity
+            color: 'rgba(82, 183, 136, 0.15)', // Světle zelená s 15% opacity
           }),
           stroke: new Stroke({
-            color: "rgba(82, 183, 136, 0.5)", // Zelená s 50% opacity
+            color: 'rgba(82, 183, 136, 0.5)', // Zelená s 50% opacity
             width: 2,
           }),
-        }),
+        })
       );
 
       source.addFeature(feature);
@@ -236,34 +232,81 @@ export default function MapComponent({
   }, [userLocation, userAccuracy]);
 
   return (
-    <Paper elevation={3} sx={{ overflow: "hidden", borderRadius: 2 }}>
-      <Box ref={mapRef} sx={{ width: "100%", height }} />
+    <Paper elevation={3} sx={{ overflow: 'hidden', borderRadius: 2 }}>
+      <Box ref={mapRef} sx={{ width: '100%', height }} />
     </Paper>
   );
 }
 
 // Helper funkce pro vytvoření stylu markeru
-function createMarkerStyle(type: "checkpoint" | "user" | "target"): Style {
-  if (type === "user") {
+function createMarkerStyle(type: 'checkpoint' | 'user' | 'target', heading?: number): Style {
+  if (type === 'user') {
+    // Pokud máme heading, zobrazit šipku směřující daným směrem
+    if (heading !== undefined && heading !== null) {
+      // Vytvořit canvas se šipkou
+      const canvas = document.createElement('canvas');
+      const size = 32;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      if (ctx) {
+        ctx.clearRect(0, 0, size, size);
+
+        // Posunout origin do středu
+        ctx.translate(size / 2, size / 2);
+
+        // Rotovat podle heading (převést stupně na radiány)
+        // OpenLayers používá radiány, heading je ve stupních
+        ctx.rotate((heading * Math.PI) / 180);
+
+        // Nakreslit šipku směřující nahoru (po rotaci bude směřovat podle heading)
+        ctx.beginPath();
+        ctx.moveTo(0, -12); // Špička šipky
+        ctx.lineTo(-8, 8); // Levý roh
+        ctx.lineTo(0, 4); // Střed dolního okraje
+        ctx.lineTo(8, 8); // Pravý roh
+        ctx.closePath();
+
+        // Vyplnit zelenou
+        ctx.fillStyle = '#52B788';
+        ctx.fill();
+
+        // Bílý okraj
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      return new Style({
+        image: new Icon({
+          img: canvas,
+          size: [size, size],
+          rotation: 0, // Rotace je už v canvasu
+        }),
+      });
+    }
+
+    // Bez heading zobrazit klasický kruh
     return new Style({
       image: new Circle({
         radius: 8,
-        fill: new Fill({ color: "#52B788" }), // Svěží zelená z theme
+        fill: new Fill({ color: '#52B788' }), // Svěží zelená z theme
         stroke: new Stroke({
-          color: "#fff",
+          color: '#fff',
           width: 3,
         }),
       }),
     });
   }
 
-  if (type === "target") {
+  if (type === 'target') {
     return new Style({
       image: new Circle({
         radius: 10,
-        fill: new Fill({ color: "#E9C46A" }), // Písková žlutá z theme
+        fill: new Fill({ color: '#E9C46A' }), // Písková žlutá z theme
         stroke: new Stroke({
-          color: "#1B4332",
+          color: '#1B4332',
           width: 2,
         }),
       }),
@@ -274,9 +317,9 @@ function createMarkerStyle(type: "checkpoint" | "user" | "target"): Style {
   return new Style({
     image: new Circle({
       radius: 12,
-      fill: new Fill({ color: "#2D6A4F" }), // Lesní zelená z theme
+      fill: new Fill({ color: '#2D6A4F' }), // Lesní zelená z theme
       stroke: new Stroke({
-        color: "#fff",
+        color: '#fff',
         width: 3,
       }),
     }),
