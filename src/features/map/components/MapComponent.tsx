@@ -1,18 +1,18 @@
-import { Box, Paper } from '@mui/material';
-import { Feature } from 'ol';
-import { Circle as CircleGeom, Point } from 'ol/geom';
-import TileLayer from 'ol/layer/Tile';
-import VectorLayer from 'ol/layer/Vector';
-import Map from 'ol/Map';
-import { fromLonLat, toLonLat } from 'ol/proj';
-import OSM from 'ol/source/OSM';
-import VectorSource from 'ol/source/Vector';
-import { Circle, Fill, Stroke, Style } from 'ol/style';
-import View from 'ol/View';
-import { useEffect, useRef, useState } from 'react';
-import 'ol/ol.css';
-import type { GeoLocation } from '../../../types';
-import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../../utils/constants';
+import { Box, Paper } from "@mui/material";
+import { Feature } from "ol";
+import { Circle as CircleGeom, Point } from "ol/geom";
+import TileLayer from "ol/layer/Tile";
+import VectorLayer from "ol/layer/Vector";
+import Map from "ol/Map";
+import { fromLonLat, toLonLat } from "ol/proj";
+import OSM from "ol/source/OSM";
+import VectorSource from "ol/source/Vector";
+import { Circle, Fill, Stroke, Style } from "ol/style";
+import View from "ol/View";
+import { useEffect, useRef, useState } from "react";
+import "ol/ol.css";
+import type { GeoLocation } from "../../../types";
+import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from "../../../utils/constants";
 
 interface MapComponentProps {
   center?: GeoLocation;
@@ -27,7 +27,7 @@ interface MapComponentProps {
 export interface MapMarker {
   id: string;
   location: GeoLocation;
-  type: 'checkpoint' | 'user' | 'target';
+  type: "checkpoint" | "user" | "target";
   label?: string;
 }
 
@@ -38,7 +38,7 @@ export default function MapComponent({
   userAccuracy,
   markers = [],
   onMapClick,
-  height = '500px',
+  height = "500px",
 }: MapComponentProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<Map | null>(null);
@@ -104,7 +104,7 @@ export default function MapComponent({
 
     // Remove old handler if exists
     if (clickHandlerRef.current) {
-      map.un('click', clickHandlerRef.current);
+      map.un("click", clickHandlerRef.current);
     }
 
     // Add new handler if onMapClick is provided
@@ -117,36 +117,38 @@ export default function MapComponent({
         });
       };
 
-      map.on('click', handler);
+      map.on("click", handler);
       clickHandlerRef.current = handler;
     }
 
     return () => {
       if (clickHandlerRef.current) {
-        map.un('click', clickHandlerRef.current);
+        map.un("click", clickHandlerRef.current);
       }
     };
   }, [map, onMapClick]);
 
-  // Aktualizace centra a zoomu pouze pokud se významně změnily
-  // Aktualizace centra a zoomu pouze pokud se významně změnily
+  // Aktualizace centra pouze při změně checkpointu (významná změna pozice)
   useEffect(() => {
     if (!map) return;
     const view = map.getView();
     const currentCenter = view.getCenter();
     const newCenter = fromLonLat([center.longitude, center.latitude]);
 
-    // Only update if center changed significantly (more than ~10 meters)
+    // Vycentrovat mapu pouze pokud se centrum VÝZNAMNĚ změnilo
+    // (více než ~100 metrů = pravděpodobně nový checkpoint)
     if (currentCenter) {
       const dx = Math.abs(currentCenter[0] - newCenter[0]);
       const dy = Math.abs(currentCenter[1] - newCenter[1]);
-      if (dx < 1 && dy < 1) return; // Skip small changes
+      // Skip small changes (< 100m) - uživatel si nazoomoval jinam a nechceme mu to zrušit
+      if (dx < 10 && dy < 10) return;
     }
 
+    // Významná změna centra = pravděpodobně nový checkpoint
     view.animate({
       center: newCenter,
       zoom: zoom,
-      duration: 300,
+      duration: 500,
     });
   }, [map, center.latitude, center.longitude, zoom]);
 
@@ -161,7 +163,9 @@ export default function MapComponent({
 
     markers.forEach((marker) => {
       const feature = new Feature({
-        geometry: new Point(fromLonLat([marker.location.longitude, marker.location.latitude])),
+        geometry: new Point(
+          fromLonLat([marker.location.longitude, marker.location.latitude]),
+        ),
         markerType: marker.type,
         markerId: marker.id,
         markerLabel: marker.label,
@@ -183,10 +187,12 @@ export default function MapComponent({
 
     if (userLocation) {
       const feature = new Feature({
-        geometry: new Point(fromLonLat([userLocation.longitude, userLocation.latitude])),
+        geometry: new Point(
+          fromLonLat([userLocation.longitude, userLocation.latitude]),
+        ),
       });
 
-      feature.setStyle(createMarkerStyle('user'));
+      feature.setStyle(createMarkerStyle("user"));
       source.addFeature(feature);
     }
   }, [userLocation]);
@@ -202,7 +208,10 @@ export default function MapComponent({
 
     if (userLocation && userAccuracy && userAccuracy > 0) {
       // Vytvoření kružnice s poloměrem podle GPS přesnosti
-      const center = fromLonLat([userLocation.longitude, userLocation.latitude]);
+      const center = fromLonLat([
+        userLocation.longitude,
+        userLocation.latitude,
+      ]);
       const circle = new CircleGeom(center, userAccuracy);
 
       const feature = new Feature({
@@ -213,13 +222,13 @@ export default function MapComponent({
       feature.setStyle(
         new Style({
           fill: new Fill({
-            color: 'rgba(82, 183, 136, 0.15)', // Světle zelená s 15% opacity
+            color: "rgba(82, 183, 136, 0.15)", // Světle zelená s 15% opacity
           }),
           stroke: new Stroke({
-            color: 'rgba(82, 183, 136, 0.5)', // Zelená s 50% opacity
+            color: "rgba(82, 183, 136, 0.5)", // Zelená s 50% opacity
             width: 2,
           }),
-        })
+        }),
       );
 
       source.addFeature(feature);
@@ -227,34 +236,34 @@ export default function MapComponent({
   }, [userLocation, userAccuracy]);
 
   return (
-    <Paper elevation={3} sx={{ overflow: 'hidden', borderRadius: 2 }}>
-      <Box ref={mapRef} sx={{ width: '100%', height }} />
+    <Paper elevation={3} sx={{ overflow: "hidden", borderRadius: 2 }}>
+      <Box ref={mapRef} sx={{ width: "100%", height }} />
     </Paper>
   );
 }
 
 // Helper funkce pro vytvoření stylu markeru
-function createMarkerStyle(type: 'checkpoint' | 'user' | 'target'): Style {
-  if (type === 'user') {
+function createMarkerStyle(type: "checkpoint" | "user" | "target"): Style {
+  if (type === "user") {
     return new Style({
       image: new Circle({
         radius: 8,
-        fill: new Fill({ color: '#52B788' }), // Svěží zelená z theme
+        fill: new Fill({ color: "#52B788" }), // Svěží zelená z theme
         stroke: new Stroke({
-          color: '#fff',
+          color: "#fff",
           width: 3,
         }),
       }),
     });
   }
 
-  if (type === 'target') {
+  if (type === "target") {
     return new Style({
       image: new Circle({
         radius: 10,
-        fill: new Fill({ color: '#E9C46A' }), // Písková žlutá z theme
+        fill: new Fill({ color: "#E9C46A" }), // Písková žlutá z theme
         stroke: new Stroke({
-          color: '#1B4332',
+          color: "#1B4332",
           width: 2,
         }),
       }),
@@ -265,9 +274,9 @@ function createMarkerStyle(type: 'checkpoint' | 'user' | 'target'): Style {
   return new Style({
     image: new Circle({
       radius: 12,
-      fill: new Fill({ color: '#2D6A4F' }), // Lesní zelená z theme
+      fill: new Fill({ color: "#2D6A4F" }), // Lesní zelená z theme
       stroke: new Stroke({
-        color: '#fff',
+        color: "#fff",
         width: 3,
       }),
     }),
