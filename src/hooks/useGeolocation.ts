@@ -65,7 +65,7 @@ export function useGeolocation(): UseGeolocationReturn {
       console.log("Requesting geolocation permission...");
 
       // First request position to trigger permission prompt
-      // Use longer timeout and allow lower accuracy for desktop
+      // Use high accuracy for GPS-based treasure hunt game
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           console.log(
@@ -79,9 +79,9 @@ export function useGeolocation(): UseGeolocationReturn {
             handleSuccess,
             handleError,
             {
-              enableHighAccuracy: false, // Desktop má obvykle jen WiFi/IP geolocation
+              enableHighAccuracy: true, // Použít GPS pro přesnou polohu
               timeout: 30000, // 30 sekund timeout
-              maximumAge: 30000, // Cache na 30 sekund je OK
+              maximumAge: 5000, // Cache jen 5 sekund pro aktuální pozici
             },
           );
 
@@ -91,9 +91,9 @@ export function useGeolocation(): UseGeolocationReturn {
           handleError(err);
         },
         {
-          enableHighAccuracy: false, // Desktop obvykle nemá GPS
-          timeout: 30000, // Delší timeout pro desktop (30s)
-          maximumAge: 0,
+          enableHighAccuracy: true, // Požádat o přesnou GPS polohu
+          timeout: 30000, // Delší timeout pro GPS lock
+          maximumAge: 0, // Vždy získat novou pozici
         },
       );
     } catch (err) {
