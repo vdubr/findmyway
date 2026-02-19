@@ -62,12 +62,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      {/* Liška průvodce */}
-      <FoxGuide />
-
       {/* Header */}
       <AppBar position="static" elevation={2}>
-        <Toolbar>
+        <Toolbar sx={{ position: "relative" }}>
           <IconButton
             size="large"
             edge="start"
@@ -86,6 +83,24 @@ export default function AppLayout({ children }: AppLayoutProps) {
           >
             GeoQuest
           </Typography>
+
+          {/* Liška průvodce uprostřed hlavičky */}
+          <Box
+            sx={{
+              position: "absolute",
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+              height: 64,
+              width: 64,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              pointerEvents: "none",
+            }}
+          >
+            <FoxGuide inline />
+          </Box>
 
           {user && (
             <>
