@@ -1,7 +1,7 @@
 // Komponenta pro zobrazení offline indikátoru
-import { CloudOff as OfflineIcon } from "@mui/icons-material";
-import { Alert, Box, Fade } from "@mui/material";
-import { useEffect, useState } from "react";
+import { CloudOff as OfflineIcon } from '@mui/icons-material';
+import { Alert, Box, Fade } from '@mui/material';
+import { useEffect, useState } from 'react';
 
 export default function OfflineIndicator() {
   const [showOffline, setShowOffline] = useState(!navigator.onLine);
@@ -15,12 +15,12 @@ export default function OfflineIndicator() {
       setShowOffline(true);
     };
 
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
@@ -28,12 +28,12 @@ export default function OfflineIndicator() {
     <Fade in={showOffline} timeout={300}>
       <Box
         sx={{
-          position: "fixed",
+          position: 'fixed',
           top: 64, // Pod hlavičkou
           left: 0,
           right: 0,
           zIndex: 1200,
-          display: showOffline ? "block" : "none",
+          display: showOffline ? 'block' : 'none',
         }}
       >
         <Alert
@@ -41,9 +41,9 @@ export default function OfflineIndicator() {
           icon={<OfflineIcon />}
           sx={{
             borderRadius: 0,
-            justifyContent: "center",
-            "& .MuiAlert-message": {
-              textAlign: "center",
+            justifyContent: 'center',
+            '& .MuiAlert-message': {
+              textAlign: 'center',
             },
           }}
         >
