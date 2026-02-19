@@ -122,19 +122,30 @@ export default function AuthPage() {
         )}
 
         {/* Email/Password formulář */}
-        <Box component="form" onSubmit={handleEmailAuth} sx={{ width: '100%' }}>
+        <Box
+          component="form"
+          onSubmit={handleEmailAuth}
+          sx={{ width: '100%' }}
+          name={isSignUp ? 'signup' : 'login'}
+          method="post"
+          action="#"
+        >
           <Stack spacing={2}>
             <TextField
               label="Email"
               type="email"
               name="email"
               id="email"
-              autoComplete="email"
+              autoComplete="username email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
               fullWidth
               required
+              inputProps={{
+                autoCapitalize: 'none',
+                autoCorrect: 'off',
+              }}
             />
             <TextField
               label="Heslo"
