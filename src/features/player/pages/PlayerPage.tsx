@@ -3,10 +3,10 @@
 import {
   LocationOn as LocationIcon,
   PlayArrow as PlayIcon,
-  EmojiEvents as TrophyIcon,
-} from '@mui/icons-material';
+} from "@mui/icons-material";
 import {
   Alert,
+  Box,
   Button,
   Card,
   CardContent,
@@ -16,22 +16,25 @@ import {
   DialogTitle,
   Stack,
   Typography,
-} from '@mui/material';
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import ErrorDisplay from '../../../components/ErrorDisplay';
-import LoadingSpinner from '../../../components/LoadingSpinner';
-import { useGeolocation } from '../../../hooks/useGeolocation';
+} from "@mui/material";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import ErrorDisplay from "../../../components/ErrorDisplay";
+import FoxGuide from "../../../components/FoxGuide";
+import LoadingSpinner from "../../../components/LoadingSpinner";
+import { useGeolocation } from "../../../hooks/useGeolocation";
 import {
   getActiveSession,
   getCheckpointsByGameId,
   getGameById,
   startGameSession,
-} from '../../../lib/api';
-import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
-import CheckpointContentDialog from '../components/CheckpointContentDialog';
-import DistanceIndicator from '../components/DistanceIndicator';
-import { useGamePlayStore } from '../store/gamePlayStore';
+} from "../../../lib/api";
+import MapComponent, {
+  type MapMarker,
+} from "../../map/components/MapComponent";
+import CheckpointContentDialog from "../components/CheckpointContentDialog";
+import DistanceIndicator from "../components/DistanceIndicator";
+import { useGamePlayStore } from "../store/gamePlayStore";
 
 export default function PlayerPage() {
   const { gameId } = useParams<{ gameId: string }>();
@@ -92,7 +95,7 @@ export default function PlayerPage() {
       const checkpointsData = await getCheckpointsByGameId(gameId);
 
       if (checkpointsData.length === 0) {
-        setError('Tato hra nemá žádné checkpointy.');
+        setError("Tato hra nemá žádné checkpointy.");
         return;
       }
 
@@ -104,7 +107,7 @@ export default function PlayerPage() {
 
       initGame(gameData, checkpointsData, session);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Chyba při načítání hry');
+      setError(err instanceof Error ? err.message : "Chyba při načítání hry");
     } finally {
       setIsLoading(false);
     }
@@ -120,25 +123,27 @@ export default function PlayerPage() {
 
   // Request GPS permission when starting game
   const handleStartGame = async () => {
-    console.log('=== handleStartGame called ===');
-    console.log('gpsSupported:', gpsSupported);
-    console.log('gpsLoading:', gpsLoading);
-    console.log('gpsError:', gpsError);
+    console.log("=== handleStartGame called ===");
+    console.log("gpsSupported:", gpsSupported);
+    console.log("gpsLoading:", gpsLoading);
+    console.log("gpsError:", gpsError);
 
     if (!gpsSupported) {
-      setError('Váš prohlížeč nepodporuje geolokaci.');
+      setError("Váš prohlížeč nepodporuje geolokaci.");
       return;
     }
 
     try {
-      console.log('Setting gameStarted to true...');
+      console.log("Setting gameStarted to true...");
       setGameStarted(true);
-      console.log('Calling requestPermission...');
+      console.log("Calling requestPermission...");
       await requestPermission();
-      console.log('requestPermission completed');
+      console.log("requestPermission completed");
     } catch (err) {
-      console.error('GPS permission error:', err);
-      setError('Nepodařilo se získat přístup k poloze. Zkontrolujte nastavení prohlížeče.');
+      console.error("GPS permission error:", err);
+      setError(
+        "Nepodařilo se získat přístup k poloze. Zkontrolujte nastavení prohlížeče.",
+      );
       setGameStarted(false);
     }
   };
@@ -154,7 +159,7 @@ export default function PlayerPage() {
   };
 
   const handleBackToHome = () => {
-    navigate('/');
+    navigate("/");
   };
 
   // Prepare map markers
@@ -163,12 +168,12 @@ export default function PlayerPage() {
   // Add user position
   if (userPosition) {
     markers.push({
-      id: 'user',
+      id: "user",
       location: {
         latitude: userPosition.latitude,
         longitude: userPosition.longitude,
       },
-      type: 'user',
+      type: "user",
     });
   }
 
@@ -180,7 +185,7 @@ export default function PlayerPage() {
         latitude: currentCheckpoint.latitude,
         longitude: currentCheckpoint.longitude,
       },
-      type: 'target',
+      type: "target",
       label: `${currentCheckpointIndex + 1}`,
     });
   }
@@ -193,16 +198,16 @@ export default function PlayerPage() {
     <Container
       maxWidth={false}
       disableGutters
-      sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}
+      sx={{ height: "100vh", display: "flex", flexDirection: "column" }}
     >
       {/* Game not started - show intro */}
       {!gameStarted && (
         <Dialog open={!gameStarted} maxWidth="sm" fullWidth>
           <DialogTitle
             sx={{
-              typography: 'h4',
-              color: 'primary.main',
-              textAlign: 'center',
+              typography: "h4",
+              color: "primary.main",
+              textAlign: "center",
             }}
           >
             {game.title}
@@ -224,7 +229,9 @@ export default function PlayerPage() {
                     <Typography variant="body2">
                       📍 Počet checkpointů: {checkpoints.length}
                     </Typography>
-                    <Typography variant="body2">⭐ Obtížnost: {game.difficulty}/5</Typography>
+                    <Typography variant="body2">
+                      ⭐ Obtížnost: {game.difficulty}/5
+                    </Typography>
                     {game.settings.time_limit && (
                       <Typography variant="body2">
                         ⏱️ Časový limit: {game.settings.time_limit} minut
@@ -235,7 +242,9 @@ export default function PlayerPage() {
               </Card>
 
               {!gpsSupported && (
-                <Alert severity="error">Váš prohlížeč nepodporuje geolokaci.</Alert>
+                <Alert severity="error">
+                  Váš prohlížeč nepodporuje geolokaci.
+                </Alert>
               )}
 
               {gpsError && <Alert severity="error">{gpsError}</Alert>}
@@ -248,7 +257,7 @@ export default function PlayerPage() {
                 disabled={!gpsSupported || gpsLoading}
                 fullWidth
               >
-                {gpsLoading ? 'Získávám polohu...' : 'Začít hru'}
+                {gpsLoading ? "Získávám polohu..." : "Začít hru"}
               </Button>
             </Stack>
           </DialogContent>
@@ -257,11 +266,12 @@ export default function PlayerPage() {
 
       {/* Game started - show play interface */}
       {gameStarted && (
-        <Stack spacing={2} sx={{ flex: 1, p: 2, height: '100%' }}>
+        <Stack spacing={2} sx={{ flex: 1, p: 2, height: "100%" }}>
           {/* GPS Loading */}
           {gpsLoading && !position && (
             <Alert severity="info" icon={<LocationIcon />}>
-              Čekám na přístup k poloze... Prosím povolte přístup k poloze v prohlížeči.
+              Čekám na přístup k poloze... Prosím povolte přístup k poloze v
+              prohlížeči.
             </Alert>
           )}
 
@@ -332,14 +342,22 @@ export default function PlayerPage() {
           <Dialog open={showVictory} maxWidth="sm" fullWidth>
             <DialogContent>
               <Stack spacing={3} alignItems="center" py={4}>
-                <TrophyIcon sx={{ fontSize: 100, color: 'primary.main' }} />
+                {/* Liška našla poklad */}
+                <Box sx={{ width: 200, height: 200, mb: 2 }}>
+                  <FoxGuide state="treasure" inline />
+                </Box>
                 <Typography variant="h3" color="primary" textAlign="center">
                   Gratulujeme!
                 </Typography>
                 <Typography variant="h6" textAlign="center">
                   Dokončili jste hru "{game.title}"
                 </Typography>
-                <Button variant="contained" size="large" onClick={handleBackToHome} fullWidth>
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={handleBackToHome}
+                  fullWidth
+                >
                   Zpět na hlavní stránku
                 </Button>
               </Stack>
