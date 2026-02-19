@@ -24,6 +24,8 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthContext";
 import FoxGuide from "./FoxGuide";
+import OfflineIndicator from "./OfflineIndicator";
+import PWAInstallPrompt from "./PWAInstallPrompt";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -62,6 +64,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      {/* Offline Indicator */}
+      <OfflineIndicator />
+
       {/* Header */}
       <AppBar position="static" elevation={2}>
         <Toolbar sx={{ position: "relative" }}>
@@ -187,6 +192,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
           <BottomNavigationAction label="Hrát" icon={<MapIcon />} />
         </BottomNavigation>
       )}
+
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
     </Box>
   );
 }

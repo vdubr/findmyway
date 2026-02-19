@@ -10,6 +10,7 @@ import type {
   UpdateCheckpointInput,
   UpdateGameInput,
 } from '../types';
+import { cacheCheckpoints, cacheGame, getCachedCheckpoints, getCachedGame } from './offlineStorage';
 import { supabase } from './supabase';
 
 // ============================================================================
@@ -76,14 +77,45 @@ export async function getMyGames() {
 }
 
 export async function getGameById(gameId: string) {
-  const { data, error } = await supabase
-    .from('games')
-    .select('*, creator:profiles!creator_id(*), checkpoints(*)')
-    .eq('id', gameId)
-    .single();
+  // Offline-first strategie: zkusit cache, pak online, fallback na cache
+  try {
+    // 1. Zkusit načíst z Supabase (online)
+    const { data, error } = await supabase
+      .from('games')
+      .select('*, creator:profiles!creator_id(*), checkpoints(*)')
+      .eq('id', gameId)
+      .single();
 
-  if (error) throw error;
-  return data;
+    if (!error && data) {
+      // Úspěch - uložit do cache pro offline použití
+      await cacheGame(data as Game);
+      // @ts-expect-error - checkpoints jsou součástí select query
+      if (data.checkpoints) {
+        // @ts-expect-error - checkpoints jsou součástí select query
+        await cacheCheckpoints(gameId, data.checkpoints);
+      }
+      return data;
+    }
+
+    // 2. Online selhalo - zkusit cache
+    console.warn('Online fetch failed, trying cache:', error);
+    const cachedGame = await getCachedGame(gameId);
+    if (cachedGame) {
+      console.log('Using cached game data');
+      return cachedGame;
+    }
+
+    // 3. Cache není k dispozici - vyhodit chybu
+    throw error;
+  } catch (err) {
+    // Poslední pokus - zkusit cache při jakékoli chybě
+    const cachedGame = await getCachedGame(gameId);
+    if (cachedGame) {
+      console.log('Using cached game data (fallback)');
+      return cachedGame;
+    }
+    throw err;
+  }
 }
 
 export async function createGame(input: CreateGameInput) {
@@ -138,14 +170,40 @@ export async function deleteGame(gameId: string) {
 // ============================================================================
 
 export async function getCheckpointsByGameId(gameId: string) {
-  const { data, error } = await supabase
-    .from('checkpoints')
-    .select('*')
-    .eq('game_id', gameId)
-    .order('order_index', { ascending: true });
+  // Offline-first strategie: zkusit cache, pak online, fallback na cache
+  try {
+    // 1. Zkusit načíst z Supabase (online)
+    const { data, error } = await supabase
+      .from('checkpoints')
+      .select('*')
+      .eq('game_id', gameId)
+      .order('order_index', { ascending: true });
 
-  if (error) throw error;
-  return data as Checkpoint[];
+    if (!error && data) {
+      // Úspěch - uložit do cache pro offline použití
+      await cacheCheckpoints(gameId, data as Checkpoint[]);
+      return data as Checkpoint[];
+    }
+
+    // 2. Online selhalo - zkusit cache
+    console.warn('Online fetch failed, trying cache:', error);
+    const cachedCheckpoints = await getCachedCheckpoints(gameId);
+    if (cachedCheckpoints.length > 0) {
+      console.log('Using cached checkpoints data');
+      return cachedCheckpoints;
+    }
+
+    // 3. Cache není k dispozici - vyhodit chybu
+    throw error;
+  } catch (err) {
+    // Poslední pokus - zkusit cache při jakékoli chybě
+    const cachedCheckpoints = await getCachedCheckpoints(gameId);
+    if (cachedCheckpoints.length > 0) {
+      console.log('Using cached checkpoints data (fallback)');
+      return cachedCheckpoints;
+    }
+    throw err;
+  }
 }
 
 export async function createCheckpoint(input: CreateCheckpointInput) {

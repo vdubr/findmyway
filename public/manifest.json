@@ -1,0 +1,52 @@
+{
+  "name": "GeoQuest - GPS Treasure Hunt",
+  "short_name": "GeoQuest",
+  "description": "Outdoor GPS treasure hunt game - vytvářejte a hrajte geocaching hry",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1B4332",
+  "theme_color": "#2D6A4F",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "navigation", "entertainment"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Hrát hru",
+      "short_name": "Hrát",
+      "description": "Spustit dostupné hry",
+      "url": "/",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Vytvořit hru",
+      "short_name": "Vytvořit",
+      "description": "Vytvořit novou hru",
+      "url": "/admin",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

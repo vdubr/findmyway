@@ -1,23 +1,16 @@
 // Komponenta lišky průvodce, která se mění podle situace
-import { Box } from "@mui/material";
-import { useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
-
+import { Box } from '@mui/material';
+import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
+import foxPuzzle from '../assets/fox/liska_lusti_krizovky.png';
 // Import obrázků lišky
-import foxWaving from "../assets/fox/liska_mava.png";
-import foxTraveling from "../assets/fox/liska_na_cestach_sbatohem_a_buzolou.png";
-import foxSitting from "../assets/fox/liska_sedí.png";
-import foxPuzzle from "../assets/fox/liska_lusti_krizovky.png";
-import foxTreasure from "../assets/fox/liška_nasla_poklad.png";
-import foxStanding from "../assets/fox/liska_na_zadnich.png";
+import foxWaving from '../assets/fox/liska_mava.png';
+import foxTraveling from '../assets/fox/liska_na_cestach_sbatohem_a_buzolou.png';
+import foxStanding from '../assets/fox/liska_na_zadnich.png';
+import foxSitting from '../assets/fox/liska_sedí.png';
+import foxTreasure from '../assets/fox/liška_nasla_poklad.png';
 
-type FoxState =
-  | "waving"
-  | "traveling"
-  | "sitting"
-  | "puzzle"
-  | "treasure"
-  | "standing";
+type FoxState = 'waving' | 'traveling' | 'sitting' | 'puzzle' | 'treasure' | 'standing';
 
 interface FoxGuideProps {
   state?: FoxState;
@@ -36,23 +29,22 @@ export default function FoxGuide({ state, inline = false }: FoxGuideProps) {
     const path = location.pathname;
 
     // Homepage - liška máva na uvítanou
-    if (path === "/") return "waving";
+    if (path === '/') return 'waving';
 
     // Auth stránka - liška sedí a čeká
-    if (path === "/auth") return "sitting";
+    if (path === '/auth') return 'sitting';
 
     // Admin stránky - liška luští křížovky (tvoření hry)
-    if (path.startsWith("/admin")) return "puzzle";
+    if (path.startsWith('/admin')) return 'puzzle';
 
     // Player page - liška cestuje s batohem
-    if (path.startsWith("/player")) return "traveling";
+    if (path.startsWith('/player')) return 'traveling';
 
     // Victory/completion - liška našla poklad
-    if (path.includes("victory") || path.includes("complete"))
-      return "treasure";
+    if (path.includes('victory') || path.includes('complete')) return 'treasure';
 
     // Default - liška stojí
-    return "standing";
+    return 'standing';
   };
 
   const foxState = getFoxState();
@@ -73,7 +65,7 @@ export default function FoxGuide({ state, inline = false }: FoxGuideProps) {
 
     if (!canvas || !img) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const processImage = () => {
@@ -127,16 +119,16 @@ export default function FoxGuide({ state, inline = false }: FoxGuideProps) {
   return (
     <Box
       sx={{
-        position: inline ? "relative" : "fixed",
+        position: inline ? 'relative' : 'fixed',
         top: inline ? 0 : 16,
         left: inline ? 0 : 16,
         zIndex: inline ? 1 : 1000,
-        width: inline ? "100%" : { xs: 60, sm: 80, md: 100 },
-        height: inline ? "100%" : { xs: 60, sm: 80, md: 100 },
-        pointerEvents: "none",
-        transition: "all 0.3s ease-in-out",
-        "&:hover": {
-          transform: inline ? "none" : "scale(1.1)",
+        width: inline ? '100%' : { xs: 60, sm: 80, md: 100 },
+        height: inline ? '100%' : { xs: 60, sm: 80, md: 100 },
+        pointerEvents: 'none',
+        transition: 'all 0.3s ease-in-out',
+        '&:hover': {
+          transform: inline ? 'none' : 'scale(1.1)',
         },
       }}
     >
@@ -145,7 +137,7 @@ export default function FoxGuide({ state, inline = false }: FoxGuideProps) {
         ref={imgRef}
         src={foxImages[foxState]}
         alt=""
-        style={{ display: "none" }}
+        style={{ display: 'none' }}
         crossOrigin="anonymous"
       />
 
@@ -153,10 +145,10 @@ export default function FoxGuide({ state, inline = false }: FoxGuideProps) {
       <canvas
         ref={canvasRef}
         style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "contain",
-          filter: "drop-shadow(2px 2px 4px rgba(0,0,0,0.3))",
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain',
+          filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))',
         }}
       />
     </Box>
