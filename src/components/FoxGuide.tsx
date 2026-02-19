@@ -92,7 +92,7 @@ export default function FoxGuide({ state, inline = false }: FoxGuideProps) {
       const targetR = 200;
       const targetG = 223;
       const targetB = 70;
-      const threshold = 30; // Tolerance pro podobné barvy
+      const threshold = 80; // Zvýšená tolerance pro podobné barvy
 
       // Projít všechny pixely a nastavit zelenou jako průhlednou
       for (let i = 0; i < data.length; i += 4) {
@@ -105,7 +105,10 @@ export default function FoxGuide({ state, inline = false }: FoxGuideProps) {
         const dg = Math.abs(g - targetG);
         const db = Math.abs(b - targetB);
 
-        if (dr < threshold && dg < threshold && db < threshold) {
+        // Kontrola že je to zelená barva (G > R a G > B)
+        const isGreenish = g > r && g > b;
+
+        if (isGreenish && dr < threshold && dg < threshold && db < threshold) {
           data[i + 3] = 0; // Průhlednost
         }
       }
