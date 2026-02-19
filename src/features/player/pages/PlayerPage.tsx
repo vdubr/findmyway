@@ -297,6 +297,7 @@ export default function PlayerPage() {
                   }
                 : null
             }
+            userAccuracy={position?.accuracy ?? null}
             markers={markers}
             height="calc(100vh - 250px)"
           />

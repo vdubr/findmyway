@@ -1,6 +1,6 @@
 import { Box, Paper } from '@mui/material';
 import { Feature } from 'ol';
-import { Point } from 'ol/geom';
+import { Circle as CircleGeom, Point } from 'ol/geom';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
 import Map from 'ol/Map';
@@ -18,6 +18,7 @@ interface MapComponentProps {
   center?: GeoLocation;
   zoom?: number;
   userLocation?: GeoLocation | null;
+  userAccuracy?: number | null; // GPS přesnost v metrech
   markers?: MapMarker[];
   onMapClick?: (location: GeoLocation) => void;
   height?: string | number;
@@ -34,6 +35,7 @@ export default function MapComponent({
   center = DEFAULT_MAP_CENTER,
   zoom = DEFAULT_MAP_ZOOM,
   userLocation,
+  userAccuracy,
   markers = [],
   onMapClick,
   height = '500px',
@@ -42,6 +44,7 @@ export default function MapComponent({
   const [map, setMap] = useState<Map | null>(null);
   const markersLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const userLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
+  const accuracyLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const clickHandlerRef = useRef<((event: any) => void) | null>(null);
 
   // Inicializace mapy
@@ -63,6 +66,13 @@ export default function MapComponent({
     });
     userLayerRef.current = userLayer;
 
+    // Vrstva s kružnicí přesnosti
+    const accuracySource = new VectorSource();
+    const accuracyLayer = new VectorLayer({
+      source: accuracySource,
+    });
+    accuracyLayerRef.current = accuracyLayer;
+
     // Inicializace mapy
     const initialMap = new Map({
       target: mapRef.current,
@@ -70,8 +80,9 @@ export default function MapComponent({
         new TileLayer({
           source: new OSM(),
         }),
+        accuracyLayer, // Kružnice přesnosti jako spodní vrstva
         markersLayer,
-        userLayer,
+        userLayer, // Pozice uživatele navrchu
       ],
       view: new View({
         center: fromLonLat([center.longitude, center.latitude]),
@@ -179,6 +190,41 @@ export default function MapComponent({
       source.addFeature(feature);
     }
   }, [userLocation]);
+
+  // Aktualizace kružnice přesnosti
+  useEffect(() => {
+    if (!accuracyLayerRef.current) return;
+
+    const source = accuracyLayerRef.current.getSource();
+    if (!source) return;
+
+    source.clear();
+
+    if (userLocation && userAccuracy && userAccuracy > 0) {
+      // Vytvoření kružnice s poloměrem podle GPS přesnosti
+      const center = fromLonLat([userLocation.longitude, userLocation.latitude]);
+      const circle = new CircleGeom(center, userAccuracy);
+
+      const feature = new Feature({
+        geometry: circle,
+      });
+
+      // Styl kružnice - průhledná zelená s okrajem
+      feature.setStyle(
+        new Style({
+          fill: new Fill({
+            color: 'rgba(82, 183, 136, 0.15)', // Světle zelená s 15% opacity
+          }),
+          stroke: new Stroke({
+            color: 'rgba(82, 183, 136, 0.5)', // Zelená s 50% opacity
+            width: 2,
+          }),
+        })
+      );
+
+      source.addFeature(feature);
+    }
+  }, [userLocation, userAccuracy]);
 
   return (
     <Paper elevation={3} sx={{ overflow: 'hidden', borderRadius: 2 }}>
