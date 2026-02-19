@@ -39,20 +39,15 @@ function App() {
                 {/* Veřejná stránka */}
                 <Route path="/" element={<HomePage />} />
 
-                {/* Chráněné stránky */}
+                {/* Veřejná stránka - hrát hru může kdokoli */}
+                <Route path="/play/:gameId" element={<PlayerPage />} />
+
+                {/* Chráněné stránky - jen pro přihlášené */}
                 <Route
                   path="/admin"
                   element={
                     <ProtectedRoute>
                       <AdminPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/play/:gameId"
-                  element={
-                    <ProtectedRoute>
-                      <PlayerPage />
                     </ProtectedRoute>
                   }
                 />

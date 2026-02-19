@@ -10,6 +10,11 @@ import type {
   UpdateCheckpointInput,
   UpdateGameInput,
 } from '../types';
+import {
+  createAnonymousSession,
+  getAnonymousSession,
+  updateAnonymousSession,
+} from './anonymousSessions';
 import { cacheCheckpoints, cacheGame, getCachedCheckpoints, getCachedGame } from './offlineStorage';
 import { supabase } from './supabase';
 
@@ -252,8 +257,13 @@ export async function getActiveSession(gameId: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
 
+  // Anonymní uživatel - použít localStorage
+  if (!user) {
+    return getAnonymousSession(gameId);
+  }
+
+  // Přihlášený uživatel - použít Supabase
   const { data, error } = await supabase
     .from('game_sessions')
     .select('*')
@@ -270,15 +280,19 @@ export async function startGameSession(gameId: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
 
   // Check if there's already an active session
   const existingSession = await getActiveSession(gameId);
   if (existingSession) {
-    // Return existing session instead of creating a new one
     return existingSession;
   }
 
+  // Anonymní uživatel - vytvořit localStorage session
+  if (!user) {
+    return createAnonymousSession(gameId);
+  }
+
+  // Přihlášený uživatel - vytvořit v Supabase
   const { data, error } = await supabase
     .from('game_sessions')
     .insert({
@@ -304,6 +318,21 @@ export async function updateSessionProgress(
   checkpointIndex: number,
   metadata?: object
 ) {
+  // Anonymní session - aktualizovat localStorage
+  if (sessionId.startsWith('anonymous_')) {
+    const session = getAnonymousSession(sessionId.split('_')[1]); // Extract gameId
+    if (!session) {
+      throw new Error('Anonymous session not found');
+    }
+    session.current_checkpoint_index = checkpointIndex;
+    if (metadata) {
+      session.metadata = metadata as never;
+    }
+    updateAnonymousSession(session);
+    return session;
+  }
+
+  // Přihlášený uživatel - aktualizovat Supabase
   const { data, error } = await supabase
     .from('game_sessions')
     .update({
@@ -319,6 +348,21 @@ export async function updateSessionProgress(
 }
 
 export async function completeGameSession(sessionId: string, score: number) {
+  // Anonymní session - dokončit v localStorage
+  if (sessionId.startsWith('anonymous_')) {
+    const gameId = sessionId.split('_')[1]; // Extract gameId
+    const session = getAnonymousSession(gameId);
+    if (!session) {
+      throw new Error('Anonymous session not found');
+    }
+    session.status = 'completed' as never;
+    session.end_time = new Date().toISOString();
+    session.score = score;
+    updateAnonymousSession(session);
+    return session;
+  }
+
+  // Přihlášený uživatel - dokončit v Supabase
   const { data, error } = await supabase
     .from('game_sessions')
     .update({
