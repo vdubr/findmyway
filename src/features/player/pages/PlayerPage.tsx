@@ -21,10 +21,12 @@ import LoadingSpinner from '../../../components/LoadingSpinner';
 import { useDeviceOrientation } from '../../../hooks/useDeviceOrientation';
 import { useGeolocation } from '../../../hooks/useGeolocation';
 import {
+  deletePlayerLocation,
   getActiveSession,
   getCheckpointsByGameId,
   getGameById,
   startGameSession,
+  updatePlayerLocation,
 } from '../../../lib/api';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
 import type { MapZoomRef } from '../../map/hooks/useMapZoom';
@@ -41,6 +43,10 @@ export default function PlayerPage() {
   const [error, setError] = useState<string | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
+  // Interval pro odesilani pozice (10 sekund)
+  const LOCATION_UPDATE_INTERVAL = 10000;
 
   const {
     position,
@@ -110,6 +116,9 @@ export default function PlayerPage() {
         session = await startGameSession(gameId);
       }
 
+      // Ulozit session id pro sdileni polohy
+      setSessionId(session.id);
+
       initGame(gameData, checkpointsData, session);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Chyba při načítání hry');
@@ -125,6 +134,52 @@ export default function PlayerPage() {
       updateUserPosition(position);
     }
   }, [position, gameStarted]);
+
+  // Periodicky odesilat pozici hrace, pokud je sdileni vyzadovano
+  // biome-ignore lint/correctness/useExhaustiveDependencies: currentCheckpointIndex se meni pri postupu hrou
+  useEffect(() => {
+    // Pokud neni vyzadovano sdileni, nebo neni session/pozice, nic nedelat
+    const shareRequired = game?.settings?.share_location_required;
+    if (!shareRequired || !sessionId || !position || !gameStarted) {
+      return;
+    }
+
+    // Funkce pro odeslani pozice
+    const sendLocation = async () => {
+      try {
+        await updatePlayerLocation(
+          sessionId,
+          position.latitude,
+          position.longitude,
+          position.accuracy ?? null,
+          currentCheckpointIndex
+        );
+      } catch (err) {
+        console.warn('Chyba pri odesilani pozice:', err);
+      }
+    };
+
+    // Poslat pozici hned
+    sendLocation();
+
+    // Nastavit interval pro pravidelne odesilani
+    const intervalId = setInterval(sendLocation, LOCATION_UPDATE_INTERVAL);
+
+    // Cleanup - pri ukonceni smazat pozici a zrusit interval
+    return () => {
+      clearInterval(intervalId);
+      // Smazat pozici pri odchodu (asynchronne, bez cekani)
+      deletePlayerLocation(sessionId).catch((err) => {
+        console.warn('Chyba pri mazani pozice:', err);
+      });
+    };
+  }, [
+    sessionId,
+    position,
+    gameStarted,
+    currentCheckpointIndex,
+    game?.settings?.share_location_required,
+  ]);
 
   // Request GPS permission when starting game
   const handleStartGame = async () => {
@@ -269,6 +324,14 @@ export default function PlayerPage() {
                   </Stack>
                 </CardContent>
               </Card>
+
+              {/* Informace o sdileni polohy */}
+              {game.settings.share_location_required && (
+                <Alert severity="info">
+                  Tato hra vyzaduje sdileni vasi polohy s organizatorem hry. Vase pozice bude
+                  zobrazena v realnem case.
+                </Alert>
+              )}
 
               {!gpsSupported && (
                 <Alert severity="error">Váš prohlížeč nepodporuje geolokaci.</Alert>

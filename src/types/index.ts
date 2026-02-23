@@ -34,6 +34,7 @@ export interface GameSettings {
   allow_skip: boolean;
   max_players: number | null;
   time_limit: number | null; // v minutách
+  share_location_required: boolean; // zda admin požaduje sdílení polohy hráčů
 }
 
 export type CheckpointType = 'info' | 'puzzle' | 'input';
@@ -107,6 +108,34 @@ export interface CheckpointCompletion {
   entry_longitude: number | null;
   entry_accuracy: number | null;
   created_at: string;
+}
+
+export interface PlayerLocation {
+  id: string;
+  session_id: string;
+  latitude: number;
+  longitude: number;
+  accuracy: number | null;
+  current_checkpoint_index: number;
+  last_seen_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Aktivni hrac s detaily pro admina (z view active_players_view)
+export interface ActivePlayer {
+  id: string;
+  session_id: string;
+  latitude: number;
+  longitude: number;
+  accuracy: number | null;
+  current_checkpoint_index: number;
+  last_seen_at: string;
+  game_id: string;
+  user_id: string;
+  username: string | null;
+  avatar_url: string | null;
+  creator_id: string;
 }
 
 // ============================================================================

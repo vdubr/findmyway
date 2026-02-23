@@ -1,11 +1,13 @@
 // Helper funkce pro práci s Supabase databází
 
 import type {
+  ActivePlayer,
   Checkpoint,
   CreateCheckpointInput,
   CreateGameInput,
   Game,
   GameSession,
+  PlayerLocation,
   Profile,
   UpdateCheckpointInput,
   UpdateGameInput,
@@ -431,4 +433,148 @@ export async function deleteCheckpointImage(imageUrl: string) {
   const { error } = await supabase.storage.from('checkpoint-images').remove([filePath]);
 
   if (error) throw error;
+}
+
+// ============================================================================
+// PLAYER LOCATIONS (Real-time tracking)
+// ============================================================================
+
+// Aktualizovat pozici hrace (upsert - insert nebo update)
+export async function updatePlayerLocation(
+  sessionId: string,
+  latitude: number,
+  longitude: number,
+  accuracy: number | null,
+  currentCheckpointIndex: number
+): Promise<PlayerLocation> {
+  const { data, error } = await supabase
+    .from('player_locations')
+    .upsert(
+      {
+        session_id: sessionId,
+        latitude,
+        longitude,
+        accuracy,
+        current_checkpoint_index: currentCheckpointIndex,
+        last_seen_at: new Date().toISOString(),
+      } as never,
+      {
+        onConflict: 'session_id',
+      }
+    )
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as PlayerLocation;
+}
+
+// Smazat pozici hrace (pri ukonceni hry)
+export async function deletePlayerLocation(sessionId: string): Promise<void> {
+  const { error } = await supabase.from('player_locations').delete().eq('session_id', sessionId);
+
+  if (error) throw error;
+}
+
+// Ziskat aktivni hrace pro danou hru (pro admina)
+export async function getActivePlayersForGame(gameId: string): Promise<ActivePlayer[]> {
+  const { data, error } = await supabase
+    .from('active_players_view')
+    .select('*')
+    .eq('game_id', gameId);
+
+  if (error) throw error;
+  return (data as ActivePlayer[]) || [];
+}
+
+// Pocet aktivnich hracu pro danou hru
+export async function getActivePlayersCount(gameId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('active_players_view')
+    .select('*', { count: 'exact', head: true })
+    .eq('game_id', gameId);
+
+  if (error) throw error;
+  return count || 0;
+}
+
+// Subscripce na zmeny pozic hracu (pro real-time aktualizace)
+export function subscribeToPlayerLocations(
+  gameId: string,
+  onUpdate: (players: ActivePlayer[]) => void
+) {
+  // Nejprve nacteme aktualni stav
+  getActivePlayersForGame(gameId).then(onUpdate);
+
+  // Pak naslouchame zmenam v tabulce player_locations
+  const channel = supabase
+    .channel(`player_locations_${gameId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'player_locations',
+      },
+      () => {
+        // Pri jakekoli zmene znovu nacteme vsechny aktivni hrace
+        // (jednodussi nez filtrovat podle game_id v realtime)
+        getActivePlayersForGame(gameId).then(onUpdate);
+      }
+    )
+    .subscribe();
+
+  // Vratit funkci pro odhlaseni
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+// ============================================================================
+// PROFILE STATISTICS
+// ============================================================================
+
+export interface ProfileStats {
+  gamesCreated: number;
+  gamesPlayed: number;
+  gamesCompleted: number;
+}
+
+// Ziskat statistiky profilu uzivatele
+export async function getProfileStats(userId: string): Promise<ProfileStats> {
+  // Pocet vytvorenych her
+  const { count: gamesCreated, error: createdError } = await supabase
+    .from('games')
+    .select('*', { count: 'exact', head: true })
+    .eq('creator_id', userId);
+
+  if (createdError) throw createdError;
+
+  // Pocet odehranych her (unikatni game_id v sessions)
+  const { data: playedData, error: playedError } = await supabase
+    .from('game_sessions')
+    .select('game_id')
+    .eq('user_id', userId);
+
+  if (playedError) throw playedError;
+
+  // Unikatni hry
+  const uniqueGamesPlayed = new Set(
+    (playedData as { game_id: string }[] | null)?.map((s) => s.game_id) || []
+  );
+
+  // Pocet dokoncenych her
+  const { count: gamesCompleted, error: completedError } = await supabase
+    .from('game_sessions')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('status', 'completed');
+
+  if (completedError) throw completedError;
+
+  return {
+    gamesCreated: gamesCreated || 0,
+    gamesPlayed: uniqueGamesPlayed.size,
+    gamesCompleted: gamesCompleted || 0,
+  };
 }

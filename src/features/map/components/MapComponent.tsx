@@ -33,8 +33,9 @@ interface MapComponentProps {
 export interface MapMarker {
   id: string;
   location: GeoLocation;
-  type: 'checkpoint' | 'user' | 'target';
+  type: 'checkpoint' | 'user' | 'target' | 'player';
   label?: string;
+  tooltip?: string; // Tooltip pro zobrazení nad markerem (pouziva se pro hrače)
 }
 
 const MapComponent = forwardRef<MapZoomRef, MapComponentProps>(function MapComponent(
@@ -275,7 +276,10 @@ const MapComponent = forwardRef<MapZoomRef, MapComponentProps>(function MapCompo
 export default MapComponent;
 
 // Helper funkce pro vytvoření stylu markeru
-function createMarkerStyle(type: 'checkpoint' | 'user' | 'target', heading?: number): Style {
+function createMarkerStyle(
+  type: 'checkpoint' | 'user' | 'target' | 'player',
+  heading?: number
+): Style {
   if (type === 'user') {
     // Pokud máme heading, zobrazit šipku směřující daným směrem
     if (heading !== undefined && heading !== null) {
@@ -343,6 +347,20 @@ function createMarkerStyle(type: 'checkpoint' | 'user' | 'target', heading?: num
         fill: new Fill({ color: '#E9C46A' }), // Písková žlutá z theme
         stroke: new Stroke({
           color: '#1B4332',
+          width: 2,
+        }),
+      }),
+    });
+  }
+
+  // Styl pro aktivniho hrace (modry kruh)
+  if (type === 'player') {
+    return new Style({
+      image: new Circle({
+        radius: 8,
+        fill: new Fill({ color: '#3B82F6' }), // Modra
+        stroke: new Stroke({
+          color: '#fff',
           width: 2,
         }),
       }),

@@ -4,6 +4,7 @@ import {
   Logout as LogoutIcon,
   Map as MapIcon,
   Person as PersonIcon,
+  Settings as SettingsIcon,
 } from '@mui/icons-material';
 import {
   AppBar,
@@ -63,7 +64,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       {/* Offline Indicator */}
       <OfflineIndicator />
 
@@ -135,11 +136,20 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   }}
                 >
                   <PersonIcon sx={{ mr: 1 }} />
-                  Můj profil
+                  Muj profil
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    handleMenuClose();
+                    navigate('/admin');
+                  }}
+                >
+                  <SettingsIcon sx={{ mr: 1 }} />
+                  Sprava her
                 </MenuItem>
                 <MenuItem onClick={handleSignOut}>
                   <LogoutIcon sx={{ mr: 1 }} />
-                  Odhlásit se
+                  Odhlasit se
                 </MenuItem>
               </Menu>
             </>
@@ -153,6 +163,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
         sx={{
           flexGrow: 1,
           pb: isMobile && user ? 7 : 0, // Padding pro bottom navigation
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'auto',
         }}
       >
         {children}

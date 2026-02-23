@@ -4,6 +4,7 @@ import {
   Delete as DeleteIcon,
   Edit as EditIcon,
   Lock as LockIcon,
+  People as PeopleIcon,
   Public as PublicIcon,
   Visibility as VisibilityIcon,
 } from '@mui/icons-material';
@@ -28,8 +29,9 @@ import {
 import { useEffect, useState } from 'react';
 import ErrorDisplay from '../../../components/ErrorDisplay';
 import LoadingSpinner from '../../../components/LoadingSpinner';
-import { deleteGame, getMyGames, updateGame } from '../../../lib/api';
+import { deleteGame, getActivePlayersCount, getMyGames, updateGame } from '../../../lib/api';
 import type { Game } from '../../../types';
+import LivePlayersMap from './LivePlayersMap';
 
 interface GameListProps {
   onEdit?: (game: Game) => void;
@@ -42,6 +44,10 @@ export default function GameList({ onEdit }: GameListProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [gameToDelete, setGameToDelete] = useState<Game | null>(null);
 
+  // State pro zobrazeni aktivnich hracu
+  const [playerCounts, setPlayerCounts] = useState<Record<string, number>>({});
+  const [liveMapGame, setLiveMapGame] = useState<Game | null>(null);
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: loadGames je stabilní funkce, spouští se pouze při mountu
   useEffect(() => {
     loadGames();
@@ -53,6 +59,27 @@ export default function GameList({ onEdit }: GameListProps) {
       setError(null);
       const data = await getMyGames();
       setGames(data as Game[]);
+
+      // Nacist pocty aktivnich hracu pro kazdu hru se sdilenim polohy
+      const gamesWithLocationSharing = (data as Game[]).filter(
+        (g) => g.settings?.share_location_required
+      );
+      if (gamesWithLocationSharing.length > 0) {
+        const counts = await Promise.all(
+          gamesWithLocationSharing.map(async (g) => ({
+            id: g.id,
+            count: await getActivePlayersCount(g.id),
+          }))
+        );
+        const countsMap = counts.reduce(
+          (acc, { id, count }) => {
+            acc[id] = count;
+            return acc;
+          },
+          {} as Record<string, number>
+        );
+        setPlayerCounts(countsMap);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Chyba při načítání her');
     } finally {
@@ -151,6 +178,38 @@ export default function GameList({ onEdit }: GameListProps) {
 
                 <CardActions>
                   <Stack direction="row" spacing={1} width="100%" justifyContent="flex-end">
+                    {/* Tlacitko pro zobrazeni aktivnich hracu */}
+                    {game.settings?.share_location_required && (
+                      <IconButton
+                        size="small"
+                        onClick={() => setLiveMapGame(game)}
+                        title="Zobrazit aktivni hrace"
+                        color="info"
+                      >
+                        <PeopleIcon />
+                        {playerCounts[game.id] > 0 && (
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              position: 'absolute',
+                              top: 0,
+                              right: 0,
+                              bgcolor: 'info.main',
+                              color: 'white',
+                              borderRadius: '50%',
+                              width: 16,
+                              height: 16,
+                              fontSize: 10,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            {playerCounts[game.id]}
+                          </Typography>
+                        )}
+                      </IconButton>
+                    )}
                     {onEdit && (
                       <IconButton
                         size="small"
@@ -201,6 +260,15 @@ export default function GameList({ onEdit }: GameListProps) {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Live players map dialog */}
+      {liveMapGame && (
+        <LivePlayersMap
+          game={liveMapGame}
+          open={!!liveMapGame}
+          onClose={() => setLiveMapGame(null)}
+        />
+      )}
     </Box>
   );
 }

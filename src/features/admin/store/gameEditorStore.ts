@@ -83,6 +83,7 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
           allow_skip: gameData.settings?.allow_skip || false,
           max_players: gameData.settings?.max_players || null,
           time_limit: gameData.settings?.time_limit || null,
+          share_location_required: gameData.settings?.share_location_required || false,
         },
         status: 'draft',
         created_at: new Date().toISOString(),

@@ -33,6 +33,7 @@ const DEFAULT_VALUES: CreateGameInput = {
     allow_skip: false,
     max_players: null,
     time_limit: null,
+    share_location_required: false,
   },
 };
 
@@ -174,6 +175,20 @@ export default function GameCreatorForm({
                 />
               }
               label="Povolit přeskočení checkpointu"
+            />
+
+            {/* Sdileni polohy */}
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.settings?.share_location_required}
+                  onChange={(e) =>
+                    handleSettingsChange('share_location_required', e.target.checked)
+                  }
+                  disabled={isLoading}
+                />
+              }
+              label="Vyzadovat sdileni polohy hracu (admin vidi pozice v realnem case)"
             />
 
             {/* Max hráči */}

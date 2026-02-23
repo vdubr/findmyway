@@ -15,6 +15,7 @@ import AuthPage from './features/auth/pages/AuthPage';
 // Pages
 import HomePage from './features/game/pages/HomePage';
 import PlayerPage from './features/player/pages/PlayerPage';
+import ProfilePage from './features/profile/pages/ProfilePage';
 import theme from './theme';
 
 function App() {
@@ -48,6 +49,15 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <AdminPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <ProfilePage />
                     </ProtectedRoute>
                   }
                 />
