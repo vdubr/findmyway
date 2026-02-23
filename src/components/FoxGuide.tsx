@@ -7,8 +7,8 @@ import foxPuzzle from '../assets/fox/liska_lusti_krizovky.png';
 import foxWaving from '../assets/fox/liska_mava.png';
 import foxTraveling from '../assets/fox/liska_na_cestach_sbatohem_a_buzolou.png';
 import foxStanding from '../assets/fox/liska_na_zadnich.png';
-import foxSitting from '../assets/fox/liska_sedí.png';
-import foxTreasure from '../assets/fox/liška_nasla_poklad.png';
+import foxTreasure from '../assets/fox/liska_nasla_poklad.png';
+import foxSitting from '../assets/fox/liska_sedi.png';
 
 type FoxState = 'waving' | 'traveling' | 'sitting' | 'puzzle' | 'treasure' | 'standing';
 
