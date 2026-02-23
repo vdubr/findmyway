@@ -1,6 +1,8 @@
 import {
+  KeyboardArrowDown as ArrowDownIcon,
   Create as CreateIcon,
   Home as HomeIcon,
+  Login as LoginIcon,
   Logout as LogoutIcon,
   Map as MapIcon,
   Person as PersonIcon,
@@ -8,15 +10,16 @@ import {
 } from '@mui/icons-material';
 import {
   AppBar,
-  Avatar,
   BottomNavigation,
   BottomNavigationAction,
   Box,
-  IconButton,
+  Button,
+  Divider,
+  ListItemIcon,
+  ListItemText,
   Menu,
   MenuItem,
   Toolbar,
-  Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
@@ -32,12 +35,20 @@ interface AppLayoutProps {
   children: ReactNode;
 }
 
+// Konfigurace stranek s jejich nazvy a ikonami
+const PAGE_CONFIG: Record<string, { title: string; icon: ReactNode }> = {
+  '/': { title: 'Dostupne hry', icon: <HomeIcon /> },
+  '/admin': { title: 'Sprava her', icon: <SettingsIcon /> },
+  '/profile': { title: 'Muj profil', icon: <PersonIcon /> },
+  '/auth': { title: 'Prihlaseni', icon: <LoginIcon /> },
+};
+
 export default function AppLayout({ children }: AppLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { user, profile, signOut } = useAuth();
+  const { user, signOut } = useAuth();
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -49,10 +60,33 @@ export default function AppLayout({ children }: AppLayoutProps) {
     setAnchorEl(null);
   };
 
+  const handleNavigate = (path: string) => {
+    handleMenuClose();
+    navigate(path);
+  };
+
   const handleSignOut = async () => {
     handleMenuClose();
     await signOut();
     navigate('/auth');
+  };
+
+  // Ziskat nazev aktualni stranky
+  const getCurrentPageTitle = (): string => {
+    const path = location.pathname;
+
+    // Presna shoda
+    if (PAGE_CONFIG[path]) {
+      return PAGE_CONFIG[path].title;
+    }
+
+    // Hrani hry - /play/:gameId
+    if (path.startsWith('/play/')) {
+      return 'Hra';
+    }
+
+    // Default
+    return 'GeoQuest';
   };
 
   // Bottom navigation value based on current route
@@ -63,6 +97,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
     return 0;
   };
 
+  const currentPageTitle = getCurrentPageTitle();
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       {/* Offline Indicator */}
@@ -71,26 +107,100 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Header */}
       <AppBar position="static" elevation={2}>
         <Toolbar sx={{ position: 'relative' }}>
-          <IconButton
-            size="large"
-            edge="start"
+          {/* Logo - kliknutelne, naviguje na home */}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+              mr: 2,
+            }}
+            onClick={() => navigate('/')}
+          >
+            <MapIcon sx={{ fontSize: 28 }} />
+          </Box>
+
+          {/* Nazev stranky s dropdown - kliknutelny */}
+          <Button
             color="inherit"
-            sx={{ mr: 2 }}
-            onClick={() => navigate('/')}
+            onClick={handleMenuOpen}
+            endIcon={<ArrowDownIcon />}
+            sx={{
+              textTransform: 'none',
+              fontSize: '1.1rem',
+              fontWeight: 600,
+              px: 1,
+            }}
           >
-            <MapIcon />
-          </IconButton>
+            {currentPageTitle}
+          </Button>
 
-          <Typography
-            variant="h6"
-            component="div"
-            sx={{ flexGrow: 1, cursor: 'pointer', fontWeight: 700 }}
-            onClick={() => navigate('/')}
+          {/* Dropdown menu */}
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
+            transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
+            PaperProps={{
+              sx: { minWidth: 200 },
+            }}
           >
-            GeoQuest
-          </Typography>
+            {/* Navigace */}
+            <MenuItem onClick={() => handleNavigate('/')} selected={location.pathname === '/'}>
+              <ListItemIcon>
+                <HomeIcon />
+              </ListItemIcon>
+              <ListItemText>Dostupne hry</ListItemText>
+            </MenuItem>
 
-          {/* Liška průvodce uprostřed hlavičky */}
+            {user && (
+              <>
+                <MenuItem
+                  onClick={() => handleNavigate('/admin')}
+                  selected={location.pathname.startsWith('/admin')}
+                >
+                  <ListItemIcon>
+                    <SettingsIcon />
+                  </ListItemIcon>
+                  <ListItemText>Sprava her</ListItemText>
+                </MenuItem>
+
+                <MenuItem
+                  onClick={() => handleNavigate('/profile')}
+                  selected={location.pathname === '/profile'}
+                >
+                  <ListItemIcon>
+                    <PersonIcon />
+                  </ListItemIcon>
+                  <ListItemText>Muj profil</ListItemText>
+                </MenuItem>
+
+                <Divider />
+
+                <MenuItem onClick={handleSignOut}>
+                  <ListItemIcon>
+                    <LogoutIcon />
+                  </ListItemIcon>
+                  <ListItemText>Odhlasit se</ListItemText>
+                </MenuItem>
+              </>
+            )}
+
+            {!user && (
+              <MenuItem onClick={() => handleNavigate('/auth')}>
+                <ListItemIcon>
+                  <LoginIcon />
+                </ListItemIcon>
+                <ListItemText>Prihlasit se</ListItemText>
+              </MenuItem>
+            )}
+          </Menu>
+
+          {/* Spacer */}
+          <Box sx={{ flexGrow: 1 }} />
+
+          {/* Liska pruvodce uprostred hlavicky */}
           <Box
             sx={{
               position: 'absolute',
@@ -107,53 +217,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
           >
             <FoxGuide inline />
           </Box>
-
-          {user && (
-            <>
-              {!isMobile && (
-                <Typography variant="body2" sx={{ mr: 2 }}>
-                  {profile?.username || user.email}
-                </Typography>
-              )}
-              <IconButton onClick={handleMenuOpen} sx={{ p: 0 }}>
-                <Avatar
-                  alt={profile?.username || user.email || 'User'}
-                  src={profile?.avatar_url || undefined}
-                  sx={{ width: 40, height: 40 }}
-                />
-              </IconButton>
-              <Menu
-                anchorEl={anchorEl}
-                open={Boolean(anchorEl)}
-                onClose={handleMenuClose}
-                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-              >
-                <MenuItem
-                  onClick={() => {
-                    handleMenuClose();
-                    navigate('/profile');
-                  }}
-                >
-                  <PersonIcon sx={{ mr: 1 }} />
-                  Muj profil
-                </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    handleMenuClose();
-                    navigate('/admin');
-                  }}
-                >
-                  <SettingsIcon sx={{ mr: 1 }} />
-                  Sprava her
-                </MenuItem>
-                <MenuItem onClick={handleSignOut}>
-                  <LogoutIcon sx={{ mr: 1 }} />
-                  Odhlasit se
-                </MenuItem>
-              </Menu>
-            </>
-          )}
         </Toolbar>
       </AppBar>
 
@@ -171,7 +234,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {children}
       </Box>
 
-      {/* Bottom Navigation (jen na mobile a když je user přihlášen) */}
+      {/* Bottom Navigation (jen na mobile a kdyz je user prihlasen) */}
       {isMobile && user && (
         <BottomNavigation
           value={getBottomNavValue()}
@@ -200,9 +263,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
             zIndex: 1000,
           }}
         >
-          <BottomNavigationAction label="Domů" icon={<HomeIcon />} />
-          <BottomNavigationAction label="Vytvořit" icon={<CreateIcon />} />
-          <BottomNavigationAction label="Hrát" icon={<MapIcon />} />
+          <BottomNavigationAction label="Domu" icon={<HomeIcon />} />
+          <BottomNavigationAction label="Vytvorit" icon={<CreateIcon />} />
+          <BottomNavigationAction label="Hrat" icon={<MapIcon />} />
         </BottomNavigation>
       )}
 
