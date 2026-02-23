@@ -275,17 +275,17 @@ export default function PlayerPage() {
 
       {/* Game started - show play interface */}
       {gameStarted && (
-        <Stack
-          spacing={1}
+        <Box
           sx={{
             flex: 1,
             height: '100%',
             display: 'flex',
             flexDirection: 'column',
+            overflow: 'hidden',
           }}
         >
           {/* Alerts area - neposouváme */}
-          <Box sx={{ px: 2, pt: 2 }}>
+          <Box sx={{ px: 2, pt: 2, flexShrink: 0 }}>
             {/* GPS Loading */}
             {gpsLoading && !position && (
               <Alert severity="info" icon={<LocationIcon />} sx={{ mb: 1 }}>
@@ -309,30 +309,32 @@ export default function PlayerPage() {
           </Box>
 
           {/* Map - vyplní celý dostupný prostor */}
-          <Box sx={{ flex: 1, minHeight: 0, px: 2 }}>
-            <MapComponent
-              center={{
-                latitude: currentCheckpoint.latitude,
-                longitude: currentCheckpoint.longitude,
-              }}
-              zoom={15}
-              userLocation={
-                userPosition
-                  ? {
-                      latitude: userPosition.latitude,
-                      longitude: userPosition.longitude,
-                    }
-                  : null
-              }
-              userAccuracy={position?.accuracy ?? null}
-              userHeading={heading}
-              markers={markers}
-              height="100%"
-            />
+          <Box sx={{ flex: 1, px: 2, minHeight: 0, position: 'relative' }}>
+            <Box sx={{ position: 'absolute', inset: 0 }}>
+              <MapComponent
+                center={{
+                  latitude: currentCheckpoint.latitude,
+                  longitude: currentCheckpoint.longitude,
+                }}
+                zoom={15}
+                userLocation={
+                  userPosition
+                    ? {
+                        latitude: userPosition.latitude,
+                        longitude: userPosition.longitude,
+                      }
+                    : null
+                }
+                userAccuracy={position?.accuracy ?? null}
+                userHeading={heading}
+                markers={markers}
+                height="100%"
+              />
+            </Box>
           </Box>
 
           {/* Distance indicator - kompaktní pod mapou */}
-          <Box sx={{ px: 2, pb: 2 }}>
+          <Box sx={{ px: 2, pb: 2, flexShrink: 0 }}>
             <DistanceIndicator
               distance={distanceToCheckpoint}
               isInRadius={isInCheckpointRadius}
@@ -340,55 +342,56 @@ export default function PlayerPage() {
               currentIndex={currentCheckpointIndex}
               totalCheckpoints={checkpoints.length}
             />
+
+            {/* Show checkpoint button */}
+            {checkpointReached && !showCheckpointContent && (
+              <Button
+                variant="contained"
+                size="large"
+                startIcon={<LocationIcon />}
+                onClick={showCheckpoint}
+                fullWidth
+                sx={{ mt: 1 }}
+              >
+                Zobrazit checkpoint
+              </Button>
+            )}
           </Box>
-
-          {/* Show checkpoint button */}
-          {checkpointReached && !showCheckpointContent && (
-            <Button
-              variant="contained"
-              size="large"
-              startIcon={<LocationIcon />}
-              onClick={showCheckpoint}
-              fullWidth
-            >
-              Zobrazit checkpoint
-            </Button>
-          )}
-
-          {/* Checkpoint content dialog */}
-          {currentCheckpoint && (
-            <CheckpointContentDialog
-              open={showCheckpointContent}
-              checkpoint={currentCheckpoint}
-              onClose={hideCheckpoint}
-              onComplete={handleCompleteCheckpoint}
-              canSkip={game.settings.allow_skip}
-              onSkip={handleSkipCheckpoint}
-            />
-          )}
-
-          {/* Victory dialog */}
-          <Dialog open={showVictory} maxWidth="sm" fullWidth>
-            <DialogContent>
-              <Stack spacing={3} alignItems="center" py={4}>
-                {/* Liška našla poklad */}
-                <Box sx={{ width: 200, height: 200, mb: 2 }}>
-                  <FoxGuide state="treasure" inline />
-                </Box>
-                <Typography variant="h3" color="primary" textAlign="center">
-                  Gratulujeme!
-                </Typography>
-                <Typography variant="h6" textAlign="center">
-                  Dokončili jste hru "{game.title}"
-                </Typography>
-                <Button variant="contained" size="large" onClick={handleBackToHome} fullWidth>
-                  Zpět na hlavní stránku
-                </Button>
-              </Stack>
-            </DialogContent>
-          </Dialog>
-        </Stack>
+        </Box>
       )}
+
+      {/* Checkpoint content dialog */}
+      {currentCheckpoint && (
+        <CheckpointContentDialog
+          open={showCheckpointContent}
+          checkpoint={currentCheckpoint}
+          onClose={hideCheckpoint}
+          onComplete={handleCompleteCheckpoint}
+          canSkip={game.settings.allow_skip}
+          onSkip={handleSkipCheckpoint}
+        />
+      )}
+
+      {/* Victory dialog */}
+      <Dialog open={showVictory} maxWidth="sm" fullWidth>
+        <DialogContent>
+          <Stack spacing={3} alignItems="center" py={4}>
+            {/* Liška našla poklad */}
+            <Box sx={{ width: 200, height: 200, mb: 2 }}>
+              <FoxGuide state="treasure" inline />
+            </Box>
+            <Typography variant="h3" color="primary" textAlign="center">
+              Gratulujeme!
+            </Typography>
+            <Typography variant="h6" textAlign="center">
+              Dokončili jste hru "{game.title}"
+            </Typography>
+            <Button variant="contained" size="large" onClick={handleBackToHome} fullWidth>
+              Zpět na hlavní stránku
+            </Button>
+          </Stack>
+        </DialogContent>
+      </Dialog>
     </Container>
   );
 }
