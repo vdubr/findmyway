@@ -30,6 +30,7 @@ import { useAuth } from '../features/auth/AuthContext';
 import FoxGuide from './FoxGuide';
 import OfflineIndicator from './OfflineIndicator';
 import PWAInstallPrompt from './PWAInstallPrompt';
+import PWAUpdatePrompt from './PWAUpdatePrompt';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -271,6 +272,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* PWA Install Prompt */}
       <PWAInstallPrompt />
+
+      {/* PWA Update Prompt */}
+      <PWAUpdatePrompt />
     </Box>
   );
 }
