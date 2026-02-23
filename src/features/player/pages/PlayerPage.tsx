@@ -7,7 +7,6 @@ import {
   Button,
   Card,
   CardContent,
-  Container,
   Dialog,
   DialogContent,
   DialogTitle,
@@ -39,6 +38,7 @@ export default function PlayerPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
 
   const {
     position,
@@ -175,6 +175,10 @@ export default function PlayerPage() {
     navigate('/');
   };
 
+  const dismissAlert = (alertId: string) => {
+    setDismissedAlerts((prev) => new Set(prev).add(alertId));
+  };
+
   // Prepare map markers
   const markers: MapMarker[] = [];
 
@@ -208,10 +212,12 @@ export default function PlayerPage() {
   if (!game || !currentCheckpoint) return null;
 
   return (
-    <Container
-      maxWidth={false}
-      disableGutters
-      sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}
+    <Box
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
     >
       {/* Game not started - show intro */}
       {!gameStarted && (
@@ -281,37 +287,72 @@ export default function PlayerPage() {
             height: '100%',
             display: 'flex',
             flexDirection: 'column',
-            overflow: 'hidden',
           }}
         >
-          {/* Alerts area - zobrazit jen když jsou nějaké alerty */}
-          {(gpsLoading && !position) || gpsError || orientationError ? (
-            <Box sx={{ px: 2, pt: 2, flexShrink: 0 }}>
-              {/* GPS Loading */}
-              {gpsLoading && !position && (
-                <Alert severity="info" icon={<LocationIcon />} sx={{ mb: 1 }}>
-                  Čekám na přístup k poloze... Prosím povolte přístup k poloze v prohlížeči.
-                </Alert>
-              )}
-
-              {/* GPS Error */}
-              {gpsError && (
-                <Alert severity="error" sx={{ mb: 1 }}>
-                  {gpsError}
-                </Alert>
-              )}
-
-              {/* Orientation Error - jen varování, ne kritická chyba */}
-              {orientationError && (
-                <Alert severity="warning" sx={{ fontSize: '0.875rem', mb: 1 }}>
-                  Kompas není dostupný: {orientationError}
-                </Alert>
-              )}
-            </Box>
-          ) : null}
-
-          {/* Map - vyplní celý dostupný prostor */}
+          {/* Map - vyplní celou obrazovku */}
           <Box sx={{ flex: 1, px: 2, minHeight: 0, position: 'relative' }}>
+            {/* Alerts overlay - absolutně pozicované nad mapou */}
+            {((gpsLoading && !position && !dismissedAlerts.has('gps-loading')) ||
+              (gpsError && !dismissedAlerts.has('gps-error')) ||
+              (orientationError && !dismissedAlerts.has('orientation-error'))) && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: 8,
+                  left: 8,
+                  right: 8,
+                  zIndex: 10,
+                }}
+              >
+                {/* GPS Loading */}
+                {gpsLoading && !position && !dismissedAlerts.has('gps-loading') && (
+                  <Alert
+                    severity="info"
+                    icon={<LocationIcon />}
+                    sx={{
+                      mb: 1,
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                      borderRadius: 3,
+                    }}
+                    onClose={() => dismissAlert('gps-loading')}
+                  >
+                    Čekám na přístup k poloze... Prosím povolte přístup k poloze v prohlížeči.
+                  </Alert>
+                )}
+
+                {/* GPS Error */}
+                {gpsError && !dismissedAlerts.has('gps-error') && (
+                  <Alert
+                    severity="error"
+                    sx={{
+                      mb: 1,
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                      borderRadius: 3,
+                    }}
+                    onClose={() => dismissAlert('gps-error')}
+                  >
+                    {gpsError}
+                  </Alert>
+                )}
+
+                {/* Orientation Error - jen varování, ne kritická chyba */}
+                {orientationError && !dismissedAlerts.has('orientation-error') && (
+                  <Alert
+                    severity="warning"
+                    sx={{
+                      fontSize: '0.875rem',
+                      mb: 1,
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                      borderRadius: 3,
+                    }}
+                    onClose={() => dismissAlert('orientation-error')}
+                  >
+                    Kompas není dostupný: {orientationError}
+                  </Alert>
+                )}
+              </Box>
+            )}
+
             <Box sx={{ position: 'absolute', inset: 0 }}>
               <MapComponent
                 center={{
@@ -335,8 +376,18 @@ export default function PlayerPage() {
             </Box>
           </Box>
 
-          {/* Distance indicator - kompaktní pod mapou */}
-          <Box sx={{ px: 2, pb: 2, flexShrink: 0 }}>
+          {/* Distance indicator - fixed na spodku obrazovky */}
+          <Box
+            sx={{
+              position: 'fixed',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              px: 2,
+              pb: 2,
+              zIndex: 100,
+            }}
+          >
             <DistanceIndicator
               distance={distanceToCheckpoint}
               isInRadius={isInCheckpointRadius}
@@ -394,6 +445,6 @@ export default function PlayerPage() {
           </Stack>
         </DialogContent>
       </Dialog>
-    </Container>
+    </Box>
   );
 }
