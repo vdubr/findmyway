@@ -39,76 +39,61 @@ export default function DistanceIndicator({
   const progress = ((currentIndex + 1) / totalCheckpoints) * 100;
 
   return (
-    <Card>
-      <CardContent>
-        <Stack spacing={2}>
-          {/* Progress bar */}
-          <Box>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
-              <Typography variant="caption" color="text.secondary">
-                Postup
-              </Typography>
-              <Typography variant="caption" color="primary" fontWeight="bold">
-                {currentIndex + 1} / {totalCheckpoints}
-              </Typography>
-            </Stack>
+    <Card sx={{ bgcolor: checkpointReached ? 'success.light' : 'background.paper' }}>
+      <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
+        <Stack spacing={1}>
+          {/* Progress bar - kompaktní */}
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 40 }}>
+              {currentIndex + 1}/{totalCheckpoints}
+            </Typography>
             <LinearProgress
               variant="determinate"
               value={progress}
-              sx={{ height: 8, borderRadius: 4 }}
+              sx={{ flex: 1, height: 6, borderRadius: 3 }}
             />
-          </Box>
+          </Stack>
 
-          {/* Distance display */}
-          <Box>
-            <Stack direction="row" spacing={2} alignItems="center" justifyContent="center">
-              {checkpointReached ? (
-                <Chip
-                  icon={<CheckIcon />}
-                  label="Checkpoint dosažen!"
-                  color="success"
-                  sx={{ fontSize: '1rem', py: 3 }}
-                />
-              ) : (
-                <>
+          {/* Distance display - horizontální layout */}
+          <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+            {checkpointReached ? (
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1 }}>
+                <CheckIcon sx={{ color: 'success.dark' }} />
+                <Typography variant="body2" color="success.dark" fontWeight="bold">
+                  Checkpoint dosažen!
+                </Typography>
+              </Stack>
+            ) : (
+              <>
+                <Stack direction="row" spacing={1} alignItems="center">
                   <NavigationIcon
                     sx={{
-                      fontSize: 48,
+                      fontSize: 32,
                       color: getDistanceColor() + '.main',
                     }}
                   />
-                  <Box textAlign="center">
-                    <Typography variant="h3" color={getDistanceColor()}>
+                  <Box>
+                    <Typography variant="h5" color={getDistanceColor()} lineHeight={1.2}>
                       {distance !== null ? formatDistance(distance) : '---'}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       k checkpointu
                     </Typography>
                   </Box>
-                </>
-              )}
-            </Stack>
-          </Box>
-
-          {/* Status */}
-          {isInRadius && !checkpointReached && (
-            <Card sx={{ bgcolor: 'success.light' }}>
-              <CardContent>
-                <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
-                  <LocationIcon sx={{ color: 'success.dark' }} />
-                  <Typography variant="body2" color="success.dark" fontWeight="bold">
-                    Jste v dosahu checkpointu!
-                  </Typography>
                 </Stack>
-              </CardContent>
-            </Card>
-          )}
 
-          {distance !== null && distance > 500 && !isInRadius && (
-            <Typography variant="caption" color="text.secondary" textAlign="center">
-              Pokračujte dál, checkpoint je stále daleko
-            </Typography>
-          )}
+                {isInRadius && (
+                  <Chip
+                    icon={<LocationIcon />}
+                    label="V dosahu"
+                    color="success"
+                    size="small"
+                    sx={{ fontWeight: 'bold' }}
+                  />
+                )}
+              </>
+            )}
+          </Stack>
         </Stack>
       </CardContent>
     </Card>

@@ -275,53 +275,72 @@ export default function PlayerPage() {
 
       {/* Game started - show play interface */}
       {gameStarted && (
-        <Stack spacing={2} sx={{ flex: 1, p: 2, height: '100%' }}>
-          {/* GPS Loading */}
-          {gpsLoading && !position && (
-            <Alert severity="info" icon={<LocationIcon />}>
-              Čekám na přístup k poloze... Prosím povolte přístup k poloze v prohlížeči.
-            </Alert>
-          )}
+        <Stack
+          spacing={1}
+          sx={{
+            flex: 1,
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          {/* Alerts area - neposouváme */}
+          <Box sx={{ px: 2, pt: 2 }}>
+            {/* GPS Loading */}
+            {gpsLoading && !position && (
+              <Alert severity="info" icon={<LocationIcon />} sx={{ mb: 1 }}>
+                Čekám na přístup k poloze... Prosím povolte přístup k poloze v prohlížeči.
+              </Alert>
+            )}
 
-          {/* GPS Error */}
-          {gpsError && <Alert severity="error">{gpsError}</Alert>}
+            {/* GPS Error */}
+            {gpsError && (
+              <Alert severity="error" sx={{ mb: 1 }}>
+                {gpsError}
+              </Alert>
+            )}
 
-          {/* Orientation Error - jen varování, ne kritická chyba */}
-          {orientationError && (
-            <Alert severity="warning" sx={{ fontSize: '0.875rem' }}>
-              Kompas není dostupný: {orientationError}
-            </Alert>
-          )}
+            {/* Orientation Error - jen varování, ne kritická chyba */}
+            {orientationError && (
+              <Alert severity="warning" sx={{ fontSize: '0.875rem', mb: 1 }}>
+                Kompas není dostupný: {orientationError}
+              </Alert>
+            )}
+          </Box>
 
-          {/* Distance indicator */}
-          <DistanceIndicator
-            distance={distanceToCheckpoint}
-            isInRadius={isInCheckpointRadius}
-            checkpointReached={checkpointReached}
-            currentIndex={currentCheckpointIndex}
-            totalCheckpoints={checkpoints.length}
-          />
+          {/* Map - vyplní celý dostupný prostor */}
+          <Box sx={{ flex: 1, minHeight: 0, px: 2 }}>
+            <MapComponent
+              center={{
+                latitude: currentCheckpoint.latitude,
+                longitude: currentCheckpoint.longitude,
+              }}
+              zoom={15}
+              userLocation={
+                userPosition
+                  ? {
+                      latitude: userPosition.latitude,
+                      longitude: userPosition.longitude,
+                    }
+                  : null
+              }
+              userAccuracy={position?.accuracy ?? null}
+              userHeading={heading}
+              markers={markers}
+              height="100%"
+            />
+          </Box>
 
-          {/* Map */}
-          <MapComponent
-            center={{
-              latitude: currentCheckpoint.latitude,
-              longitude: currentCheckpoint.longitude,
-            }}
-            zoom={15}
-            userLocation={
-              userPosition
-                ? {
-                    latitude: userPosition.latitude,
-                    longitude: userPosition.longitude,
-                  }
-                : null
-            }
-            userAccuracy={position?.accuracy ?? null}
-            userHeading={heading}
-            markers={markers}
-            height="calc(100vh - 250px)"
-          />
+          {/* Distance indicator - kompaktní pod mapou */}
+          <Box sx={{ px: 2, pb: 2 }}>
+            <DistanceIndicator
+              distance={distanceToCheckpoint}
+              isInRadius={isInCheckpointRadius}
+              checkpointReached={checkpointReached}
+              currentIndex={currentCheckpointIndex}
+              totalCheckpoints={checkpoints.length}
+            />
+          </Box>
 
           {/* Show checkpoint button */}
           {checkpointReached && !showCheckpointContent && (
