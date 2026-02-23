@@ -284,29 +284,31 @@ export default function PlayerPage() {
             overflow: 'hidden',
           }}
         >
-          {/* Alerts area - neposouváme */}
-          <Box sx={{ px: 2, pt: 2, flexShrink: 0 }}>
-            {/* GPS Loading */}
-            {gpsLoading && !position && (
-              <Alert severity="info" icon={<LocationIcon />} sx={{ mb: 1 }}>
-                Čekám na přístup k poloze... Prosím povolte přístup k poloze v prohlížeči.
-              </Alert>
-            )}
+          {/* Alerts area - zobrazit jen když jsou nějaké alerty */}
+          {(gpsLoading && !position) || gpsError || orientationError ? (
+            <Box sx={{ px: 2, pt: 2, flexShrink: 0 }}>
+              {/* GPS Loading */}
+              {gpsLoading && !position && (
+                <Alert severity="info" icon={<LocationIcon />} sx={{ mb: 1 }}>
+                  Čekám na přístup k poloze... Prosím povolte přístup k poloze v prohlížeči.
+                </Alert>
+              )}
 
-            {/* GPS Error */}
-            {gpsError && (
-              <Alert severity="error" sx={{ mb: 1 }}>
-                {gpsError}
-              </Alert>
-            )}
+              {/* GPS Error */}
+              {gpsError && (
+                <Alert severity="error" sx={{ mb: 1 }}>
+                  {gpsError}
+                </Alert>
+              )}
 
-            {/* Orientation Error - jen varování, ne kritická chyba */}
-            {orientationError && (
-              <Alert severity="warning" sx={{ fontSize: '0.875rem', mb: 1 }}>
-                Kompas není dostupný: {orientationError}
-              </Alert>
-            )}
-          </Box>
+              {/* Orientation Error - jen varování, ne kritická chyba */}
+              {orientationError && (
+                <Alert severity="warning" sx={{ fontSize: '0.875rem', mb: 1 }}>
+                  Kompas není dostupný: {orientationError}
+                </Alert>
+              )}
+            </Box>
+          ) : null}
 
           {/* Map - vyplní celý dostupný prostor */}
           <Box sx={{ flex: 1, px: 2, minHeight: 0, position: 'relative' }}>

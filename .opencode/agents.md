@@ -251,6 +251,19 @@ VITE_SUPABASE_ANON_KEY=<anon_key>
 - Responsive design (Mobile-first)
 - Theme colors z MUI theme palette
 
+### Uvozovky (Quotes)
+
+**DŮLEŽITÉ**: Vždy dodržovat Biome formátování, neměnit uvozovky ručně!
+
+- **JavaScript/TypeScript kód**: Jednoduché uvozovky `'`
+  - Příklad: `const name = 'GeoQuest';`
+  - Příklad: `import { Box } from '@mui/material';`
+- **JSX atributy**: Dvojité uvozovky `"`
+  - Příklad: `<Button variant="contained">Začít</Button>`
+  - Příklad: `<Box sx={{ color: "primary.main" }}>`
+- **NIKDY neměnit uvozovky ručně** - při generování kódu rovnou používat správný styl
+- Před commitem vždy spustit `npm run format` pro kontrolu
+
 ### File naming
 
 - Components: PascalCase (UserProfile.tsx)
@@ -280,6 +293,26 @@ VITE_SUPABASE_ANON_KEY=<anon_key>
 - [ ] Dark mode
 - [ ] Další jazyky (EN)
 
+## Dokumentace
+
+### Živé dokumenty (vždy udržovat aktuální)
+
+- **README.md** - Hlavní dokumentace projektu pro uživatele
+  - Aktualizovat při přidání nových features
+  - Aktualizovat při změně tech stacku
+  - Aktualizovat při změně deployment procesu
+- **SETUP.md** - Návod na lokální setup projektu
+  - Aktualizovat při přidání nových dependencies
+  - Aktualizovat při změně environment variables
+  - Aktualizovat při změně build procesu
+
+### Pravidla pro dokumentaci
+
+- README.md a SETUP.md **vždy udržovat aktuální**
+- Při změně kódu, která ovlivňuje dokumentaci, **aktualizovat dokumentaci ihned**
+- Dokumentaci psát **česky**
+- Používat **jasné, stručné formulace**
+
 ## Důležité poznámky
 
 ### Co NIKDY nedělat
@@ -291,6 +324,7 @@ VITE_SUPABASE_ANON_KEY=<anon_key>
 - ❌ Nepoužívat emoji bez explicitního požadavku
 - ❌ Necommitovat bez build + format check
 - ❌ Nevytvářet markdown dokumentaci proaktivně
+- ❌ Nenechávat README.md nebo SETUP.md zastaralé
 
 ### Debugging tipy
 

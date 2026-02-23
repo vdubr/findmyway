@@ -232,7 +232,16 @@ export default function MapComponent({
   }, [userLocation, userAccuracy]);
 
   return (
-    <Paper elevation={3} sx={{ overflow: 'hidden', borderRadius: 2 }}>
+    <Paper
+      elevation={3}
+      sx={{
+        overflow: 'hidden',
+        borderRadius: 2,
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
       <Box ref={mapRef} sx={{ width: '100%', height }} />
     </Paper>
   );
