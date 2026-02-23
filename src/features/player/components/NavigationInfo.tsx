@@ -11,12 +11,14 @@ interface NavigationInfoProps {
   distance: number | null; // v metrech
   isInRadius: boolean;
   checkpointReached: boolean;
+  onClick?: () => void; // callback pro klik na polokouli
 }
 
 export default function NavigationInfo({
   distance,
   isInRadius,
   checkpointReached,
+  onClick,
 }: NavigationInfoProps) {
   const formatDistance = (meters: number): string => {
     if (meters < 1000) {
@@ -35,6 +37,7 @@ export default function NavigationInfo({
   if (checkpointReached) {
     return (
       <Box
+        onClick={onClick}
         sx={{
           position: 'absolute',
           bottom: '100%',
@@ -51,6 +54,9 @@ export default function NavigationInfo({
           justifyContent: 'center',
           alignItems: 'center',
           zIndex: 10,
+          cursor: onClick ? 'pointer' : 'default',
+          transition: 'transform 0.15s ease-in-out',
+          '&:active': onClick ? { transform: 'translateX(-50%) scale(0.98)' } : {},
         }}
       >
         <Stack direction="row" spacing={1} alignItems="center">
@@ -65,6 +71,7 @@ export default function NavigationInfo({
 
   return (
     <Box
+      onClick={onClick}
       sx={{
         position: 'absolute',
         bottom: '100%',
@@ -81,6 +88,9 @@ export default function NavigationInfo({
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'transform 0.15s ease-in-out',
+        '&:active': onClick ? { transform: 'translateX(-50%) scale(0.98)' } : {},
       }}
     >
       <Stack direction="row" spacing={1} alignItems="center">

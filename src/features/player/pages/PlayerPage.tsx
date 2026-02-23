@@ -13,7 +13,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ErrorDisplay from '../../../components/ErrorDisplay';
 import FoxGuide from '../../../components/FoxGuide';
@@ -27,6 +27,7 @@ import {
   startGameSession,
 } from '../../../lib/api';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
+import type { MapZoomRef } from '../../map/hooks/useMapZoom';
 import CheckpointContentDialog from '../components/CheckpointContentDialog';
 import DistanceIndicator from '../components/DistanceIndicator';
 import { useGamePlayStore } from '../store/gamePlayStore';
@@ -34,6 +35,7 @@ import { useGamePlayStore } from '../store/gamePlayStore';
 export default function PlayerPage() {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
+  const mapRef = useRef<MapZoomRef>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -178,6 +180,16 @@ export default function PlayerPage() {
   const dismissAlert = (alertId: string) => {
     setDismissedAlerts((prev) => new Set(prev).add(alertId));
   };
+
+  // Zoom na aktualni checkpoint pri kliknuti na polokouli
+  const handleNavigationClick = useCallback(() => {
+    if (currentCheckpoint && mapRef.current) {
+      mapRef.current.zoomToLocation({
+        latitude: currentCheckpoint.latitude,
+        longitude: currentCheckpoint.longitude,
+      });
+    }
+  }, [currentCheckpoint]);
 
   // Prepare map markers
   const markers: MapMarker[] = [];
@@ -355,6 +367,7 @@ export default function PlayerPage() {
 
             <Box sx={{ position: 'absolute', inset: 0 }}>
               <MapComponent
+                ref={mapRef}
                 center={{
                   latitude: currentCheckpoint.latitude,
                   longitude: currentCheckpoint.longitude,
@@ -394,6 +407,7 @@ export default function PlayerPage() {
               checkpointReached={checkpointReached}
               currentIndex={currentCheckpointIndex}
               totalCheckpoints={checkpoints.length}
+              onNavigationClick={handleNavigationClick}
             />
 
             {/* Show checkpoint button */}

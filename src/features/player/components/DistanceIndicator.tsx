@@ -9,6 +9,7 @@ interface DistanceIndicatorProps {
   checkpointReached: boolean;
   currentIndex: number;
   totalCheckpoints: number;
+  onNavigationClick?: () => void; // callback pro klik na navigacni polokouli
 }
 
 export default function DistanceIndicator({
@@ -17,6 +18,7 @@ export default function DistanceIndicator({
   checkpointReached,
   currentIndex,
   totalCheckpoints,
+  onNavigationClick,
 }: DistanceIndicatorProps) {
   const progress = ((currentIndex + 1) / totalCheckpoints) * 100;
 
@@ -27,6 +29,7 @@ export default function DistanceIndicator({
         distance={distance}
         isInRadius={isInRadius}
         checkpointReached={checkpointReached}
+        onClick={onNavigationClick}
       />
 
       {/* Progress bar card */}

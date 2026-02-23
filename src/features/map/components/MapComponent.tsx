@@ -3,16 +3,21 @@ import { Feature } from 'ol';
 import { Circle as CircleGeom, Point } from 'ol/geom';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
-import Map from 'ol/Map';
+import OLMap from 'ol/Map';
 import { fromLonLat, toLonLat } from 'ol/proj';
 import OSM from 'ol/source/OSM';
 import VectorSource from 'ol/source/Vector';
 import { Circle, Fill, Icon, Stroke, Style } from 'ol/style';
 import View from 'ol/View';
-import { useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import 'ol/ol.css';
 import type { GeoLocation } from '../../../types';
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../../utils/constants';
+import type { MapZoomRef } from '../hooks/useMapZoom';
+
+// Typ pro click event handler mapy
+// biome-ignore lint/suspicious/noExplicitAny: OpenLayers má komplexní typování event handlerů
+type MapEventHandler = (event: any) => void;
 
 interface MapComponentProps {
   center?: GeoLocation;
@@ -32,22 +37,42 @@ export interface MapMarker {
   label?: string;
 }
 
-export default function MapComponent({
-  center = DEFAULT_MAP_CENTER,
-  zoom = DEFAULT_MAP_ZOOM,
-  userLocation,
-  userAccuracy,
-  userHeading,
-  markers = [],
-  onMapClick,
-  height = '500px',
-}: MapComponentProps) {
+const MapComponent = forwardRef<MapZoomRef, MapComponentProps>(function MapComponent(
+  {
+    center = DEFAULT_MAP_CENTER,
+    zoom = DEFAULT_MAP_ZOOM,
+    userLocation,
+    userAccuracy,
+    userHeading,
+    markers = [],
+    onMapClick,
+    height = '500px',
+  },
+  ref
+) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const [map, setMap] = useState<Map | null>(null);
+  const [map, setMap] = useState<OLMap | null>(null);
+
+  // Imperativní API pro zoom na lokaci
+  useImperativeHandle(
+    ref,
+    () => ({
+      zoomToLocation: (location: GeoLocation, zoomLevel: number = 17) => {
+        if (map) {
+          map.getView().animate({
+            center: fromLonLat([location.longitude, location.latitude]),
+            zoom: zoomLevel,
+            duration: 500,
+          });
+        }
+      },
+    }),
+    [map]
+  );
   const markersLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const userLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const accuracyLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
-  const clickHandlerRef = useRef<((event: any) => void) | null>(null);
+  const clickHandlerRef = useRef<MapEventHandler | null>(null);
 
   // Inicializace mapy
   // biome-ignore lint/correctness/useExhaustiveDependencies: Mapa se má inicializovat pouze jednou při mountu
@@ -76,7 +101,7 @@ export default function MapComponent({
     accuracyLayerRef.current = accuracyLayer;
 
     // Inicializace mapy
-    const initialMap = new Map({
+    const initialMap = new OLMap({
       target: mapRef.current,
       layers: [
         new TileLayer({
@@ -106,12 +131,12 @@ export default function MapComponent({
 
     // Remove old handler if exists
     if (clickHandlerRef.current) {
-      map.un('click', clickHandlerRef.current);
+      map.un('click' as const, clickHandlerRef.current);
     }
 
     // Add new handler if onMapClick is provided
     if (onMapClick) {
-      const handler = (event: any) => {
+      const handler: MapEventHandler = (event) => {
         const coords = toLonLat(event.coordinate);
         onMapClick({
           longitude: coords[0],
@@ -119,13 +144,13 @@ export default function MapComponent({
         });
       };
 
-      map.on('click', handler);
+      map.on('click' as const, handler);
       clickHandlerRef.current = handler;
     }
 
     return () => {
       if (clickHandlerRef.current) {
-        map.un('click', clickHandlerRef.current);
+        map.un('click' as const, clickHandlerRef.current);
       }
     };
   }, [map, onMapClick]);
@@ -236,7 +261,7 @@ export default function MapComponent({
       elevation={3}
       sx={{
         overflow: 'hidden',
-        borderRadius: 2,
+        borderRadius: 0,
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
@@ -245,7 +270,9 @@ export default function MapComponent({
       <Box ref={mapRef} sx={{ width: '100%', height }} />
     </Paper>
   );
-}
+});
+
+export default MapComponent;
 
 // Helper funkce pro vytvoření stylu markeru
 function createMarkerStyle(type: 'checkpoint' | 'user' | 'target', heading?: number): Style {
