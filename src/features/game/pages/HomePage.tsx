@@ -1,22 +1,6 @@
-import {
-  ViewModule as CardsIcon,
-  Create as CreateIcon,
-  LocationOn as LocationIcon,
-  Login as LoginIcon,
-  Map as MapIcon,
-} from '@mui/icons-material';
-import {
-  Alert,
-  Box,
-  Button,
-  Container,
-  Grid,
-  ToggleButton,
-  ToggleButtonGroup,
-  Typography,
-} from '@mui/material';
+import { ViewModule as CardsIcon, Map as MapIcon } from '@mui/icons-material';
+import { Alert, Box, Container, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import ErrorDisplay from '../../../components/ErrorDisplay';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 import { getPublicGamesWithCheckpoints } from '../../../lib/api';
@@ -31,7 +15,6 @@ type ViewMode = 'cards' | 'map';
 type GameWithCheckpoints = Game & { checkpoints: Checkpoint[] };
 
 export default function HomePage() {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [games, setGames] = useState<GameWithCheckpoints[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,54 +52,6 @@ export default function HomePage() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Hero sekce */}
-      <Box
-        sx={{
-          textAlign: 'center',
-          mb: 6,
-          py: { xs: 4, md: 8 },
-        }}
-      >
-        <Typography variant="h2" color="primary" gutterBottom>
-          GeoQuest
-        </Typography>
-        <Typography variant="h5" color="text.secondary" gutterBottom>
-          Dobrodruzna geolokacni hra pro deti i dospele
-        </Typography>
-
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 2,
-            mt: 4,
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-          }}
-        >
-          {user ? (
-            <Button
-              variant="contained"
-              color="primary"
-              size="large"
-              startIcon={<CreateIcon />}
-              onClick={() => navigate('/admin')}
-            >
-              Vytvorit hru
-            </Button>
-          ) : (
-            <Button
-              variant="contained"
-              color="primary"
-              size="large"
-              startIcon={<LoginIcon />}
-              onClick={() => navigate('/auth')}
-            >
-              Prihlasit se
-            </Button>
-          )}
-        </Box>
-      </Box>
-
       {/* Error display */}
       {error && <ErrorDisplay message={error} onRetry={loadGames} />}
 
@@ -156,54 +91,6 @@ export default function HomePage() {
         ) : (
           <GamesMapView games={games} />
         )}
-      </Box>
-
-      {/* Info sekce */}
-      <Box
-        sx={{
-          mt: 8,
-          p: 4,
-          bgcolor: 'background.paper',
-          borderRadius: 2,
-          border: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <Grid container spacing={4}>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Box sx={{ textAlign: 'center' }}>
-              <MapIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
-                GPS Navigation
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Pouzivej GPS a naviguj k checkpointum
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Box sx={{ textAlign: 'center' }}>
-              <LocationIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
-                Zajimava mista
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Objevuj zajimava mista ve svem okoli
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Box sx={{ textAlign: 'center' }}>
-              <CreateIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
-                Vytvor vlastni hru
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Stan se tvurcem a vytvor hru pro ostatni
-              </Typography>
-            </Box>
-          </Grid>
-        </Grid>
       </Box>
     </Container>
   );

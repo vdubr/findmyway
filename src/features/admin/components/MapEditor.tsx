@@ -22,8 +22,9 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { GeoLocation } from '../../../types';
+import { calculateCentroid } from '../../../utils/geo';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
 import { useGameEditorStore } from '../store/gameEditorStore';
 
@@ -41,10 +42,52 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
     selectCheckpoint,
   } = useGameEditorStore();
 
+  const [initializedLocation, setInitializedLocation] = useState(false);
+
   const [mapCenter, setMapCenter] = useState<GeoLocation>({
-    latitude: 50.0755, // Praha
+    latitude: 50.0755, // Praha jako fallback
     longitude: 14.4378,
   });
+
+  // Zoom level - mensi pro existujici hry s vice checkpointy
+  const [initialZoom, setInitialZoom] = useState(13);
+
+  // Pri nacteni komponenty - nastavit spravne centrum mapy
+  useEffect(() => {
+    if (initializedLocation) return;
+
+    // Pokud jsou checkpointy - vypocitat jejich teziste
+    if (tempCheckpoints.length > 0) {
+      const centroid = calculateCentroid(tempCheckpoints);
+      if (centroid) {
+        setMapCenter(centroid);
+        // Nastavit zoom podle poctu checkpointu - vic checkpointu = mensi zoom
+        setInitialZoom(tempCheckpoints.length > 3 ? 11 : 13);
+        setInitializedLocation(true);
+      }
+    } else {
+      // Nova hra - ziskat aktualni polohu uzivatele
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setMapCenter({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
+            setInitialZoom(15); // Blizsi zoom pro novou hru
+            setInitializedLocation(true);
+          },
+          (error) => {
+            console.warn('Geolokace neni dostupna:', error.message);
+            setInitializedLocation(true); // Pouzit fallback (Praha)
+          },
+          { enableHighAccuracy: true, timeout: 5000 }
+        );
+      } else {
+        setInitializedLocation(true);
+      }
+    }
+  }, [tempCheckpoints, initializedLocation]);
 
   // Převést tempCheckpoints na MapMarkers
   const markers: MapMarker[] = useMemo(() => {
@@ -96,7 +139,7 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
 
               <MapComponent
                 center={mapCenter}
-                zoom={13}
+                zoom={initialZoom}
                 markers={markers}
                 onMapClick={handleMapClick}
                 height="600px"

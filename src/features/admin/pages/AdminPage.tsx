@@ -1,17 +1,7 @@
 // Admin Panel - správa her
 
 import { Add as AddIcon } from '@mui/icons-material';
-import {
-  Alert,
-  Box,
-  Button,
-  Container,
-  Snackbar,
-  Stack,
-  Tab,
-  Tabs,
-  Typography,
-} from '@mui/material';
+import { Alert, Box, Button, Container, Snackbar, Stack, Tab, Tabs } from '@mui/material';
 import { useState } from 'react';
 import {
   createCheckpoint,
@@ -187,22 +177,18 @@ export default function AdminPage() {
     <Container maxWidth="xl">
       <Box sx={{ py: 4 }}>
         {/* Header */}
-        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
-          <Typography variant="h3" color="primary">
-            Admin Panel
-          </Typography>
-
-          {currentView === 'list' && (
+        {currentView === 'list' && (
+          <Stack direction="row" justifyContent="flex-end" mb={4}>
             <Button
               variant="contained"
               size="large"
               startIcon={<AddIcon />}
               onClick={handleCreateNew}
             >
-              Nová hra
+              Nova hra
             </Button>
-          )}
-        </Stack>
+          </Stack>
+        )}
 
         {/* Content */}
         {currentView === 'list' && <GameList onEdit={handleEditGame} />}
