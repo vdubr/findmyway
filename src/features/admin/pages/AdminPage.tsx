@@ -33,6 +33,7 @@ export default function AdminPage() {
     selectedCheckpointId,
     initNewGame,
     initEditGame,
+    updateCurrentGame,
     selectCheckpoint,
     reset,
   } = useGameEditorStore();
@@ -47,6 +48,12 @@ export default function AdminPage() {
   // Zpracovat formulář nové hry
   const handleGameFormSubmit = async (gameData: CreateGameInput) => {
     initNewGame(gameData);
+    setCreateStep('map');
+  };
+
+  // Zpracovat formulář při editaci existující hry
+  const handleEditFormSubmit = async (gameData: CreateGameInput) => {
+    updateCurrentGame(gameData);
     setCreateStep('map');
   };
 
@@ -99,7 +106,7 @@ export default function AdminPage() {
       const checkpoints = await getCheckpointsByGameId(game.id);
       initEditGame(game, checkpoints);
       setCurrentView('edit');
-      setCreateStep('map'); // Jump directly to map editor
+      setCreateStep('form'); // Zaciname na formulari, aby uzivatel mohl editovat zakladni info
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Chyba při načítání checkpointů');
     }
@@ -226,20 +233,46 @@ export default function AdminPage() {
         )}
 
         {currentView === 'edit' && (
-          <>
-            <MapEditor onSave={handleUpdateGame} isLoading={isSaving} />
-            <CheckpointEditor
-              open={selectedCheckpointId !== null}
-              onClose={() => selectCheckpoint(null)}
-            />
+          <Box>
+            {/* Step indicator - stejne jako pri vytvareni */}
+            <Tabs value={createStep} sx={{ mb: 3 }} onChange={(_, value) => setCreateStep(value)}>
+              <Tab label="1. Základní info" value="form" />
+              <Tab label="2. Checkpointy" value="map" />
+            </Tabs>
 
-            {/* Cancel button */}
-            <Box mt={3}>
-              <Button variant="outlined" onClick={handleCancel}>
-                Zrušit editaci
-              </Button>
-            </Box>
-          </>
+            {/* Step content */}
+            {createStep === 'form' && currentGame && (
+              <GameCreatorForm
+                initialValues={{
+                  title: currentGame.title,
+                  description: currentGame.description || '',
+                  is_public: currentGame.is_public,
+                  difficulty: currentGame.difficulty,
+                  settings: currentGame.settings,
+                }}
+                onSubmit={handleEditFormSubmit}
+                onCancel={handleCancel}
+                isEditMode
+              />
+            )}
+
+            {createStep === 'map' && (
+              <>
+                <MapEditor onSave={handleUpdateGame} isLoading={isSaving} />
+                <CheckpointEditor
+                  open={selectedCheckpointId !== null}
+                  onClose={() => selectCheckpoint(null)}
+                />
+
+                {/* Back button */}
+                <Box mt={3}>
+                  <Button variant="outlined" onClick={() => setCreateStep('form')}>
+                    Zpět na formulář
+                  </Button>
+                </Box>
+              </>
+            )}
+          </Box>
         )}
       </Box>
 

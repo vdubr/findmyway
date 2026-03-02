@@ -41,6 +41,7 @@ interface GameEditorState {
   setCurrentGame: (game: Game | null) => void;
   initNewGame: (gameData: CreateGameInput) => void;
   initEditGame: (game: Game, checkpoints: any[]) => void;
+  updateCurrentGame: (gameData: CreateGameInput) => void;
 
   // Checkpoint management
   addTempCheckpoint: (latitude: number, longitude: number) => void;
@@ -111,6 +112,27 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
       selectedCheckpointId: null,
       isMapEditorOpen: true,
     }),
+
+  // Aktualizace základních informací hry (při editaci)
+  updateCurrentGame: (gameData) =>
+    set((state) => ({
+      currentGame: state.currentGame
+        ? {
+            ...state.currentGame,
+            title: gameData.title,
+            description: gameData.description || null,
+            is_public: gameData.is_public,
+            difficulty: gameData.difficulty,
+            settings: {
+              radius_tolerance: gameData.settings?.radius_tolerance || 10,
+              allow_skip: gameData.settings?.allow_skip || false,
+              max_players: gameData.settings?.max_players || null,
+              time_limit: gameData.settings?.time_limit || null,
+              share_location_required: gameData.settings?.share_location_required || false,
+            },
+          }
+        : null,
+    })),
 
   addTempCheckpoint: (latitude, longitude) => {
     const tempCheckpoints = get().tempCheckpoints;

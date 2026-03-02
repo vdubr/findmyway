@@ -21,6 +21,7 @@ interface GameCreatorFormProps {
   onSubmit: (gameData: CreateGameInput) => void;
   onCancel?: () => void;
   isLoading?: boolean;
+  isEditMode?: boolean; // True pokud editujeme existujici hru
 }
 
 const DEFAULT_VALUES: CreateGameInput = {
@@ -42,6 +43,7 @@ export default function GameCreatorForm({
   onSubmit,
   onCancel,
   isLoading = false,
+  isEditMode = false,
 }: GameCreatorFormProps) {
   const [formData, setFormData] = useState<CreateGameInput>({
     ...DEFAULT_VALUES,
@@ -93,7 +95,7 @@ export default function GameCreatorForm({
     <Card>
       <CardContent>
         <Typography variant="h5" gutterBottom color="primary">
-          Nová hra
+          {isEditMode ? 'Upravit hru' : 'Nová hra'}
         </Typography>
 
         <Box component="form" onSubmit={handleSubmit}>
@@ -235,7 +237,7 @@ export default function GameCreatorForm({
                 disabled={isLoading}
                 startIcon={<SaveIcon />}
               >
-                {isLoading ? 'Ukládám...' : 'Pokračovat na mapu'}
+                {isLoading ? 'Ukládám...' : isEditMode ? 'Uložit změny' : 'Pokračovat na mapu'}
               </Button>
             </Stack>
           </Stack>
