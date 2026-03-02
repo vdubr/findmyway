@@ -1,38 +1,44 @@
 import {
+  ViewModule as CardsIcon,
   Create as CreateIcon,
   LocationOn as LocationIcon,
   Login as LoginIcon,
   Map as MapIcon,
-  PlayArrow as PlayIcon,
 } from '@mui/icons-material';
 import {
   Alert,
   Box,
   Button,
-  Card,
-  CardActions,
-  CardContent,
-  Chip,
   Container,
   Grid,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ErrorDisplay from '../../../components/ErrorDisplay';
 import LoadingSpinner from '../../../components/LoadingSpinner';
-import { getPublicGames } from '../../../lib/api';
-import type { Game } from '../../../types';
+import { getPublicGamesWithCheckpoints } from '../../../lib/api';
+import type { Checkpoint, Game } from '../../../types';
 import { useAuth } from '../../auth/AuthContext';
+import GamesCardView from '../components/GamesCardView';
+import GamesMapView from '../components/GamesMapView';
+
+type ViewMode = 'cards' | 'map';
+
+// Typ pro hru s checkpointy (pro mapovy rezim)
+type GameWithCheckpoints = Game & { checkpoints: Checkpoint[] };
 
 export default function HomePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [games, setGames] = useState<Game[]>([]);
+  const [games, setGames] = useState<GameWithCheckpoints[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('cards');
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: loadGames je stabilní funkce, spouští se pouze při mountu
+  // biome-ignore lint/correctness/useExhaustiveDependencies: loadGames je stabilni funkce, spousti se pouze pri mountu
   useEffect(() => {
     loadGames();
   }, []);
@@ -41,13 +47,19 @@ export default function HomePage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await getPublicGames();
-      setGames(data);
+      const data = await getPublicGamesWithCheckpoints();
+      setGames(data as GameWithCheckpoints[]);
     } catch (err) {
       console.error('Error loading games:', err);
-      setError('Nepodařilo se načíst hry');
+      setError('Nepodarilo se nacist hry');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleViewModeChange = (_: React.MouseEvent<HTMLElement>, newMode: ViewMode | null) => {
+    if (newMode !== null) {
+      setViewMode(newMode);
     }
   };
 
@@ -69,7 +81,7 @@ export default function HomePage() {
           GeoQuest
         </Typography>
         <Typography variant="h5" color="text.secondary" gutterBottom>
-          Dobrodružná geolokační hra pro děti i dospělé
+          Dobrodruzna geolokacni hra pro deti i dospele
         </Typography>
 
         <Box
@@ -89,7 +101,7 @@ export default function HomePage() {
               startIcon={<CreateIcon />}
               onClick={() => navigate('/admin')}
             >
-              Vytvořit hru
+              Vytvorit hru
             </Button>
           ) : (
             <Button
@@ -99,7 +111,7 @@ export default function HomePage() {
               startIcon={<LoginIcon />}
               onClick={() => navigate('/auth')}
             >
-              Přihlásit se
+              Prihlasit se
             </Button>
           )}
         </Box>
@@ -110,66 +122,39 @@ export default function HomePage() {
 
       {/* Seznam her */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Dostupné hry
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h4">Dostupne hry</Typography>
+
+          {/* Prepinac rezimu zobrazeni */}
+          {games.length > 0 && (
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              onChange={handleViewModeChange}
+              size="small"
+              aria-label="rezim zobrazeni"
+            >
+              <ToggleButton value="cards" aria-label="karty">
+                <CardsIcon sx={{ mr: 0.5 }} />
+                Karty
+              </ToggleButton>
+              <ToggleButton value="map" aria-label="mapa">
+                <MapIcon sx={{ mr: 0.5 }} />
+                Mapa
+              </ToggleButton>
+            </ToggleButtonGroup>
+          )}
+        </Box>
 
         {games.length === 0 ? (
           <Alert severity="info" sx={{ mt: 2 }}>
-            <Typography>Zatím nejsou k dispozici žádné veřejné hry.</Typography>
-            {user && <Typography variant="body2">Buďte první a vytvořte hru!</Typography>}
+            <Typography>Zatim nejsou k dispozici zadne verejne hry.</Typography>
+            {user && <Typography variant="body2">Budte prvni a vytvorte hru!</Typography>}
           </Alert>
+        ) : viewMode === 'cards' ? (
+          <GamesCardView games={games} />
         ) : (
-          <Grid container spacing={3} sx={{ mt: 2 }}>
-            {games.map((game) => (
-              <Grid key={game.id} size={{ xs: 12, sm: 6, md: 4 }}>
-                <Card
-                  sx={{
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    transition: 'transform 0.2s',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                    },
-                  }}
-                >
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Typography variant="h5" color="primary" gutterBottom>
-                      {game.title}
-                    </Typography>
-
-                    {game.description && (
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        {game.description}
-                      </Typography>
-                    )}
-
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      <Chip
-                        icon={<LocationIcon />}
-                        label={`Obtížnost: ${'⭐'.repeat(game.difficulty)}`}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                      />
-                    </Box>
-                  </CardContent>
-
-                  <CardActions>
-                    <Button
-                      variant="contained"
-                      startIcon={<PlayIcon />}
-                      onClick={() => navigate(`/play/${game.id}`)}
-                      fullWidth
-                    >
-                      Hrát
-                    </Button>
-                  </CardActions>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+          <GamesMapView games={games} />
         )}
       </Box>
 
@@ -192,7 +177,7 @@ export default function HomePage() {
                 GPS Navigation
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Používej GPS a naviguj k checkpointům
+                Pouzivej GPS a naviguj k checkpointum
               </Typography>
             </Box>
           </Grid>
@@ -200,10 +185,10 @@ export default function HomePage() {
             <Box sx={{ textAlign: 'center' }}>
               <LocationIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
               <Typography variant="h6" gutterBottom>
-                Zajímavá místa
+                Zajimava mista
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Objevuj zajímavá místa ve svém okolí
+                Objevuj zajimava mista ve svem okoli
               </Typography>
             </Box>
           </Grid>
@@ -211,10 +196,10 @@ export default function HomePage() {
             <Box sx={{ textAlign: 'center' }}>
               <CreateIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
               <Typography variant="h6" gutterBottom>
-                Vytvoř vlastní hru
+                Vytvor vlastni hru
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Staň se tvůrcem a vytvoř hru pro ostatní
+                Stan se tvurcem a vytvor hru pro ostatni
               </Typography>
             </Box>
           </Grid>

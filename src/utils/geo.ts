@@ -123,3 +123,23 @@ export function dmsToDecimal(
 
   return decimal;
 }
+
+/**
+ * Výpočet těžiště (centroidu) z pole souřadnic
+ * @param points Pole bodů s latitude a longitude
+ * @returns Těžiště jako GeoLocation, nebo null pokud je pole prázdné
+ */
+export function calculateCentroid(
+  points: Array<{ latitude: number; longitude: number }>
+): GeoLocation | null {
+  const n = points.length;
+  if (n === 0) return null;
+
+  const sumLat = points.reduce((sum, p) => sum + p.latitude, 0);
+  const sumLng = points.reduce((sum, p) => sum + p.longitude, 0);
+
+  return {
+    latitude: sumLat / n,
+    longitude: sumLng / n,
+  };
+}

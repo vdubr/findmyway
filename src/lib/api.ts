@@ -67,6 +67,19 @@ export async function getPublicGames() {
   return data;
 }
 
+// Varianta s checkpointy pro zobrazení her na mapě (výpočet těžiště)
+export async function getPublicGamesWithCheckpoints() {
+  const { data, error } = await supabase
+    .from('games')
+    .select('*, creator:profiles!creator_id(*), checkpoints(*)')
+    .eq('is_public', true)
+    .eq('status', 'published')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data;
+}
+
 export async function getMyGames() {
   const {
     data: { user },
