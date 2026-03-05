@@ -27,6 +27,7 @@ interface MapComponentProps {
   userHeading?: number | null; // Azimut (směr) v stupních (0-360)
   markers?: MapMarker[];
   onMapClick?: (location: GeoLocation) => void;
+  onMoveByUser?: () => void; // Callback pri manualnim posunu mapy uzivatelem (drag/pinch)
   height?: string | number;
 }
 
@@ -47,6 +48,7 @@ const MapComponent = forwardRef<MapZoomRef, MapComponentProps>(function MapCompo
     userHeading,
     markers = [],
     onMapClick,
+    onMoveByUser,
     height = '500px',
   },
   ref
@@ -54,17 +56,43 @@ const MapComponent = forwardRef<MapZoomRef, MapComponentProps>(function MapCompo
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<OLMap | null>(null);
 
+  // Ref pro rozliseni programatickeho posunu od manualniho
+  const isProgrammaticMoveRef = useRef(false);
+  const onMoveByUserRef = useRef(onMoveByUser);
+  onMoveByUserRef.current = onMoveByUser;
+
   // Imperativní API pro zoom na lokaci
   useImperativeHandle(
     ref,
     () => ({
       zoomToLocation: (location: GeoLocation, zoomLevel: number = 17) => {
         if (map) {
-          map.getView().animate({
-            center: fromLonLat([location.longitude, location.latitude]),
-            zoom: zoomLevel,
-            duration: 500,
-          });
+          isProgrammaticMoveRef.current = true;
+          map.getView().animate(
+            {
+              center: fromLonLat([location.longitude, location.latitude]),
+              zoom: zoomLevel,
+              duration: 500,
+            },
+            () => {
+              isProgrammaticMoveRef.current = false;
+            }
+          );
+        }
+      },
+      // Centrovat mapu na pozici bez zmeny zoomu (pro follow mode)
+      centerOnLocation: (location: GeoLocation) => {
+        if (map) {
+          isProgrammaticMoveRef.current = true;
+          map.getView().animate(
+            {
+              center: fromLonLat([location.longitude, location.latitude]),
+              duration: 300,
+            },
+            () => {
+              isProgrammaticMoveRef.current = false;
+            }
+          );
         }
       },
     }),
@@ -125,6 +153,23 @@ const MapComponent = forwardRef<MapZoomRef, MapComponentProps>(function MapCompo
       initialMap.dispose();
     };
   }, []); // Spustit jen jednou při mountu
+
+  // Detekce manualniho posunu mapy uzivatelem (drag/touch)
+  useEffect(() => {
+    if (!map) return;
+
+    const handlePointerDrag = () => {
+      if (!isProgrammaticMoveRef.current && onMoveByUserRef.current) {
+        onMoveByUserRef.current();
+      }
+    };
+
+    map.on('pointerdrag', handlePointerDrag);
+
+    return () => {
+      map.un('pointerdrag', handlePointerDrag);
+    };
+  }, [map]);
 
   // Handle map click events
   useEffect(() => {

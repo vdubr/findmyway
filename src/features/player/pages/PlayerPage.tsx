@@ -1,6 +1,11 @@
 // Hlavní herní stránka pro hráče
 
-import { LocationOn as LocationIcon, PlayArrow as PlayIcon } from '@mui/icons-material';
+import {
+  LocationDisabled as LocationDisabledIcon,
+  LocationOn as LocationIcon,
+  MyLocation as MyLocationIcon,
+  PlayArrow as PlayIcon,
+} from '@mui/icons-material';
 import {
   Alert,
   Box,
@@ -10,6 +15,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  Fab,
   Stack,
   Typography,
 } from '@mui/material';
@@ -44,6 +50,7 @@ export default function PlayerPage() {
   const [gameStarted, setGameStarted] = useState(false);
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [followGps, setFollowGps] = useState(false); // Sledovani GPS pozice - centrovat mapu
 
   // Interval pro odesilani pozice (10 sekund)
   const LOCATION_UPDATE_INTERVAL = 10000;
@@ -134,6 +141,17 @@ export default function PlayerPage() {
       updateUserPosition(position);
     }
   }, [position, gameStarted]);
+
+  // Centrovat mapu na GPS pozici pokud je follow mode aktivni
+  // biome-ignore lint/correctness/useExhaustiveDependencies: mapRef je stabilni ref
+  useEffect(() => {
+    if (followGps && position && mapRef.current) {
+      mapRef.current.centerOnLocation({
+        latitude: position.latitude,
+        longitude: position.longitude,
+      });
+    }
+  }, [followGps, position]);
 
   // Periodicky odesilat pozici hrace, pokud je sdileni vyzadovano
   // biome-ignore lint/correctness/useExhaustiveDependencies: currentCheckpointIndex se meni pri postupu hrou
@@ -235,6 +253,26 @@ export default function PlayerPage() {
   const dismissAlert = (alertId: string) => {
     setDismissedAlerts((prev) => new Set(prev).add(alertId));
   };
+
+  // Zapnout/vypnout sledovani GPS pozice na mape
+  const handleToggleFollowGps = useCallback(() => {
+    setFollowGps((prev) => {
+      const next = !prev;
+      // Pokud zapneme follow a mame pozici, hned centrovat
+      if (next && userPosition && mapRef.current) {
+        mapRef.current.centerOnLocation({
+          latitude: userPosition.latitude,
+          longitude: userPosition.longitude,
+        });
+      }
+      return next;
+    });
+  }, [userPosition]);
+
+  // Deaktivace follow mode pri manualnim posunu mapy
+  const handleMapMoveByUser = useCallback(() => {
+    setFollowGps(false);
+  }, []);
 
   // Zoom na aktualni checkpoint pri kliknuti na polokouli
   const handleNavigationClick = useCallback(() => {
@@ -447,8 +485,30 @@ export default function PlayerPage() {
                 userAccuracy={position?.accuracy ?? null}
                 userHeading={heading}
                 markers={markers}
+                onMoveByUser={handleMapMoveByUser}
                 height="100%"
               />
+
+              {/* Tlacitko pro sledovani GPS pozice */}
+              <Fab
+                size="small"
+                onClick={handleToggleFollowGps}
+                sx={{
+                  position: 'absolute',
+                  top: 80,
+                  right: 16,
+                  zIndex: 10,
+                  bgcolor: followGps ? 'primary.main' : 'background.paper',
+                  color: followGps ? 'white' : 'text.secondary',
+                  '&:hover': {
+                    bgcolor: followGps ? 'primary.dark' : 'grey.200',
+                  },
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                }}
+                aria-label={followGps ? 'Vypnout sledovani polohy' : 'Sledovat polohu na mape'}
+              >
+                {followGps ? <MyLocationIcon /> : <LocationDisabledIcon />}
+              </Fab>
             </Box>
           </Box>
 

@@ -6,6 +6,7 @@ import type { GeoLocation } from '../../../types';
 // Typ pro imperativní API mapy
 export interface MapZoomRef {
   zoomToLocation: (location: GeoLocation, zoom?: number) => void;
+  centerOnLocation: (location: GeoLocation) => void;
 }
 
 // Výchozí zoom level při zoomování na checkpoint
