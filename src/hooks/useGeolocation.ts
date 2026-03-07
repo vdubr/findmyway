@@ -62,31 +62,47 @@ export function useGeolocation(): UseGeolocationReturn {
 
       console.log('Requesting geolocation permission...');
 
-      // First request position to trigger permission prompt
-      // Use high accuracy for GPS-based treasure hunt game
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          console.log('Geolocation permission granted, position received:', pos);
-          handleSuccess(pos);
+      // Nejprve zkusit presnou polohu (GPS), pokud selze, fallback na nizkou presnost (IP)
+      const tryGetPosition = (highAccuracy: boolean) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            console.log(
+              `Geolocation received (highAccuracy=${highAccuracy}):`,
+              pos.coords.accuracy,
+              'm'
+            );
+            handleSuccess(pos);
 
-          // After successful permission, start watching position
-          const id = navigator.geolocation.watchPosition(handleSuccess, handleError, {
-            enableHighAccuracy: true, // Použít GPS pro přesnou polohu
-            timeout: 30000, // 30 sekund timeout
-            maximumAge: 5000, // Cache jen 5 sekund pro aktuální pozici
-          });
+            // Po uspesnem ziskani pozice spustit sledovani
+            const id = navigator.geolocation.watchPosition(handleSuccess, handleError, {
+              enableHighAccuracy: highAccuracy,
+              timeout: 30000,
+              maximumAge: 5000,
+            });
 
-          setWatchId(id);
-        },
-        (err) => {
-          handleError(err);
-        },
-        {
-          enableHighAccuracy: true, // Požádat o přesnou GPS polohu
-          timeout: 30000, // Delší timeout pro GPS lock
-          maximumAge: 0, // Vždy získat novou pozici
-        }
-      );
+            setWatchId(id);
+          },
+          (err) => {
+            // Pokud selze presna poloha, zkusit nizkou presnost (IP-based)
+            if (highAccuracy) {
+              console.warn(
+                'High accuracy geolocation failed, falling back to low accuracy:',
+                err.message
+              );
+              tryGetPosition(false);
+            } else {
+              handleError(err);
+            }
+          },
+          {
+            enableHighAccuracy: highAccuracy,
+            timeout: highAccuracy ? 10000 : 30000, // Kratsi timeout pro GPS, delsi pro IP fallback
+            maximumAge: 0,
+          }
+        );
+      };
+
+      tryGetPosition(true);
     } catch (err) {
       console.error('Exception in requestPermission:', err);
       setError(err instanceof Error ? err.message : 'Chyba při získávání polohy');
