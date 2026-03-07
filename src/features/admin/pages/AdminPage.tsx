@@ -12,13 +12,14 @@ import {
 } from '../../../lib/api';
 import type { CreateGameInput, Game } from '../../../types';
 import CheckpointEditor from '../components/CheckpointEditor';
+import DemoPlayer from '../components/DemoPlayer';
 import GameCreatorForm from '../components/GameCreatorForm';
 import GameList from '../components/GameList';
 import MapEditor from '../components/MapEditor';
 import { useGameEditorStore } from '../store/gameEditorStore';
 
 type AdminView = 'list' | 'create' | 'edit';
-type CreateStep = 'form' | 'map';
+type CreateStep = 'form' | 'map' | 'demo';
 
 export default function AdminPage() {
   const [currentView, setCurrentView] = useState<AdminView>('list');
@@ -220,13 +221,6 @@ export default function AdminPage() {
                   open={selectedCheckpointId !== null}
                   onClose={() => selectCheckpoint(null)}
                 />
-
-                {/* Back button */}
-                <Box mt={3}>
-                  <Button variant="outlined" onClick={() => setCreateStep('form')}>
-                    Zpět na formulář
-                  </Button>
-                </Box>
               </>
             )}
           </Box>
@@ -238,6 +232,7 @@ export default function AdminPage() {
             <Tabs value={createStep} sx={{ mb: 3 }} onChange={(_, value) => setCreateStep(value)}>
               <Tab label="1. Základní info" value="form" />
               <Tab label="2. Checkpointy" value="map" />
+              <Tab label="3. Demo" value="demo" disabled={tempCheckpoints.length === 0} />
             </Tabs>
 
             {/* Step content */}
@@ -263,14 +258,15 @@ export default function AdminPage() {
                   open={selectedCheckpointId !== null}
                   onClose={() => selectCheckpoint(null)}
                 />
-
-                {/* Back button */}
-                <Box mt={3}>
-                  <Button variant="outlined" onClick={() => setCreateStep('form')}>
-                    Zpět na formulář
-                  </Button>
-                </Box>
               </>
+            )}
+
+            {createStep === 'demo' && currentGame && (
+              <DemoPlayer
+                game={currentGame}
+                tempCheckpoints={tempCheckpoints}
+                onExit={() => setCreateStep('map')}
+              />
             )}
           </Box>
         )}
