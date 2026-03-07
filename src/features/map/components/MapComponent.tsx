@@ -7,7 +7,7 @@ import OLMap from 'ol/Map';
 import { fromLonLat, toLonLat } from 'ol/proj';
 import OSM from 'ol/source/OSM';
 import VectorSource from 'ol/source/Vector';
-import { Circle, Fill, Icon, Stroke, Style } from 'ol/style';
+import { Circle, Fill, Icon, Stroke, Style, Text } from 'ol/style';
 import View from 'ol/View';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import 'ol/ol.css';
@@ -242,7 +242,7 @@ const MapComponent = forwardRef<MapZoomRef, MapComponentProps>(function MapCompo
         markerLabel: marker.label,
       });
 
-      feature.setStyle(createMarkerStyle(marker.type));
+      feature.setStyle(createMarkerStyle(marker.type, undefined, marker.label));
       source.addFeature(feature);
     });
   }, [markers]);
@@ -323,7 +323,8 @@ export default MapComponent;
 // Helper funkce pro vytvoření stylu markeru
 function createMarkerStyle(
   type: 'checkpoint' | 'user' | 'target' | 'player',
-  heading?: number
+  heading?: number,
+  label?: string
 ): Style {
   if (type === 'user') {
     // Pokud máme heading, zobrazit šipku směřující daným směrem
@@ -395,6 +396,14 @@ function createMarkerStyle(
           width: 2,
         }),
       }),
+      text: label
+        ? new Text({
+            text: label,
+            fill: new Fill({ color: '#1B4332' }),
+            font: 'bold 11px sans-serif',
+            offsetY: 1,
+          })
+        : undefined,
     });
   }
 
@@ -422,5 +431,13 @@ function createMarkerStyle(
         width: 3,
       }),
     }),
+    text: label
+      ? new Text({
+          text: label,
+          fill: new Fill({ color: '#fff' }),
+          font: 'bold 12px sans-serif',
+          offsetY: 1, // Mírný posun dolů pro optické vycentrování
+        })
+      : undefined,
   });
 }

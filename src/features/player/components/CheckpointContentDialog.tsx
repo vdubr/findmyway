@@ -23,6 +23,8 @@ import CoordinatePicker from './CoordinatePicker';
 interface CheckpointContentDialogProps {
   open: boolean;
   checkpoint: Checkpoint;
+  checkpointIndex?: number; // 0-based index aktualniho checkpointu
+  totalCheckpoints?: number; // celkovy pocet checkpointu
   onClose: () => void;
   onComplete: () => void;
   canSkip?: boolean;
@@ -32,6 +34,8 @@ interface CheckpointContentDialogProps {
 export default function CheckpointContentDialog({
   open,
   checkpoint,
+  checkpointIndex,
+  totalCheckpoints,
   onClose,
   onComplete,
   canSkip = false,
@@ -121,12 +125,26 @@ export default function CheckpointContentDialog({
     }
   };
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      scroll="paper"
+      sx={{ zIndex: 1400 }}
+    >
       <DialogTitle>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography variant="h5" color="primary">
-            {checkpoint.content.title}
-          </Typography>
+          <Stack>
+            {checkpointIndex !== undefined && totalCheckpoints !== undefined && (
+              <Typography variant="caption" color="text.secondary">
+                Checkpoint {checkpointIndex + 1} / {totalCheckpoints}
+              </Typography>
+            )}
+            <Typography variant="h5" color="primary">
+              {checkpoint.content.title || `Checkpoint ${(checkpointIndex ?? 0) + 1}`}
+            </Typography>
+          </Stack>
           <IconButton onClick={onClose}>
             <CloseIcon />
           </IconButton>

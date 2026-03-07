@@ -555,6 +555,8 @@ export default function PlayerPage() {
         <CheckpointContentDialog
           open={showCheckpointContent}
           checkpoint={currentCheckpoint}
+          checkpointIndex={currentCheckpointIndex}
+          totalCheckpoints={checkpoints.length}
           onClose={hideCheckpoint}
           onComplete={handleCompleteCheckpoint}
           canSkip={game.settings.allow_skip}

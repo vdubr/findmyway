@@ -26,7 +26,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { deleteCheckpointImage, uploadCheckpointImage } from '../../../lib/api';
 import type { CheckpointType, CoordinateDMS } from '../../../types';
 import { type TempCheckpoint, useGameEditorStore } from '../store/gameEditorStore';
@@ -52,6 +52,17 @@ export default function CheckpointEditor({ open, onClose }: CheckpointEditorProp
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Synchronizovat formData s aktualnim checkpointem pri zmene vyberu
+  useEffect(() => {
+    if (selectedCheckpoint) {
+      setFormData(selectedCheckpoint);
+      setHasSecretSolution(!!selectedCheckpoint.secret_solution);
+      setImagePreview(selectedCheckpoint.content?.image_url || null);
+      setImageFile(null);
+      setImageError(null);
+    }
+  }, [selectedCheckpointId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!selectedCheckpoint) return null;
 
@@ -191,7 +202,7 @@ export default function CheckpointEditor({ open, onClose }: CheckpointEditorProp
         {/* Header */}
         <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h5" color="primary">
-            Editovat checkpoint
+            Checkpoint {selectedCheckpoint.order_index + 1}
           </Typography>
           <IconButton onClick={onClose}>
             <CloseIcon />
