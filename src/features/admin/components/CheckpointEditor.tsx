@@ -29,6 +29,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { deleteCheckpointImage, uploadCheckpointImage } from '../../../lib/api';
 import type { CheckpointType, CoordinateDMS } from '../../../types';
+import MiniMapPicker from '../../map/components/MiniMapPicker';
 import { type TempCheckpoint, useGameEditorStore } from '../store/gameEditorStore';
 
 interface CheckpointEditorProps {
@@ -210,6 +211,48 @@ export default function CheckpointEditor({ open, onClose }: CheckpointEditorProp
         </Stack>
 
         <Stack spacing={3}>
+          {/* Pozice checkpointu - mini mapa + souradnice */}
+          <Card variant="outlined">
+            <CardContent>
+              <Typography variant="subtitle2" color="primary" gutterBottom>
+                Pozice
+              </Typography>
+              <MiniMapPicker
+                latitude={formData.latitude ?? selectedCheckpoint.latitude}
+                longitude={formData.longitude ?? selectedCheckpoint.longitude}
+                label={`${(formData.order_index ?? selectedCheckpoint.order_index) + 1}`}
+                onChange={(lat, lng) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    latitude: Math.round(lat * 1_000_000) / 1_000_000,
+                    longitude: Math.round(lng * 1_000_000) / 1_000_000,
+                  }));
+                }}
+                height={200}
+              />
+              <Stack direction="row" spacing={1} mt={1.5}>
+                <TextField
+                  label="Latitude"
+                  type="number"
+                  size="small"
+                  value={formData.latitude ?? selectedCheckpoint.latitude}
+                  onChange={(e) => handleChange('latitude', Number(e.target.value))}
+                  inputProps={{ step: 0.000001 }}
+                  fullWidth
+                />
+                <TextField
+                  label="Longitude"
+                  type="number"
+                  size="small"
+                  value={formData.longitude ?? selectedCheckpoint.longitude}
+                  onChange={(e) => handleChange('longitude', Number(e.target.value))}
+                  inputProps={{ step: 0.000001 }}
+                  fullWidth
+                />
+              </Stack>
+            </CardContent>
+          </Card>
+
           {/* Typ checkpointu */}
           <FormControl fullWidth>
             <InputLabel>Typ checkpointu</InputLabel>
