@@ -1,6 +1,7 @@
 import { Box, Paper } from '@mui/material';
 import { Feature } from 'ol';
 import { Circle as CircleGeom, Point } from 'ol/geom';
+import { circular } from 'ol/geom/Polygon';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
 import OLMap from 'ol/Map';
@@ -36,6 +37,7 @@ export interface MapMarker {
   location: GeoLocation;
   type: 'checkpoint' | 'user' | 'target' | 'player';
   label?: string;
+  radius?: number; // Radius v metrech pro zobrazeni kruznice kolem markeru
   tooltip?: string; // Tooltip pro zobrazení nad markerem (pouziva se pro hrače)
 }
 
@@ -244,6 +246,33 @@ const MapComponent = forwardRef<MapZoomRef, MapComponentProps>(function MapCompo
 
       feature.setStyle(createMarkerStyle(marker.type, undefined, marker.label));
       source.addFeature(feature);
+
+      // Kruznice zobrazujici radius checkpointu
+      if (marker.radius && marker.radius > 0) {
+        const radiusPolygon = circular(
+          [marker.location.longitude, marker.location.latitude],
+          marker.radius,
+          64
+        );
+        radiusPolygon.transform('EPSG:4326', 'EPSG:3857');
+
+        const radiusFeature = new Feature({
+          geometry: radiusPolygon,
+        });
+        radiusFeature.setStyle(
+          new Style({
+            stroke: new Stroke({
+              color: 'rgba(45, 106, 79, 0.6)', // Lesni zelena, pruhledna
+              width: 2,
+              lineDash: [6, 4],
+            }),
+            fill: new Fill({
+              color: 'rgba(45, 106, 79, 0.08)', // Jemne zelene vyplneni
+            }),
+          })
+        );
+        source.addFeature(radiusFeature);
+      }
     });
   }, [markers]);
 

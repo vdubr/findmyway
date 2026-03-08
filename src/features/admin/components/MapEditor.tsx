@@ -22,10 +22,11 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GeoLocation } from '../../../types';
 import { calculateCentroid } from '../../../utils/geo';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
+import type { MapZoomRef } from '../../map/hooks/useMapZoom';
 import { useGameEditorStore } from '../store/gameEditorStore';
 
 interface MapEditorProps {
@@ -41,6 +42,8 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
     deleteTempCheckpoint,
     selectCheckpoint,
   } = useGameEditorStore();
+
+  const mapRef = useRef<MapZoomRef>(null);
 
   const [initializedLocation, setInitializedLocation] = useState(false);
 
@@ -96,6 +99,7 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
       location: { latitude: cp.latitude, longitude: cp.longitude },
       type: 'checkpoint' as const,
       label: `${cp.order_index + 1}`,
+      radius: cp.radius,
     }));
   }, [tempCheckpoints]);
 
@@ -138,6 +142,7 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
               </Typography>
 
               <MapComponent
+                ref={mapRef}
                 center={mapCenter}
                 zoom={initialZoom}
                 markers={markers}
@@ -180,10 +185,23 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
                         borderColor: 'divider',
                         borderRadius: 1,
                         mb: 1,
+                        cursor: 'pointer',
                         bgcolor:
                           selectedCheckpointId === checkpoint.tempId
                             ? 'action.selected'
                             : 'background.paper',
+                        '&:hover': {
+                          bgcolor:
+                            selectedCheckpointId === checkpoint.tempId
+                              ? 'action.selected'
+                              : 'action.hover',
+                        },
+                      }}
+                      onClick={() => {
+                        mapRef.current?.zoomToLocation({
+                          latitude: checkpoint.latitude,
+                          longitude: checkpoint.longitude,
+                        });
                       }}
                       secondaryAction={
                         <Stack direction="row" spacing={0.5}>
