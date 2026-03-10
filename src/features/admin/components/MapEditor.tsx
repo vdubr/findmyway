@@ -119,12 +119,21 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
   const canSave = tempCheckpoints.length > 0;
 
   return (
-    <Box>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+    <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ flex: 1, minHeight: 0 }}>
         {/* Mapa */}
-        <Box sx={{ flex: 1 }}>
-          <Card>
-            <CardContent>
+        <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <Card sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            <CardContent
+              sx={{
+                flex: 1,
+                minHeight: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                p: 2,
+                '&:last-child': { pb: 2 },
+              }}
+            >
               <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
                 <Typography variant="h6" color="primary">
                   Umístění checkpointů
@@ -141,22 +150,40 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
                 Klikněte na mapu pro přidání checkpointu
               </Typography>
 
-              <MapComponent
-                ref={mapRef}
-                center={mapCenter}
-                zoom={initialZoom}
-                markers={markers}
-                onMapClick={handleMapClick}
-                height="600px"
-              />
+              <Box sx={{ flex: 1, minHeight: 300 }}>
+                <MapComponent
+                  ref={mapRef}
+                  center={mapCenter}
+                  zoom={initialZoom}
+                  markers={markers}
+                  onMapClick={handleMapClick}
+                  height="100%"
+                />
+              </Box>
             </CardContent>
           </Card>
         </Box>
 
         {/* Seznam checkpointů */}
-        <Box sx={{ width: { xs: '100%', md: 350 } }}>
-          <Card>
-            <CardContent>
+        <Box
+          sx={{
+            width: { xs: '100%', md: 350 },
+            minHeight: { xs: 300, md: 0 },
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <Card sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            <CardContent
+              sx={{
+                flex: 1,
+                minHeight: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                p: 2,
+                '&:last-child': { pb: 2 },
+              }}
+            >
               <Typography variant="h6" color="primary" gutterBottom>
                 Checkpointy ({tempCheckpoints.length})
               </Typography>
@@ -176,7 +203,7 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
                   </Typography>
                 </Paper>
               ) : (
-                <List sx={{ maxHeight: 500, overflow: 'auto' }}>
+                <List sx={{ flex: 1, overflow: 'auto' }}>
                   {tempCheckpoints.map((checkpoint, index) => (
                     <ListItem
                       key={checkpoint.tempId}

@@ -13,7 +13,7 @@ import FoxGuide from '../../../components/FoxGuide';
 import { useDeviceOrientation } from '../../../hooks/useDeviceOrientation';
 import { useGeolocation } from '../../../hooks/useGeolocation';
 import type { Checkpoint, Game } from '../../../types';
-import { calculateDistance, formatDistance } from '../../../utils/geo';
+import { calculateDistance } from '../../../utils/geo';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
 import type { MapZoomRef } from '../../map/hooks/useMapZoom';
 import CheckpointContentDialog from '../../player/components/CheckpointContentDialog';
@@ -92,7 +92,7 @@ export default function DemoPlayer({ game, tempCheckpoints, onExit }: DemoPlayer
     : 0;
   const isInCheckpointRadius = distanceToCheckpoint !== null && distanceToCheckpoint <= totalRadius;
 
-  // Spustit demo
+  // Spustit demo - zacina s tlacitkem "Objevit checkpoint 1"
   const handleStartDemo = async () => {
     setDemoStarted(true);
 
@@ -232,7 +232,7 @@ export default function DemoPlayer({ game, tempCheckpoints, onExit }: DemoPlayer
             Simulace hry z pohledu hrace. Zacnete na sve pozici a postupne prochazte checkpointy.
           </Typography>
           <Alert severity="info">
-            Tlacitkem "Najit dalsi" simulujete dosazeni checkpointu bez nutnosti fyzicke
+            Tlacitkem "Objevit checkpoint" simulujete dosazeni checkpointu bez nutnosti fyzicke
             pritomnosti.
           </Alert>
           <Typography variant="body2" color="text.secondary">
@@ -339,6 +339,20 @@ export default function DemoPlayer({ game, tempCheckpoints, onExit }: DemoPlayer
             userAccuracy={position?.accuracy ?? null}
             userHeading={heading}
             markers={markers}
+            routeLine={
+              position && currentCheckpoint
+                ? {
+                    from: {
+                      latitude: position.latitude,
+                      longitude: position.longitude,
+                    },
+                    to: {
+                      latitude: currentCheckpoint.latitude,
+                      longitude: currentCheckpoint.longitude,
+                    },
+                  }
+                : null
+            }
             onMoveByUser={handleMapMoveByUser}
             height="100%"
           />
@@ -377,7 +391,7 @@ export default function DemoPlayer({ game, tempCheckpoints, onExit }: DemoPlayer
           onNavigationClick={handleNavigationClick}
         />
 
-        {/* Tlacitko "Najit dalsi" - simulace dosazeni checkpointu */}
+        {/* Tlacitko "Objevit checkpoint X" - simulace dosazeni checkpointu */}
         {!checkpointReached && !showVictory && (
           <Button
             variant="contained"
@@ -388,12 +402,7 @@ export default function DemoPlayer({ game, tempCheckpoints, onExit }: DemoPlayer
             fullWidth
             sx={{ mt: 1 }}
           >
-            Najit dalsi
-            {distanceToCheckpoint !== null && (
-              <Typography component="span" variant="caption" sx={{ ml: 1, opacity: 0.8 }}>
-                ({formatDistance(distanceToCheckpoint)})
-              </Typography>
-            )}
+            Objevit checkpoint {currentCheckpointIndex + 1}
           </Button>
         )}
 

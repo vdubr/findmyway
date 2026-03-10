@@ -6,6 +6,7 @@ import AppLayout from './components/AppLayout';
 // Components
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminEditPage from './features/admin/pages/AdminEditPage';
 import AdminPage from './features/admin/pages/AdminPage';
 
 // Auth
@@ -29,7 +30,7 @@ function App() {
               {/* Auth page bez layoutu */}
               <Route path="/auth" element={<AuthPage />} />
 
-              {/* Všechny ostatní stránky s layoutem */}
+              {/* Vsechny ostatni stranky s layoutem */}
               <Route
                 element={
                   <AppLayout>
@@ -37,13 +38,13 @@ function App() {
                   </AppLayout>
                 }
               >
-                {/* Veřejná stránka */}
+                {/* Verejna stranka */}
                 <Route path="/" element={<HomePage />} />
 
-                {/* Veřejná stránka - hrát hru může kdokoli */}
+                {/* Verejna stranka - hrat hru muze kdokoli */}
                 <Route path="/play/:gameId" element={<PlayerPage />} />
 
-                {/* Chráněné stránky - jen pro přihlášené */}
+                {/* Admin - seznam her */}
                 <Route
                   path="/admin"
                   element={
@@ -52,6 +53,19 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+
+                {/* Admin - nova hra nebo editace existujici */}
+                <Route
+                  path="/admin/:gameId/:tab"
+                  element={
+                    <ProtectedRoute>
+                      <AdminEditPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Admin - redirect /admin/:gameId na /admin/:gameId/base */}
+                <Route path="/admin/:gameId" element={<Navigate to="base" replace />} />
 
                 <Route
                   path="/profile"

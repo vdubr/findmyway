@@ -27,17 +27,15 @@ import {
   Typography,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ErrorDisplay from '../../../components/ErrorDisplay';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 import { deleteGame, getActivePlayersCount, getMyGames, updateGame } from '../../../lib/api';
 import type { Game } from '../../../types';
 import LivePlayersMap from './LivePlayersMap';
 
-interface GameListProps {
-  onEdit?: (game: Game) => void;
-}
-
-export default function GameList({ onEdit }: GameListProps) {
+export default function GameList() {
+  const navigate = useNavigate();
   const [games, setGames] = useState<Game[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -210,16 +208,14 @@ export default function GameList({ onEdit }: GameListProps) {
                         )}
                       </IconButton>
                     )}
-                    {onEdit && (
-                      <IconButton
-                        size="small"
-                        onClick={() => onEdit(game)}
-                        title="Editovat"
-                        color="primary"
-                      >
-                        <EditIcon />
-                      </IconButton>
-                    )}
+                    <IconButton
+                      size="small"
+                      onClick={() => navigate(`/admin/${game.id}/base`)}
+                      title="Editovat"
+                      color="primary"
+                    >
+                      <EditIcon />
+                    </IconButton>
                     <IconButton
                       size="small"
                       onClick={() => handleTogglePublish(game)}

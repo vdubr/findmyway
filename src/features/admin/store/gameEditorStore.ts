@@ -1,5 +1,6 @@
 // Zustand store pro správu stavu při vytváření/editaci hry
 import { create } from 'zustand';
+import { getCheckpointsByGameId, getGameById } from '../../../lib/api';
 import type {
   CheckpointContent,
   CheckpointType,
@@ -41,7 +42,12 @@ interface GameEditorState {
   setCurrentGame: (game: Game | null) => void;
   initNewGame: (gameData: CreateGameInput) => void;
   initEditGame: (game: Game, checkpoints: any[]) => void;
+  loadGame: (gameId: string) => Promise<void>; // Načte hru a checkpointy z API podle ID
   updateCurrentGame: (gameData: CreateGameInput) => void;
+
+  // Loading state pro loadGame
+  isLoading: boolean;
+  loadError: string | null;
 
   // Checkpoint management
   addTempCheckpoint: (latitude: number, longitude: number) => void;
@@ -67,6 +73,8 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
   isMapEditorOpen: false,
   isCheckpointEditorOpen: false,
   isSaving: false,
+  isLoading: false,
+  loadError: null,
 
   setCurrentGame: (game) => set({ currentGame: game }),
 
@@ -112,6 +120,45 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
       selectedCheckpointId: null,
       isMapEditorOpen: true,
     }),
+
+  // Načtení hry z API podle ID (pro URL routing)
+  loadGame: async (gameId: string) => {
+    // Pokud už máme hru se stejným ID, nepřenačítáme
+    const current = get().currentGame;
+    if (current && current.id === gameId && get().tempCheckpoints.length > 0) {
+      return;
+    }
+
+    try {
+      set({ isLoading: true, loadError: null });
+      const gameData = await getGameById(gameId);
+      const checkpoints = await getCheckpointsByGameId(gameId);
+
+      set({
+        currentGame: gameData as Game,
+        tempCheckpoints: checkpoints.map((cp) => ({
+          tempId: cp.id,
+          id: cp.id,
+          order_index: cp.order_index,
+          latitude: cp.latitude,
+          longitude: cp.longitude,
+          radius: cp.radius,
+          type: cp.type,
+          content: cp.content,
+          secret_solution: cp.secret_solution,
+          is_fake: cp.is_fake,
+        })),
+        selectedCheckpointId: null,
+        isMapEditorOpen: true,
+        isLoading: false,
+      });
+    } catch (err) {
+      set({
+        isLoading: false,
+        loadError: err instanceof Error ? err.message : 'Chyba pri nacitani hry',
+      });
+    }
+  },
 
   // Aktualizace základních informací hry (při editaci)
   updateCurrentGame: (gameData) =>
@@ -216,5 +263,7 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
       isMapEditorOpen: false,
       isCheckpointEditorOpen: false,
       isSaving: false,
+      isLoading: false,
+      loadError: null,
     }),
 }));
