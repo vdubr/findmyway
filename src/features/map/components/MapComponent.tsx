@@ -1,6 +1,6 @@
 import { Box, Paper } from '@mui/material';
 import { Feature } from 'ol';
-import { Circle as CircleGeom, Point } from 'ol/geom';
+import { Circle as CircleGeom, LineString, Point } from 'ol/geom';
 import { circular } from 'ol/geom/Polygon';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
@@ -27,6 +27,7 @@ interface MapComponentProps {
   userAccuracy?: number | null; // GPS přesnost v metrech
   userHeading?: number | null; // Azimut (směr) v stupních (0-360)
   markers?: MapMarker[];
+  routeLine?: { from: GeoLocation; to: GeoLocation } | null; // Cara mezi dvema body (napr. hrac -> checkpoint)
   onMapClick?: (location: GeoLocation) => void;
   onMoveByUser?: () => void; // Callback pri manualnim posunu mapy uzivatelem (drag/pinch)
   height?: string | number;
@@ -49,6 +50,7 @@ const MapComponent = forwardRef<MapZoomRef, MapComponentProps>(function MapCompo
     userAccuracy,
     userHeading,
     markers = [],
+    routeLine,
     onMapClick,
     onMoveByUser,
     height = '500px',
@@ -103,6 +105,7 @@ const MapComponent = forwardRef<MapZoomRef, MapComponentProps>(function MapCompo
   const markersLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const userLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const accuracyLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
+  const routeLineLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const clickHandlerRef = useRef<MapEventHandler | null>(null);
 
   // Inicializace mapy
@@ -131,6 +134,13 @@ const MapComponent = forwardRef<MapZoomRef, MapComponentProps>(function MapCompo
     });
     accuracyLayerRef.current = accuracyLayer;
 
+    // Vrstva s carou mezi hracem a checkpointem
+    const routeLineSource = new VectorSource();
+    const routeLineLayer = new VectorLayer({
+      source: routeLineSource,
+    });
+    routeLineLayerRef.current = routeLineLayer;
+
     // Inicializace mapy
     const initialMap = new OLMap({
       target: mapRef.current,
@@ -139,6 +149,7 @@ const MapComponent = forwardRef<MapZoomRef, MapComponentProps>(function MapCompo
           source: new OSM(),
         }),
         accuracyLayer, // Kružnice přesnosti jako spodní vrstva
+        routeLineLayer, // Cara mezi hracem a checkpointem
         markersLayer,
         userLayer, // Pozice uživatele navrchu
       ],
@@ -330,6 +341,38 @@ const MapComponent = forwardRef<MapZoomRef, MapComponentProps>(function MapCompo
       source.addFeature(feature);
     }
   }, [userLocation, userAccuracy]);
+
+  // Aktualizace cary mezi hracem a checkpointem
+  useEffect(() => {
+    if (!routeLineLayerRef.current) return;
+
+    const source = routeLineLayerRef.current.getSource();
+    if (!source) return;
+
+    source.clear();
+
+    if (routeLine) {
+      const fromCoord = fromLonLat([routeLine.from.longitude, routeLine.from.latitude]);
+      const toCoord = fromLonLat([routeLine.to.longitude, routeLine.to.latitude]);
+
+      const feature = new Feature({
+        geometry: new LineString([fromCoord, toCoord]),
+      });
+
+      // Tenka carkovana cara - tlumena zelena
+      feature.setStyle(
+        new Style({
+          stroke: new Stroke({
+            color: 'rgba(45, 106, 79, 0.4)', // Lesni zelena, hodne pruhledna
+            width: 2,
+            lineDash: [8, 6],
+          }),
+        })
+      );
+
+      source.addFeature(feature);
+    }
+  }, [routeLine]);
 
   return (
     <Paper

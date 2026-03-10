@@ -485,6 +485,20 @@ export default function PlayerPage() {
                 userAccuracy={position?.accuracy ?? null}
                 userHeading={heading}
                 markers={markers}
+                routeLine={
+                  userPosition && currentCheckpoint
+                    ? {
+                        from: {
+                          latitude: userPosition.latitude,
+                          longitude: userPosition.longitude,
+                        },
+                        to: {
+                          latitude: currentCheckpoint.latitude,
+                          longitude: currentCheckpoint.longitude,
+                        },
+                      }
+                    : null
+                }
                 onMoveByUser={handleMapMoveByUser}
                 height="100%"
               />
