@@ -96,7 +96,7 @@ export function useGeolocation(): UseGeolocationReturn {
           },
           {
             enableHighAccuracy: highAccuracy,
-            timeout: highAccuracy ? 10000 : 30000, // Kratsi timeout pro GPS, delsi pro IP fallback
+            timeout: highAccuracy ? 5000 : 15000, // Desktop nemá GPS → selhání do 5s, IP fallback do 15s
             maximumAge: 0,
           }
         );

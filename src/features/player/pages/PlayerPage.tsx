@@ -52,6 +52,7 @@ export default function PlayerPage() {
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [followGps, setFollowGps] = useState(false); // Sledovani GPS pozice - centrovat mapu
+  const hasFirstPositionRef = useRef(false); // Sledování první polohy pro auto-follow
 
 
   const {
@@ -133,11 +134,17 @@ export default function PlayerPage() {
     }
   };
 
-  // Update user position in store
+  // Update user position in store + auto-follow na první fix
   // biome-ignore lint/correctness/useExhaustiveDependencies: updateUserPosition je stabilní funkce ze store
   useEffect(() => {
     if (position && gameStarted) {
       updateUserPosition(position);
+
+      // Při první poloze automaticky centrovat mapu na uživatele
+      if (!hasFirstPositionRef.current) {
+        hasFirstPositionRef.current = true;
+        setFollowGps(true);
+      }
     }
   }, [position, gameStarted]);
 
@@ -414,6 +421,7 @@ export default function PlayerPage() {
             {/* Alerts overlay - absolutně pozicované nad mapou */}
             {((gpsLoading && !position && !dismissedAlerts.has('gps-loading')) ||
               (gpsError && !dismissedAlerts.has('gps-error')) ||
+              (position && position.accuracy > 500 && !dismissedAlerts.has('low-accuracy')) ||
               (orientationError && !dismissedAlerts.has('orientation-error'))) && (
               <Box
                 sx={{
@@ -424,7 +432,7 @@ export default function PlayerPage() {
                   zIndex: 10,
                 }}
               >
-                {/* GPS Loading */}
+                {/* GPS Loading — rozlišujeme čekání na oprávnění vs. určování polohy */}
                 {gpsLoading && !position && !dismissedAlerts.has('gps-loading') && (
                   <Alert
                     severity="info"
@@ -436,9 +444,28 @@ export default function PlayerPage() {
                     }}
                     onClose={() => dismissAlert('gps-loading')}
                   >
-                    Čekám na přístup k poloze... Prosím povolte přístup k poloze v prohlížeči.
+                    Určuji vaši polohu… Pokud jste ještě nepovolili přístup k poloze, prosím povolte
+                    jej v prohlížeči.
                   </Alert>
                 )}
+
+                {/* Varování nízké přesnosti (IP lokace na desktopu) */}
+                {position &&
+                  position.accuracy > 500 &&
+                  !dismissedAlerts.has('low-accuracy') && (
+                    <Alert
+                      severity="warning"
+                      sx={{
+                        mb: 1,
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                        borderRadius: 3,
+                      }}
+                      onClose={() => dismissAlert('low-accuracy')}
+                    >
+                      Přibližná poloha (~{Math.round(position.accuracy / 100) * 100} m). GPS není
+                      dostupné — vzdálenosti a detekce checkpointů nemusí být přesné.
+                    </Alert>
+                  )}
 
                 {/* GPS Error */}
                 {gpsError && !dismissedAlerts.has('gps-error') && (
