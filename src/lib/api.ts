@@ -9,9 +9,11 @@ import type {
   GameSession,
   PlayerLocation,
   Profile,
+  SessionMetadata,
   UpdateCheckpointInput,
   UpdateGameInput,
 } from '../types';
+import type { Json } from './database.types';
 import {
   createAnonymousSession,
   getAnonymousSession,
@@ -42,7 +44,7 @@ export async function updateProfile(
 ) {
   const { data, error } = await supabase
     .from('profiles')
-    .update(updates as never)
+    .update(updates)
     .eq('id', userId)
     .select()
     .single();
@@ -109,10 +111,11 @@ export async function getGameById(gameId: string) {
     if (!error && data) {
       // Úspěch - uložit do cache pro offline použití
       await cacheGame(data as Game);
-      // @ts-expect-error - checkpoints jsou součástí select query
-      if (data.checkpoints) {
-        // @ts-expect-error - checkpoints jsou součástí select query
-        await cacheCheckpoints(gameId, data.checkpoints);
+      const dataWithCheckpoints = data as typeof data & {
+        checkpoints?: Checkpoint[];
+      };
+      if (dataWithCheckpoints.checkpoints) {
+        await cacheCheckpoints(gameId, dataWithCheckpoints.checkpoints);
       }
       return data;
     }
@@ -149,17 +152,17 @@ export async function createGame(input: CreateGameInput) {
     .insert({
       creator_id: user.id,
       title: input.title,
-      description: input.description,
+      description: input.description ?? null,
       is_public: input.is_public,
       difficulty: input.difficulty,
-      settings: input.settings || {
+      settings: (input.settings ?? {
         radius_tolerance: 10,
         allow_skip: false,
         max_players: null,
         time_limit: null,
-      },
+      }) as Json,
       status: 'draft',
-    } as never)
+    })
     .select()
     .single();
 
@@ -168,9 +171,13 @@ export async function createGame(input: CreateGameInput) {
 }
 
 export async function updateGame(gameId: string, updates: UpdateGameInput) {
+  const { settings, ...rest } = updates;
   const { data, error } = await supabase
     .from('games')
-    .update(updates as never)
+    .update({
+      ...rest,
+      ...(settings !== undefined && { settings: settings as Json }),
+    })
     .eq('id', gameId)
     .select()
     .single();
@@ -234,11 +241,11 @@ export async function createCheckpoint(input: CreateCheckpointInput) {
       order_index: input.order_index,
       latitude: input.latitude,
       longitude: input.longitude,
-      radius: input.radius || 10,
+      radius: input.radius ?? 10,
       type: input.type,
-      content: input.content as never,
-      secret_solution: input.secret_solution as never,
-    } as never)
+      content: input.content as Json,
+      secret_solution: (input.secret_solution ?? null) as Json | null,
+    })
     .select()
     .single();
 
@@ -247,9 +254,14 @@ export async function createCheckpoint(input: CreateCheckpointInput) {
 }
 
 export async function updateCheckpoint(checkpointId: string, updates: UpdateCheckpointInput) {
+  const { content, secret_solution, ...rest } = updates;
   const { data, error } = await supabase
     .from('checkpoints')
-    .update(updates as never)
+    .update({
+      ...rest,
+      ...(content !== undefined && { content: content as Json }),
+      ...(secret_solution !== undefined && { secret_solution: secret_solution as Json | null }),
+    })
     .eq('id', checkpointId)
     .select()
     .single();
@@ -319,8 +331,8 @@ export async function startGameSession(gameId: string) {
         hints_used: 0,
         wrong_attempts: 0,
         checkpoints_completed: [],
-      } as never,
-    } as never)
+      } as Json,
+    })
     .select()
     .single();
 
@@ -331,7 +343,7 @@ export async function startGameSession(gameId: string) {
 export async function updateSessionProgress(
   sessionId: string,
   checkpointIndex: number,
-  metadata?: object
+  metadata?: SessionMetadata
 ) {
   // Anonymní session - aktualizovat localStorage
   if (sessionId.startsWith('anonymous_')) {
@@ -341,7 +353,7 @@ export async function updateSessionProgress(
     }
     session.current_checkpoint_index = checkpointIndex;
     if (metadata) {
-      session.metadata = metadata as never;
+      session.metadata = metadata;
     }
     updateAnonymousSession(session);
     return session;
@@ -352,8 +364,8 @@ export async function updateSessionProgress(
     .from('game_sessions')
     .update({
       current_checkpoint_index: checkpointIndex,
-      ...(metadata && { metadata: metadata as never }),
-    } as never)
+      ...(metadata && { metadata: metadata as Json }),
+    })
     .eq('id', sessionId)
     .select()
     .single();
@@ -370,7 +382,7 @@ export async function completeGameSession(sessionId: string, score: number) {
     if (!session) {
       throw new Error('Anonymous session not found');
     }
-    session.status = 'completed' as never;
+    session.status = 'completed';
     session.end_time = new Date().toISOString();
     session.score = score;
     updateAnonymousSession(session);
@@ -381,10 +393,10 @@ export async function completeGameSession(sessionId: string, score: number) {
   const { data, error } = await supabase
     .from('game_sessions')
     .update({
-      status: 'completed' as never,
+      status: 'completed',
       end_time: new Date().toISOString(),
       score,
-    } as never)
+    })
     .eq('id', sessionId)
     .select()
     .single();
@@ -470,7 +482,7 @@ export async function updatePlayerLocation(
         accuracy,
         current_checkpoint_index: currentCheckpointIndex,
         last_seen_at: new Date().toISOString(),
-      } as never,
+      },
       {
         onConflict: 'session_id',
       }

@@ -190,9 +190,59 @@ export interface Database {
           created_at?: string;
         };
       };
+      player_locations: {
+        Row: {
+          id: string;
+          session_id: string;
+          latitude: number;
+          longitude: number;
+          accuracy: number | null;
+          current_checkpoint_index: number;
+          last_seen_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          latitude: number;
+          longitude: number;
+          accuracy?: number | null;
+          current_checkpoint_index: number;
+          last_seen_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          latitude?: number;
+          longitude?: number;
+          accuracy?: number | null;
+          current_checkpoint_index?: number;
+          last_seen_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
     Views: {
-      [_ in never]: never;
+      active_players_view: {
+        Row: {
+          id: string;
+          session_id: string;
+          latitude: number;
+          longitude: number;
+          accuracy: number | null;
+          current_checkpoint_index: number;
+          last_seen_at: string;
+          game_id: string;
+          user_id: string;
+          username: string | null;
+          avatar_url: string | null;
+          creator_id: string;
+        };
+      };
     };
     Functions: {
       is_game_creator: {
