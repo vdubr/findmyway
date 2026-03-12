@@ -347,7 +347,9 @@ export async function updateSessionProgress(
 ) {
   // Anonymní session - aktualizovat localStorage
   if (sessionId.startsWith('anonymous_')) {
-    const session = getAnonymousSession(sessionId.split('_')[1]); // Extract gameId
+    const gameId = sessionId.slice('anonymous_'.length);
+    if (!gameId) throw new Error(`Invalid anonymous session ID: "${sessionId}"`);
+    const session = getAnonymousSession(gameId);
     if (!session) {
       throw new Error('Anonymous session not found');
     }
@@ -377,7 +379,8 @@ export async function updateSessionProgress(
 export async function completeGameSession(sessionId: string, score: number) {
   // Anonymní session - dokončit v localStorage
   if (sessionId.startsWith('anonymous_')) {
-    const gameId = sessionId.split('_')[1]; // Extract gameId
+    const gameId = sessionId.slice('anonymous_'.length);
+    if (!gameId) throw new Error(`Invalid anonymous session ID: "${sessionId}"`);
     const session = getAnonymousSession(gameId);
     if (!session) {
       throw new Error('Anonymous session not found');

@@ -13,7 +13,7 @@ import View from 'ol/View';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import 'ol/ol.css';
 import type { GeoLocation } from '../../../types';
-import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../../utils/constants';
+import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, MAP_SIGNIFICANT_MOVE_THRESHOLD } from '../../../utils/constants';
 import type { MapZoomRef } from '../hooks/useMapZoom';
 
 // Typ pro click event handler mapy
@@ -107,11 +107,14 @@ const MapComponent = forwardRef<MapZoomRef, MapComponentProps>(function MapCompo
   const accuracyLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const routeLineLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const clickHandlerRef = useRef<MapEventHandler | null>(null);
+  // Ref místo state-guard — bezpečné i v React Strict Mode (double-invoke)
+  const mapInitializedRef = useRef(false);
 
   // Inicializace mapy
   // biome-ignore lint/correctness/useExhaustiveDependencies: Mapa se má inicializovat pouze jednou při mountu
   useEffect(() => {
-    if (!mapRef.current || map) return; // Prevent multiple initializations
+    if (!mapRef.current || mapInitializedRef.current) return;
+    mapInitializedRef.current = true;
 
     // Vrstva s markery
     const markersSource = new VectorSource();
@@ -162,6 +165,8 @@ const MapComponent = forwardRef<MapZoomRef, MapComponentProps>(function MapCompo
     setMap(initialMap);
 
     return () => {
+      mapInitializedRef.current = false;
+      setMap(null); // Vyčistit stale referenci před dalším mountem
       initialMap.setTarget(undefined);
       initialMap.dispose();
     };
@@ -227,7 +232,7 @@ const MapComponent = forwardRef<MapZoomRef, MapComponentProps>(function MapCompo
       const dx = Math.abs(currentCenter[0] - newCenter[0]);
       const dy = Math.abs(currentCenter[1] - newCenter[1]);
       // Skip small changes (< 100m) - uživatel si nazoomoval jinam a nechceme mu to zrušit
-      if (dx < 10 && dy < 10) return;
+      if (dx < MAP_SIGNIFICANT_MOVE_THRESHOLD && dy < MAP_SIGNIFICANT_MOVE_THRESHOLD) return;
     }
 
     // Významná změna centra = pravděpodobně nový checkpoint

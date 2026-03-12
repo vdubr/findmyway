@@ -34,6 +34,7 @@ import {
   startGameSession,
   updatePlayerLocation,
 } from '../../../lib/api';
+import { LOCATION_UPDATE_INTERVAL } from '../../../utils/constants';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
 import type { MapZoomRef } from '../../map/hooks/useMapZoom';
 import CheckpointContentDialog from '../components/CheckpointContentDialog';
@@ -52,8 +53,6 @@ export default function PlayerPage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [followGps, setFollowGps] = useState(false); // Sledovani GPS pozice - centrovat mapu
 
-  // Interval pro odesilani pozice (10 sekund)
-  const LOCATION_UPDATE_INTERVAL = 10000;
 
   const {
     position,
@@ -162,8 +161,12 @@ export default function PlayerPage() {
       return;
     }
 
+    // Flag pro zruseni in-flight requestu pri re-runu efektu nebo unmountu
+    let cancelled = false;
+
     // Funkce pro odeslani pozice
     const sendLocation = async () => {
+      if (cancelled) return;
       try {
         await updatePlayerLocation(
           sessionId,
@@ -185,6 +188,7 @@ export default function PlayerPage() {
 
     // Cleanup - pri ukonceni smazat pozici a zrusit interval
     return () => {
+      cancelled = true;
       clearInterval(intervalId);
       // Smazat pozici pri odchodu (asynchronne, bez cekani)
       deletePlayerLocation(sessionId).catch((err) => {
@@ -255,19 +259,22 @@ export default function PlayerPage() {
   };
 
   // Zapnout/vypnout sledovani GPS pozice na mape
+  // Čte pozici přímo ze store (getState) → callback je stabilní, nerekonstruuje se při každém GPS update
   const handleToggleFollowGps = useCallback(() => {
     setFollowGps((prev) => {
       const next = !prev;
-      // Pokud zapneme follow a mame pozici, hned centrovat
-      if (next && userPosition && mapRef.current) {
-        mapRef.current.centerOnLocation({
-          latitude: userPosition.latitude,
-          longitude: userPosition.longitude,
-        });
+      if (next && mapRef.current) {
+        const pos = useGamePlayStore.getState().userPosition;
+        if (pos) {
+          mapRef.current.centerOnLocation({
+            latitude: pos.latitude,
+            longitude: pos.longitude,
+          });
+        }
       }
       return next;
     });
-  }, [userPosition]);
+  }, []);
 
   // Deaktivace follow mode pri manualnim posunu mapy
   const handleMapMoveByUser = useCallback(() => {

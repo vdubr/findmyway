@@ -91,7 +91,7 @@ export const useGamePlayStore = create<GamePlayState>((set, get) => ({
     set({ distanceToCheckpoint: distance });
 
     // Check if in radius
-    const radiusTolerance = game.settings.radius_tolerance || 10;
+    const radiusTolerance = game.settings?.radius_tolerance ?? 10;
     const totalRadius = currentCheckpoint.radius + radiusTolerance;
     const inRadius = distance <= totalRadius;
 
