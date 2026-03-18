@@ -33,9 +33,13 @@ export default function LivePlayersMap({ game, open, onClose }: LivePlayersMapPr
   useEffect(() => {
     if (!open) return;
 
+    let cancelled = false;
+
     const loadCheckpoints = async () => {
       try {
         const data = await getCheckpointsByGameId(game.id);
+        if (cancelled) return;
+
         setCheckpoints(data);
 
         // Nastavit centrum mapy na prvni checkpoint
@@ -46,11 +50,17 @@ export default function LivePlayersMap({ game, open, onClose }: LivePlayersMapPr
           });
         }
       } catch (err) {
-        console.error('Chyba pri nacitani checkpointu:', err);
+        if (!cancelled) {
+          console.error('Chyba pri nacitani checkpointu:', err);
+        }
       }
     };
 
     loadCheckpoints();
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, game.id]);
 
   // Subscripce na real-time pozice hracu

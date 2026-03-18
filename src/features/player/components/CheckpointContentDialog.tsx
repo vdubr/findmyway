@@ -15,7 +15,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Checkpoint, CoordinateDMS } from '../../../types';
 import { CHECKPOINT_COMPLETE_DELAY } from '../../../utils/constants';
 import { validateCoordinateInput } from '../../../utils/coordinateValidation';
@@ -66,6 +66,16 @@ export default function CheckpointContentDialog({
   const [puzzleAnswer, setPuzzleAnswer] = useState('');
   // Zobrazit chybu pokud checkpoint nemá konfiguraci (místo tiché chyby v console)
   const [missingConfigError, setMissingConfigError] = useState(false);
+  const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timeru při unmount
+  useEffect(() => {
+    return () => {
+      if (completeTimerRef.current) {
+        clearTimeout(completeTimerRef.current);
+      }
+    };
+  }, []);
 
   const handlePuzzleSubmit = () => {
     if (!checkpoint.content.puzzle_answer) {
@@ -93,7 +103,7 @@ export default function CheckpointContentDialog({
 
     // Pokud je správná odpověď, po 2 sekundách pokračujeme
     if (isCorrect) {
-      setTimeout(() => {
+      completeTimerRef.current = setTimeout(() => {
         setValidationResult(null);
         setPuzzleAnswer('');
         onComplete();
@@ -123,7 +133,7 @@ export default function CheckpointContentDialog({
 
     // Pokud je validace úspěšná, po 2 sekundách zavřeme dialog a pokračujeme
     if (result.isValid) {
-      setTimeout(() => {
+      completeTimerRef.current = setTimeout(() => {
         setValidationResult(null);
         onComplete();
       }, CHECKPOINT_COMPLETE_DELAY);

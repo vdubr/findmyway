@@ -31,6 +31,9 @@ interface GameEditorState {
   // Temporary checkpoints (během editace)
   tempCheckpoints: TempCheckpoint[];
 
+  // IDs checkpointů smazaných během editace (jen ty co existují v DB - mají reálné ID)
+  deletedCheckpointIds: string[];
+
   // Selected checkpoint for editing
   selectedCheckpointId: string | null;
 
@@ -70,6 +73,7 @@ interface GameEditorState {
 export const useGameEditorStore = create<GameEditorState>((set, get) => ({
   currentGame: null,
   tempCheckpoints: [],
+  deletedCheckpointIds: [],
   selectedCheckpointId: null,
   isMapEditorOpen: false,
   isCheckpointEditorOpen: false,
@@ -106,6 +110,7 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
   initEditGame: (game, checkpoints) =>
     set({
       currentGame: game,
+      deletedCheckpointIds: [],
       tempCheckpoints: checkpoints.map((cp) => ({
         tempId: cp.id, // Use real ID as tempId for existing checkpoints
         id: cp.id,
@@ -130,6 +135,9 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
       return;
     }
 
+    // Guard proti race condition – zabráníme dvojitému načtení
+    if (get().isLoading) return;
+
     try {
       set({ isLoading: true, loadError: null });
       const gameData = await getGameById(gameId);
@@ -137,6 +145,7 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
 
       set({
         currentGame: gameData as Game,
+        deletedCheckpointIds: [],
         tempCheckpoints: checkpoints.map((cp) => ({
           tempId: cp.id,
           id: cp.id,
@@ -216,6 +225,7 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
 
   deleteTempCheckpoint: (tempId) =>
     set((state) => {
+      const toDelete = state.tempCheckpoints.find((cp) => cp.tempId === tempId);
       const filtered = state.tempCheckpoints.filter((cp) => cp.tempId !== tempId);
       // Reindex order
       const reindexed = filtered.map((cp, index) => ({
@@ -223,8 +233,14 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
         order_index: index,
       }));
 
+      // Pokud má checkpoint reálné DB ID, zaznamenej ho ke smazání
+      const newDeletedIds = toDelete?.id
+        ? [...state.deletedCheckpointIds, toDelete.id]
+        : state.deletedCheckpointIds;
+
       return {
         tempCheckpoints: reindexed,
+        deletedCheckpointIds: newDeletedIds,
         selectedCheckpointId:
           state.selectedCheckpointId === tempId ? null : state.selectedCheckpointId,
       };
@@ -260,6 +276,7 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
     set({
       currentGame: null,
       tempCheckpoints: [],
+      deletedCheckpointIds: [],
       selectedCheckpointId: null,
       isMapEditorOpen: false,
       isCheckpointEditorOpen: false,

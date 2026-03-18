@@ -29,11 +29,13 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log error to console in development
-    console.error('Error caught by boundary:', error, errorInfo);
-
-    // TODO: Log to error reporting service in production
-    // Example: logErrorToService(error, errorInfo);
+    console.error('[ErrorBoundary]', {
+      message: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+      url: window.location.href,
+      timestamp: new Date().toISOString(),
+    });
   }
 
   handleReset = () => {
