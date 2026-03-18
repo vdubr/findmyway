@@ -6,6 +6,7 @@ import {
   Navigation as NavigationIcon,
 } from '@mui/icons-material';
 import { Box, Chip, Stack, Typography } from '@mui/material';
+import { formatDistance } from '../../../utils/geo';
 
 interface NavigationInfoProps {
   distance: number | null; // v metrech
@@ -20,13 +21,6 @@ export default function NavigationInfo({
   checkpointReached,
   onClick,
 }: NavigationInfoProps) {
-  const formatDistance = (meters: number): string => {
-    if (meters < 1000) {
-      return `${Math.round(meters)} m`;
-    }
-    return `${(meters / 1000).toFixed(1)} km`;
-  };
-
   const getDistanceColor = (): 'error' | 'warning' | 'success' => {
     if (!distance) return 'error';
     if (isInRadius) return 'success';

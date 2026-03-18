@@ -184,6 +184,7 @@ export interface CreateCheckpointInput {
   type: CheckpointType;
   content: CheckpointContent;
   secret_solution?: SecretSolution;
+  is_fake?: boolean;
 }
 
 export interface UpdateCheckpointInput {

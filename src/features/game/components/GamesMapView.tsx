@@ -40,6 +40,7 @@ export default function GamesMapView({ games }: GamesMapViewProps) {
   const [map, setMap] = useState<OLMap | null>(null);
   const [selectedGame, setSelectedGame] = useState<GameWithCentroid | null>(null);
   const markersLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
+  const validGamesRef = useRef<GameWithCentroid[]>([]);
 
   // Vypocet teziště pro kazdu hru
   const gamesWithCentroids: GameWithCentroid[] = useMemo(() => {
@@ -53,6 +54,9 @@ export default function GamesMapView({ games }: GamesMapViewProps) {
   const validGames = useMemo(() => {
     return gamesWithCentroids.filter((g) => g.centroid !== null);
   }, [gamesWithCentroids]);
+
+  // Ref vždy ukazuje na aktuální seznam her (pro click handler v mapě)
+  validGamesRef.current = validGames;
 
   // Inicializace mapy (záměrně jednou – guard `map` zabraňuje re-inicializaci)
   // biome-ignore lint/correctness/useExhaustiveDependencies: záměrně prázdné deps – mapa se inicializuje pouze jednou
@@ -95,7 +99,7 @@ export default function GamesMapView({ games }: GamesMapViewProps) {
       const feature = initialMap.forEachFeatureAtPixel(event.pixel, (f) => f);
       if (feature) {
         const gameId = feature.get('gameId');
-        const game = validGames.find((g) => g.id === gameId);
+        const game = validGamesRef.current.find((g) => g.id === gameId);
         if (game) {
           setSelectedGame(game);
           // Vycentrovat na vybranou hru

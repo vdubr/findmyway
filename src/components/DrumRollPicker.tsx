@@ -9,6 +9,8 @@ interface DrumRollPickerProps {
   onChange: (value: number) => void;
   label?: string;
   suffix?: string;
+  itemHeight?: number;
+  visibleItems?: number;
 }
 
 export default function DrumRollPicker({
@@ -18,15 +20,14 @@ export default function DrumRollPicker({
   onChange,
   label,
   suffix = '',
+  itemHeight: ITEM_HEIGHT = 48,
+  visibleItems: VISIBLE_ITEMS = 5,
 }: DrumRollPickerProps) {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startY, setStartY] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
-
-  const ITEM_HEIGHT = 48; // Výška jedné položky v px
-  const VISIBLE_ITEMS = 5; // Kolik položek je vidět najednou
 
   // Generujeme pole všech možných hodnot
   const values = Array.from({ length: max - min + 1 }, (_, i) => min + i);
