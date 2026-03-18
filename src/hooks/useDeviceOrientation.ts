@@ -1,6 +1,16 @@
 // Custom hook pro sledování orientace zařízení (kompas)
 import { useCallback, useEffect, useState } from 'react';
 
+// iOS Safari specifické rozšíření DeviceOrientationEvent
+interface DeviceOrientationEventIOS extends DeviceOrientationEvent {
+  webkitCompassHeading?: number;
+}
+
+// iOS 13+ static metoda pro žádost o povolení orientace
+interface DeviceOrientationEventIOSStatic {
+  requestPermission?: () => Promise<'granted' | 'denied'>;
+}
+
 interface UseDeviceOrientationReturn {
   heading: number | null; // Azimut v stupních (0-360, 0 = sever)
   error: string | null;
@@ -32,10 +42,10 @@ export function useDeviceOrientation(): UseDeviceOrientationReturn {
       const alpha = event.alpha;
 
       // Pokud je k dispozici webkitCompassHeading (iOS Safari), použít to
-      const webkitEvent = event as any;
-      if (webkitEvent.webkitCompassHeading !== undefined) {
+      const iosEvent = event as DeviceOrientationEventIOS;
+      if (iosEvent.webkitCompassHeading !== undefined) {
         // webkitCompassHeading je přesnější na iOS
-        setHeading(webkitEvent.webkitCompassHeading);
+        setHeading(iosEvent.webkitCompassHeading);
       } else {
         // Na Androidu použít alpha, ale převrátit (360 - alpha)
         // protože alpha roste proti směru hodinových ručiček
@@ -54,8 +64,9 @@ export function useDeviceOrientation(): UseDeviceOrientationReturn {
 
     try {
       // iOS 13+ vyžaduje explicitní povolení
-      if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
-        const permission = await (DeviceOrientationEvent as any).requestPermission();
+      const iosStatic = DeviceOrientationEvent as unknown as DeviceOrientationEventIOSStatic;
+      if (typeof iosStatic.requestPermission === 'function') {
+        const permission = await iosStatic.requestPermission();
         if (permission === 'granted') {
           window.addEventListener('deviceorientation', handleOrientation, true);
         } else {

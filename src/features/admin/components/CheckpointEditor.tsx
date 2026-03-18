@@ -55,6 +55,7 @@ export default function CheckpointEditor({ open, onClose }: CheckpointEditorProp
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Synchronizovat formData s aktualnim checkpointem pri zmene vyberu
+  // biome-ignore lint/correctness/useExhaustiveDependencies: záměrně pouze selectedCheckpointId – chceme sync pouze při přepnutí checkpointu, ne při každé editaci
   useEffect(() => {
     if (selectedCheckpoint) {
       setFormData(selectedCheckpoint);
@@ -63,7 +64,7 @@ export default function CheckpointEditor({ open, onClose }: CheckpointEditorProp
       setImageFile(null);
       setImageError(null);
     }
-  }, [selectedCheckpointId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedCheckpointId]);
 
   if (!selectedCheckpoint) return null;
 

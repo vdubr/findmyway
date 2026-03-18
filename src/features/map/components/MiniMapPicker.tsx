@@ -63,7 +63,8 @@ export default function MiniMapPicker({
   // Ref pro sledovani zda se marker prave tahne (aby se neaktualizoval z props)
   const isDraggingRef = useRef(false);
 
-  // Inicializace mapy
+  // Inicializace mapy (záměrně jednou – guard `mapRef.current` zabraňuje re-inicializaci)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: záměrně prázdné deps – mapa se inicializuje pouze jednou
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 

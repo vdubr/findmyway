@@ -13,12 +13,12 @@ import type {
   UpdateCheckpointInput,
   UpdateGameInput,
 } from '../types';
-import type { Json } from './database.types';
 import {
   createAnonymousSession,
   getAnonymousSession,
   updateAnonymousSession,
 } from './anonymousSessions';
+import type { Json } from './database.types';
 import { cacheCheckpoints, cacheGame, getCachedCheckpoints, getCachedGame } from './offlineStorage';
 import { supabase } from './supabase';
 

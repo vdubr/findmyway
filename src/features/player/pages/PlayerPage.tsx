@@ -54,7 +54,6 @@ export default function PlayerPage() {
   const [followGps, setFollowGps] = useState(false); // Sledovani GPS pozice - centrovat mapu
   const hasFirstPositionRef = useRef(false); // Sledování první polohy pro auto-follow
 
-
   const {
     position,
     error: gpsError,
@@ -149,7 +148,6 @@ export default function PlayerPage() {
   }, [position, gameStarted]);
 
   // Centrovat mapu na GPS pozici pokud je follow mode aktivni
-  // biome-ignore lint/correctness/useExhaustiveDependencies: mapRef je stabilni ref
   useEffect(() => {
     if (followGps && position && mapRef.current) {
       mapRef.current.centerOnLocation({
@@ -160,7 +158,6 @@ export default function PlayerPage() {
   }, [followGps, position]);
 
   // Periodicky odesilat pozici hrace, pokud je sdileni vyzadovano
-  // biome-ignore lint/correctness/useExhaustiveDependencies: currentCheckpointIndex se meni pri postupu hrou
   useEffect(() => {
     // Pokud neni vyzadovano sdileni, nebo neni session/pozice, nic nedelat
     const shareRequired = game?.settings?.share_location_required;
@@ -450,22 +447,20 @@ export default function PlayerPage() {
                 )}
 
                 {/* Varování nízké přesnosti (IP lokace na desktopu) */}
-                {position &&
-                  position.accuracy > 500 &&
-                  !dismissedAlerts.has('low-accuracy') && (
-                    <Alert
-                      severity="warning"
-                      sx={{
-                        mb: 1,
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                        borderRadius: 3,
-                      }}
-                      onClose={() => dismissAlert('low-accuracy')}
-                    >
-                      Přibližná poloha (~{Math.round(position.accuracy / 100) * 100} m). GPS není
-                      dostupné — vzdálenosti a detekce checkpointů nemusí být přesné.
-                    </Alert>
-                  )}
+                {position && position.accuracy > 500 && !dismissedAlerts.has('low-accuracy') && (
+                  <Alert
+                    severity="warning"
+                    sx={{
+                      mb: 1,
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                      borderRadius: 3,
+                    }}
+                    onClose={() => dismissAlert('low-accuracy')}
+                  >
+                    Přibližná poloha (~{Math.round(position.accuracy / 100) * 100} m). GPS není
+                    dostupné — vzdálenosti a detekce checkpointů nemusí být přesné.
+                  </Alert>
+                )}
 
                 {/* GPS Error */}
                 {gpsError && !dismissedAlerts.has('gps-error') && (

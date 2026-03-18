@@ -54,7 +54,8 @@ export default function GamesMapView({ games }: GamesMapViewProps) {
     return gamesWithCentroids.filter((g) => g.centroid !== null);
   }, [gamesWithCentroids]);
 
-  // Inicializace mapy
+  // Inicializace mapy (záměrně jednou – guard `map` zabraňuje re-inicializaci)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: záměrně prázdné deps – mapa se inicializuje pouze jednou
   useEffect(() => {
     if (!mapRef.current || map) return;
 

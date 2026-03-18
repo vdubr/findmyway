@@ -13,7 +13,11 @@ import View from 'ol/View';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import 'ol/ol.css';
 import type { GeoLocation } from '../../../types';
-import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, MAP_SIGNIFICANT_MOVE_THRESHOLD } from '../../../utils/constants';
+import {
+  DEFAULT_MAP_CENTER,
+  DEFAULT_MAP_ZOOM,
+  MAP_SIGNIFICANT_MOVE_THRESHOLD,
+} from '../../../utils/constants';
 import type { MapZoomRef } from '../hooks/useMapZoom';
 
 // Typ pro click event handler mapy
