@@ -34,6 +34,7 @@ import {
   startGameSession,
   updatePlayerLocation,
 } from '../../../lib/api';
+import { LOCATION_UPDATE_INTERVAL } from '../../../utils/constants';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
 import type { MapZoomRef } from '../../map/hooks/useMapZoom';
 import CheckpointContentDialog from '../components/CheckpointContentDialog';
@@ -51,9 +52,7 @@ export default function PlayerPage() {
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [followGps, setFollowGps] = useState(false); // Sledovani GPS pozice - centrovat mapu
-
-  // Interval pro odesilani pozice (10 sekund)
-  const LOCATION_UPDATE_INTERVAL = 10000;
+  const hasFirstPositionRef = useRef(false); // Sledování první polohy pro auto-follow
 
   const {
     position,
@@ -134,16 +133,21 @@ export default function PlayerPage() {
     }
   };
 
-  // Update user position in store
+  // Update user position in store + auto-follow na první fix
   // biome-ignore lint/correctness/useExhaustiveDependencies: updateUserPosition je stabilní funkce ze store
   useEffect(() => {
     if (position && gameStarted) {
       updateUserPosition(position);
+
+      // Při první poloze automaticky centrovat mapu na uživatele
+      if (!hasFirstPositionRef.current) {
+        hasFirstPositionRef.current = true;
+        setFollowGps(true);
+      }
     }
   }, [position, gameStarted]);
 
   // Centrovat mapu na GPS pozici pokud je follow mode aktivni
-  // biome-ignore lint/correctness/useExhaustiveDependencies: mapRef je stabilni ref
   useEffect(() => {
     if (followGps && position && mapRef.current) {
       mapRef.current.centerOnLocation({
@@ -154,7 +158,6 @@ export default function PlayerPage() {
   }, [followGps, position]);
 
   // Periodicky odesilat pozici hrace, pokud je sdileni vyzadovano
-  // biome-ignore lint/correctness/useExhaustiveDependencies: currentCheckpointIndex se meni pri postupu hrou
   useEffect(() => {
     // Pokud neni vyzadovano sdileni, nebo neni session/pozice, nic nedelat
     const shareRequired = game?.settings?.share_location_required;
@@ -162,8 +165,12 @@ export default function PlayerPage() {
       return;
     }
 
+    // Flag pro zruseni in-flight requestu pri re-runu efektu nebo unmountu
+    let cancelled = false;
+
     // Funkce pro odeslani pozice
     const sendLocation = async () => {
+      if (cancelled) return;
       try {
         await updatePlayerLocation(
           sessionId,
@@ -185,6 +192,7 @@ export default function PlayerPage() {
 
     // Cleanup - pri ukonceni smazat pozici a zrusit interval
     return () => {
+      cancelled = true;
       clearInterval(intervalId);
       // Smazat pozici pri odchodu (asynchronne, bez cekani)
       deletePlayerLocation(sessionId).catch((err) => {
@@ -255,19 +263,22 @@ export default function PlayerPage() {
   };
 
   // Zapnout/vypnout sledovani GPS pozice na mape
+  // Čte pozici přímo ze store (getState) → callback je stabilní, nerekonstruuje se při každém GPS update
   const handleToggleFollowGps = useCallback(() => {
     setFollowGps((prev) => {
       const next = !prev;
-      // Pokud zapneme follow a mame pozici, hned centrovat
-      if (next && userPosition && mapRef.current) {
-        mapRef.current.centerOnLocation({
-          latitude: userPosition.latitude,
-          longitude: userPosition.longitude,
-        });
+      if (next && mapRef.current) {
+        const pos = useGamePlayStore.getState().userPosition;
+        if (pos) {
+          mapRef.current.centerOnLocation({
+            latitude: pos.latitude,
+            longitude: pos.longitude,
+          });
+        }
       }
       return next;
     });
-  }, [userPosition]);
+  }, []);
 
   // Deaktivace follow mode pri manualnim posunu mapy
   const handleMapMoveByUser = useCallback(() => {
@@ -407,6 +418,7 @@ export default function PlayerPage() {
             {/* Alerts overlay - absolutně pozicované nad mapou */}
             {((gpsLoading && !position && !dismissedAlerts.has('gps-loading')) ||
               (gpsError && !dismissedAlerts.has('gps-error')) ||
+              (position && position.accuracy > 500 && !dismissedAlerts.has('low-accuracy')) ||
               (orientationError && !dismissedAlerts.has('orientation-error'))) && (
               <Box
                 sx={{
@@ -417,7 +429,7 @@ export default function PlayerPage() {
                   zIndex: 10,
                 }}
               >
-                {/* GPS Loading */}
+                {/* GPS Loading — rozlišujeme čekání na oprávnění vs. určování polohy */}
                 {gpsLoading && !position && !dismissedAlerts.has('gps-loading') && (
                   <Alert
                     severity="info"
@@ -429,7 +441,24 @@ export default function PlayerPage() {
                     }}
                     onClose={() => dismissAlert('gps-loading')}
                   >
-                    Čekám na přístup k poloze... Prosím povolte přístup k poloze v prohlížeči.
+                    Určuji vaši polohu… Pokud jste ještě nepovolili přístup k poloze, prosím povolte
+                    jej v prohlížeči.
+                  </Alert>
+                )}
+
+                {/* Varování nízké přesnosti (IP lokace na desktopu) */}
+                {position && position.accuracy > 500 && !dismissedAlerts.has('low-accuracy') && (
+                  <Alert
+                    severity="warning"
+                    sx={{
+                      mb: 1,
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                      borderRadius: 3,
+                    }}
+                    onClose={() => dismissAlert('low-accuracy')}
+                  >
+                    Přibližná poloha (~{Math.round(position.accuracy / 100) * 100} m). GPS není
+                    dostupné — vzdálenosti a detekce checkpointů nemusí být přesné.
                   </Alert>
                 )}
 

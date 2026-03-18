@@ -156,7 +156,6 @@ export default function DemoPlayer({ game, tempCheckpoints, onExit }: DemoPlayer
   }, []);
 
   // Centrovat mapu na GPS pozici pokud je follow mode aktivni
-  // biome-ignore lint/correctness/useExhaustiveDependencies: mapRef je stabilni ref
   useEffect(() => {
     if (followGps && position && mapRef.current) {
       mapRef.current.centerOnLocation({

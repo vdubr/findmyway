@@ -2,16 +2,16 @@
 // Nacte hru podle gameId z URL a zobrazuje taby (base/checkpoints/demo)
 
 import { Alert, Box, Container, Snackbar, Tab, Tabs } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ErrorDisplay from '../../../components/ErrorDisplay';
 import LoadingSpinner from '../../../components/LoadingSpinner';
-import { createCheckpoint, createGame, updateCheckpoint, updateGame } from '../../../lib/api';
 import type { CreateGameInput } from '../../../types';
 import CheckpointEditor from '../components/CheckpointEditor';
 import DemoPlayer from '../components/DemoPlayer';
 import GameCreatorForm from '../components/GameCreatorForm';
 import MapEditor from '../components/MapEditor';
+import { useSaveGame } from '../hooks/useSaveGame';
 import { useGameEditorStore } from '../store/gameEditorStore';
 
 // Mapovani URL segmentu na tab hodnoty
@@ -23,9 +23,8 @@ const VALID_TABS: TabValue[] = ['base', 'checkpoints', 'demo'];
 export default function AdminEditPage() {
   const { gameId, tab } = useParams<{ gameId: string; tab: string }>();
   const navigate = useNavigate();
-  const [isSaving, setIsSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { isSaving, successMessage, errorMessage, saveNewGame, updateExistingGame, clearMessages } =
+    useSaveGame();
 
   const {
     currentGame,
@@ -82,107 +81,6 @@ export default function AdminEditPage() {
     navigate(`/admin/${gameId}/checkpoints`);
   };
 
-  // Ulozit novou hru a checkpointy do databaze
-  const handleSaveNewGame = async () => {
-    if (!currentGame) return;
-
-    try {
-      setIsSaving(true);
-      setErrorMessage(null);
-
-      // 1. Vytvorit hru
-      const createdGame = await createGame({
-        title: currentGame.title,
-        description: currentGame.description || undefined,
-        is_public: currentGame.is_public,
-        difficulty: currentGame.difficulty,
-        settings: currentGame.settings,
-      });
-
-      // 2. Vytvorit vsechny checkpointy
-      for (const checkpoint of tempCheckpoints) {
-        await createCheckpoint({
-          game_id: createdGame.id,
-          order_index: checkpoint.order_index,
-          latitude: checkpoint.latitude,
-          longitude: checkpoint.longitude,
-          radius: checkpoint.radius,
-          type: checkpoint.type,
-          content: checkpoint.content,
-          secret_solution: checkpoint.secret_solution || undefined,
-        });
-      }
-
-      setSuccessMessage(`Hra "${createdGame.title}" byla uspesne vytvorena!`);
-      reset();
-      navigate('/admin');
-    } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Chyba pri ukladani hry');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Ulozit zmeny v existujici hre
-  const handleUpdateGame = async () => {
-    if (!currentGame || !currentGame.id) return;
-
-    try {
-      setIsSaving(true);
-      setErrorMessage(null);
-
-      // 1. Update game details
-      await updateGame(currentGame.id, {
-        title: currentGame.title,
-        description: currentGame.description || undefined,
-        is_public: currentGame.is_public,
-        difficulty: currentGame.difficulty,
-        settings: currentGame.settings,
-      });
-
-      // 2. Handle checkpoints - update existing, create new
-      const existingCheckpoints = tempCheckpoints.filter((cp) => cp.id);
-      const newCheckpoints = tempCheckpoints.filter((cp) => !cp.id);
-
-      // Update existing checkpoints
-      for (const checkpoint of existingCheckpoints) {
-        await updateCheckpoint(checkpoint.id!, {
-          order_index: checkpoint.order_index,
-          latitude: checkpoint.latitude,
-          longitude: checkpoint.longitude,
-          radius: checkpoint.radius,
-          type: checkpoint.type,
-          content: checkpoint.content,
-          secret_solution: checkpoint.secret_solution || undefined,
-        });
-      }
-
-      // Create new checkpoints
-      for (const checkpoint of newCheckpoints) {
-        await createCheckpoint({
-          game_id: currentGame.id,
-          order_index: checkpoint.order_index,
-          latitude: checkpoint.latitude,
-          longitude: checkpoint.longitude,
-          radius: checkpoint.radius,
-          type: checkpoint.type,
-          content: checkpoint.content,
-          secret_solution: checkpoint.secret_solution || undefined,
-        });
-      }
-
-      // TODO: Delete removed checkpoints (need to track which were deleted)
-
-      setSuccessMessage(`Hra "${currentGame.title}" byla uspesne aktualizovana!`);
-      reset();
-      navigate('/admin');
-    } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Chyba pri ukladani zmen');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   // Zrusit editaci
   const handleCancel = () => {
     reset();
@@ -212,7 +110,7 @@ export default function AdminEditPage() {
   }
 
   // Rozhodnout jestli jde o save nove hry nebo update existujici
-  const handleSave = isNewGame ? handleSaveNewGame : handleUpdateGame;
+  const handleSave = isNewGame ? saveNewGame : updateExistingGame;
   const handleFormSubmit = isNewGame ? handleNewGameFormSubmit : handleEditFormSubmit;
 
   return (
@@ -308,18 +206,14 @@ export default function AdminEditPage() {
       )}
 
       {/* Success/Error notifikace */}
-      <Snackbar
-        open={!!successMessage}
-        autoHideDuration={6000}
-        onClose={() => setSuccessMessage(null)}
-      >
-        <Alert severity="success" onClose={() => setSuccessMessage(null)}>
+      <Snackbar open={!!successMessage} autoHideDuration={6000} onClose={clearMessages}>
+        <Alert severity="success" onClose={clearMessages}>
           {successMessage}
         </Alert>
       </Snackbar>
 
-      <Snackbar open={!!errorMessage} autoHideDuration={6000} onClose={() => setErrorMessage(null)}>
-        <Alert severity="error" onClose={() => setErrorMessage(null)}>
+      <Snackbar open={!!errorMessage} autoHideDuration={6000} onClose={clearMessages}>
+        <Alert severity="error" onClose={clearMessages}>
           {errorMessage}
         </Alert>
       </Snackbar>

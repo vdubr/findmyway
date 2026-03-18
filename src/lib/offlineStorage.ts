@@ -24,75 +24,53 @@ const sessionsStore = localforage.createInstance({
 // === GAMES ===
 
 export async function cacheGame(game: Game): Promise<void> {
-  try {
-    await gamesStore.setItem(game.id, {
-      ...game,
-      cached_at: Date.now(),
-    });
-    console.log('Game cached for offline:', game.id);
-  } catch (error) {
-    console.error('Error caching game:', error);
-  }
+  await gamesStore.setItem(game.id, {
+    ...game,
+    cached_at: Date.now(),
+  });
 }
 
+/**
+ * Vrátí hru z cache nebo null pokud není uložena.
+ * Vyhodí chybu pokud dojde k chybě úložiště (odlišit od "není v cache").
+ */
 export async function getCachedGame(gameId: string): Promise<Game | null> {
-  try {
-    const game = await gamesStore.getItem<Game>(gameId);
-    return game;
-  } catch (error) {
-    console.error('Error getting cached game:', error);
-    return null;
-  }
+  const game = await gamesStore.getItem<Game>(gameId);
+  return game;
 }
 
 export async function getAllCachedGames(): Promise<Game[]> {
-  try {
-    const games: Game[] = [];
-    await gamesStore.iterate<Game, void>((value) => {
-      games.push(value);
-    });
-    return games;
-  } catch (error) {
-    console.error('Error getting all cached games:', error);
-    return [];
-  }
+  const games: Game[] = [];
+  await gamesStore.iterate<Game, void>((value) => {
+    games.push(value);
+  });
+  return games;
 }
 
 export async function removeCachedGame(gameId: string): Promise<void> {
-  try {
-    await gamesStore.removeItem(gameId);
-    await checkpointsStore.removeItem(gameId);
-    console.log('Game removed from cache:', gameId);
-  } catch (error) {
-    console.error('Error removing cached game:', error);
-  }
+  await gamesStore.removeItem(gameId);
+  await checkpointsStore.removeItem(gameId);
 }
 
 // === CHECKPOINTS ===
 
 export async function cacheCheckpoints(gameId: string, checkpoints: Checkpoint[]): Promise<void> {
-  try {
-    await checkpointsStore.setItem(gameId, {
-      checkpoints,
-      cached_at: Date.now(),
-    });
-    console.log('Checkpoints cached for offline:', gameId);
-  } catch (error) {
-    console.error('Error caching checkpoints:', error);
-  }
+  await checkpointsStore.setItem(gameId, {
+    checkpoints,
+    cached_at: Date.now(),
+  });
 }
 
+/**
+ * Vrátí checkpointy z cache nebo [] pokud nejsou uloženy.
+ * Vyhodí chybu pokud dojde k chybě úložiště.
+ */
 export async function getCachedCheckpoints(gameId: string): Promise<Checkpoint[]> {
-  try {
-    const data = await checkpointsStore.getItem<{
-      checkpoints: Checkpoint[];
-      cached_at: number;
-    }>(gameId);
-    return data?.checkpoints || [];
-  } catch (error) {
-    console.error('Error getting cached checkpoints:', error);
-    return [];
-  }
+  const data = await checkpointsStore.getItem<{
+    checkpoints: Checkpoint[];
+    cached_at: number;
+  }>(gameId);
+  return data?.checkpoints ?? [];
 }
 
 // === SESSIONS ===
@@ -107,64 +85,39 @@ export interface GameSession {
 }
 
 export async function saveGameSession(session: GameSession): Promise<void> {
-  try {
-    const key = `${session.game_id}_${session.user_id}`;
-    await sessionsStore.setItem(key, session);
-    console.log('Game session saved:', key);
-  } catch (error) {
-    console.error('Error saving game session:', error);
-  }
+  const key = `${session.game_id}_${session.user_id}`;
+  await sessionsStore.setItem(key, session);
 }
 
 export async function getGameSession(gameId: string, userId: string): Promise<GameSession | null> {
-  try {
-    const key = `${gameId}_${userId}`;
-    const session = await sessionsStore.getItem<GameSession>(key);
-    return session;
-  } catch (error) {
-    console.error('Error getting game session:', error);
-    return null;
-  }
+  const key = `${gameId}_${userId}`;
+  const session = await sessionsStore.getItem<GameSession>(key);
+  return session;
 }
 
 export async function clearGameSession(gameId: string, userId: string): Promise<void> {
-  try {
-    const key = `${gameId}_${userId}`;
-    await sessionsStore.removeItem(key);
-    console.log('Game session cleared:', key);
-  } catch (error) {
-    console.error('Error clearing game session:', error);
-  }
+  const key = `${gameId}_${userId}`;
+  await sessionsStore.removeItem(key);
 }
 
 // === UTILITY ===
 
 export async function clearAllOfflineData(): Promise<void> {
-  try {
-    await gamesStore.clear();
-    await checkpointsStore.clear();
-    await sessionsStore.clear();
-    console.log('All offline data cleared');
-  } catch (error) {
-    console.error('Error clearing offline data:', error);
-  }
+  await gamesStore.clear();
+  await checkpointsStore.clear();
+  await sessionsStore.clear();
 }
 
 export async function getOfflineStorageSize(): Promise<number> {
-  try {
-    let totalSize = 0;
-    await gamesStore.iterate<Game, void>((value) => {
-      totalSize += JSON.stringify(value).length;
-    });
-    await checkpointsStore.iterate<unknown, void>((value) => {
-      totalSize += JSON.stringify(value).length;
-    });
-    await sessionsStore.iterate<GameSession, void>((value) => {
-      totalSize += JSON.stringify(value).length;
-    });
-    return totalSize;
-  } catch (error) {
-    console.error('Error calculating storage size:', error);
-    return 0;
-  }
+  let totalSize = 0;
+  await gamesStore.iterate<Game, void>((value) => {
+    totalSize += JSON.stringify(value).length;
+  });
+  await checkpointsStore.iterate<unknown, void>((value) => {
+    totalSize += JSON.stringify(value).length;
+  });
+  await sessionsStore.iterate<GameSession, void>((value) => {
+    totalSize += JSON.stringify(value).length;
+  });
+  return totalSize;
 }

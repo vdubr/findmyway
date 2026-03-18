@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import { useState } from 'react';
 import type { Checkpoint, CoordinateDMS } from '../../../types';
+import { CHECKPOINT_COMPLETE_DELAY } from '../../../utils/constants';
 import { validateCoordinateInput } from '../../../utils/coordinateValidation';
 import CoordinatePicker from './CoordinatePicker';
 
@@ -63,12 +64,15 @@ export default function CheckpointContentDialog({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [puzzleAnswer, setPuzzleAnswer] = useState('');
+  // Zobrazit chybu pokud checkpoint nemá konfiguraci (místo tiché chyby v console)
+  const [missingConfigError, setMissingConfigError] = useState(false);
 
   const handlePuzzleSubmit = () => {
     if (!checkpoint.content.puzzle_answer) {
-      console.error('No puzzle answer defined for this checkpoint');
+      setMissingConfigError(true);
       return;
     }
+    setMissingConfigError(false);
 
     setIsSubmitting(true);
 
@@ -93,15 +97,16 @@ export default function CheckpointContentDialog({
         setValidationResult(null);
         setPuzzleAnswer('');
         onComplete();
-      }, 2000);
+      }, CHECKPOINT_COMPLETE_DELAY);
     }
   };
 
   const handleCoordinateSubmit = () => {
     if (!checkpoint.secret_solution) {
-      console.error('No secret solution defined for this checkpoint');
+      setMissingConfigError(true);
       return;
     }
+    setMissingConfigError(false);
 
     setIsSubmitting(true);
 
@@ -121,7 +126,7 @@ export default function CheckpointContentDialog({
       setTimeout(() => {
         setValidationResult(null);
         onComplete();
-      }, 2000);
+      }, CHECKPOINT_COMPLETE_DELAY);
     }
   };
   return (
@@ -263,6 +268,13 @@ export default function CheckpointContentDialog({
                 </Alert>
               )}
             </>
+          )}
+
+          {/* Chybí konfigurace checkpointu (puzzle_answer / secret_solution) */}
+          {missingConfigError && (
+            <Alert severity="error">
+              Tento checkpoint není správně nakonfigurován. Kontaktujte organizátora hry.
+            </Alert>
           )}
 
           {/* Action buttons */}

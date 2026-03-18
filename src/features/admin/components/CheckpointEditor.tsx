@@ -38,7 +38,8 @@ interface CheckpointEditorProps {
 }
 
 export default function CheckpointEditor({ open, onClose }: CheckpointEditorProps) {
-  const { tempCheckpoints, selectedCheckpointId, updateTempCheckpoint } = useGameEditorStore();
+  const { tempCheckpoints, selectedCheckpointId, updateTempCheckpoint, currentGame } =
+    useGameEditorStore();
 
   const selectedCheckpoint = tempCheckpoints.find((cp) => cp.tempId === selectedCheckpointId);
 
@@ -55,6 +56,7 @@ export default function CheckpointEditor({ open, onClose }: CheckpointEditorProp
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Synchronizovat formData s aktualnim checkpointem pri zmene vyberu
+  // biome-ignore lint/correctness/useExhaustiveDependencies: záměrně pouze selectedCheckpointId – chceme sync pouze při přepnutí checkpointu, ne při každé editaci
   useEffect(() => {
     if (selectedCheckpoint) {
       setFormData(selectedCheckpoint);
@@ -63,7 +65,7 @@ export default function CheckpointEditor({ open, onClose }: CheckpointEditorProp
       setImageFile(null);
       setImageError(null);
     }
-  }, [selectedCheckpointId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedCheckpointId]);
 
   if (!selectedCheckpoint) return null;
 
@@ -182,8 +184,8 @@ export default function CheckpointEditor({ open, onClose }: CheckpointEditorProp
 
     try {
       // Pro upload potřebujeme gameId a checkpointId
-      // Použijeme tempId jako checkpointId (bude nahrazeno po uložení)
-      const gameId = 'temp'; // TODO: Use real game ID
+      // Pro existující hru použijeme reálné ID, pro novou hru 'temp'
+      const gameId = currentGame?.id || 'temp';
       const checkpointId = selectedCheckpointId || 'temp';
 
       const imageUrl = await uploadCheckpointImage(gameId, checkpointId, imageFile);

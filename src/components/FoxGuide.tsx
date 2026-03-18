@@ -59,6 +59,7 @@ export default function FoxGuide({ state, inline = false }: FoxGuideProps) {
   };
 
   // Odstranění zelené barvy pomocí Canvas API
+  // biome-ignore lint/correctness/useExhaustiveDependencies: foxState je záměrně v deps – efekt přemaluje canvas při každé změně obrázku lišky
   useEffect(() => {
     const canvas = canvasRef.current;
     const img = imgRef.current;

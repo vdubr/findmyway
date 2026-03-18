@@ -1,6 +1,6 @@
 // Validace souřadnic zadaných uživatelem proti správné odpovědi
 import type { CoordinateDMS, SecretSolution } from '../types';
-import { dmsToDecimal } from './geo';
+import { decimalToDMS, dmsToDecimal } from './geo';
 
 /**
  * Porovná dvě DMS souřadnice s tolerancí
@@ -115,30 +115,4 @@ export function createFakeCheckpoint(
     latitude: newLatDMS as CoordinateDMS,
     longitude: newLonDMS as CoordinateDMS,
   };
-}
-
-// Helper pro převod decimal -> DMS (duplikát z geo.ts pro nezávislost)
-function decimalToDMS(
-  decimal: number,
-  isLatitude: boolean
-): {
-  degrees: number;
-  minutes: number;
-  seconds: number;
-  direction: 'N' | 'S' | 'E' | 'W';
-} {
-  const absolute = Math.abs(decimal);
-  const degrees = Math.floor(absolute);
-  const minutesFloat = (absolute - degrees) * 60;
-  const minutes = Math.floor(minutesFloat);
-  const seconds = Math.round((minutesFloat - minutes) * 60);
-
-  let direction: 'N' | 'S' | 'E' | 'W';
-  if (isLatitude) {
-    direction = decimal >= 0 ? 'N' : 'S';
-  } else {
-    direction = decimal >= 0 ? 'E' : 'W';
-  }
-
-  return { degrees, minutes, seconds, direction };
 }

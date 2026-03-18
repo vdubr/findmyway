@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import { getCheckpointsByGameId, getGameById } from '../../../lib/api';
 import type {
+  Checkpoint,
   CheckpointContent,
   CheckpointType,
   CreateGameInput,
@@ -41,7 +42,7 @@ interface GameEditorState {
   // Actions
   setCurrentGame: (game: Game | null) => void;
   initNewGame: (gameData: CreateGameInput) => void;
-  initEditGame: (game: Game, checkpoints: any[]) => void;
+  initEditGame: (game: Game, checkpoints: Checkpoint[]) => void;
   loadGame: (gameId: string) => Promise<void>; // Načte hru a checkpointy z API podle ID
   updateCurrentGame: (gameData: CreateGameInput) => void;
 

@@ -9,8 +9,8 @@ import {
   Typography,
 } from '@mui/material';
 import { useState } from 'react';
+import DrumRollPicker from '../../../components/DrumRollPicker';
 import type { CoordinateDMS } from '../../../types';
-import DrumRollPicker from './DrumRollPicker';
 
 interface CoordinatePickerProps {
   latitude: CoordinateDMS;

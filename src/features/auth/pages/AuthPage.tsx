@@ -70,23 +70,24 @@ export default function AuthPage() {
       }
 
       // Po úspěšném přihlášení se automaticky přesměruje pomocí useEffect
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Auth error:', err);
 
       // Lepší error messages
       let errorMessage = 'Autentizace se nezdařila. Zkuste to prosím znovu.';
 
-      if (err.message?.includes('Invalid login credentials')) {
+      const message = err instanceof Error ? err.message : '';
+      if (message.includes('Invalid login credentials')) {
         errorMessage = 'Neplatné přihlašovací údaje. Zkontrolujte email a heslo.';
-      } else if (err.message?.includes('Email not confirmed')) {
+      } else if (message.includes('Email not confirmed')) {
         errorMessage = 'Email nebyl potvrzen. Zkontrolujte svou emailovou schránku.';
-      } else if (err.message?.includes('User already registered')) {
+      } else if (message.includes('User already registered')) {
         errorMessage = 'Tento email je již zaregistrován. Zkuste se přihlásit.';
-      } else if (err.message?.includes('rate limit')) {
+      } else if (message.includes('rate limit')) {
         errorMessage =
           'Rate limit překročen. Počkejte chvíli nebo vypněte "Confirm email" v Supabase nastavení.';
-      } else if (err.message) {
-        errorMessage = err.message;
+      } else if (message) {
+        errorMessage = message;
       }
 
       setError(errorMessage);
