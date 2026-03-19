@@ -1,5 +1,5 @@
 import GoogleIcon from '@mui/icons-material/Google';
-import { ArrowBack as ArrowBackIcon, Map as MapIcon } from '@mui/icons-material';
+import { Map as MapIcon } from '@mui/icons-material';
 import {
   Alert,
   Box,
@@ -99,21 +99,9 @@ export default function AuthPage() {
 
   return (
     <Container maxWidth="sm">
-      {/* Tlačítko zpět */}
-      <Box sx={{ pt: 2 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate(-1)}
-          color="inherit"
-          sx={{ textTransform: 'none', color: 'text.secondary' }}
-        >
-          Zpět
-        </Button>
-      </Box>
-
       <Box
         sx={{
-          minHeight: 'calc(100vh - 56px)',
+          minHeight: 'calc(100vh - 64px)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',

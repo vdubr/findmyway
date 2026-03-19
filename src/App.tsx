@@ -27,10 +27,7 @@ function App() {
         <AuthProvider>
           <BrowserRouter>
             <Routes>
-              {/* Auth page bez layoutu */}
-              <Route path="/auth" element={<AuthPage />} />
-
-              {/* Vsechny ostatni stranky s layoutem */}
+              {/* Vsechny stranky s layoutem */}
               <Route
                 element={
                   <AppLayout>
@@ -38,6 +35,9 @@ function App() {
                   </AppLayout>
                 }
               >
+                {/* Auth page */}
+                <Route path="/auth" element={<AuthPage />} />
+
                 {/* Verejna stranka */}
                 <Route path="/" element={<HomePage />} />
 
