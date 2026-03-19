@@ -31,7 +31,7 @@ export default function HomePage() {
       setLoading(true);
       setError(null);
       const data = await getPublicGamesWithCheckpoints();
-      setGames(data as GameWithCheckpoints[]);
+      setGames(data as unknown as GameWithCheckpoints[]);
     } catch (err) {
       console.error('Error loading games:', err);
       setError('Nepodarilo se nacist hry');

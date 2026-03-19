@@ -56,10 +56,10 @@ export default function GameList() {
       setIsLoading(true);
       setError(null);
       const data = await getMyGames();
-      setGames(data as Game[]);
+      setGames(data as unknown as Game[]);
 
       // Nacist pocty aktivnich hracu pro kazdu hru se sdilenim polohy
-      const gamesWithLocationSharing = (data as Game[]).filter(
+      const gamesWithLocationSharing = (data as unknown as Game[]).filter(
         (g) => g.settings?.share_location_required
       );
       if (gamesWithLocationSharing.length > 0) {

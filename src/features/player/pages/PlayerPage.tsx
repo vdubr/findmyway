@@ -34,6 +34,7 @@ import {
   startGameSession,
   updatePlayerLocation,
 } from '../../../lib/api';
+import type { Game } from '../../../types';
 import { LOCATION_UPDATE_INTERVAL } from '../../../utils/constants';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
 import type { MapZoomRef } from '../../map/hooks/useMapZoom';
@@ -125,7 +126,7 @@ export default function PlayerPage() {
       // Ulozit session id pro sdileni polohy
       setSessionId(session.id);
 
-      initGame(gameData, checkpointsData, session);
+      initGame(gameData as unknown as Game, checkpointsData, session);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Chyba při načítání hry');
     } finally {

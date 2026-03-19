@@ -110,12 +110,12 @@ export async function getGameById(gameId: string) {
 
     if (!error && data) {
       // Úspěch - uložit do cache pro offline použití
-      await cacheGame(data as Game);
+      await cacheGame(data as unknown as Game);
       const dataWithCheckpoints = data as typeof data & {
         checkpoints?: Checkpoint[];
       };
       if (dataWithCheckpoints.checkpoints) {
-        await cacheCheckpoints(gameId, dataWithCheckpoints.checkpoints);
+        await cacheCheckpoints(gameId, dataWithCheckpoints.checkpoints as unknown as Checkpoint[]);
       }
       return data;
     }
@@ -167,7 +167,7 @@ export async function createGame(input: CreateGameInput) {
     .single();
 
   if (error) throw error;
-  return data as Game;
+  return data as unknown as Game;
 }
 
 export async function updateGame(gameId: string, updates: UpdateGameInput) {
@@ -183,7 +183,7 @@ export async function updateGame(gameId: string, updates: UpdateGameInput) {
     .single();
 
   if (error) throw error;
-  return data as Game;
+  return data as unknown as Game;
 }
 
 export async function deleteGame(gameId: string) {
@@ -208,8 +208,8 @@ export async function getCheckpointsByGameId(gameId: string) {
 
     if (!error && data) {
       // Úspěch - uložit do cache pro offline použití
-      await cacheCheckpoints(gameId, data as Checkpoint[]);
-      return data as Checkpoint[];
+      await cacheCheckpoints(gameId, data as unknown as Checkpoint[]);
+      return data as unknown as Checkpoint[];
     }
 
     // 2. Online selhalo - zkusit cache
@@ -243,14 +243,14 @@ export async function createCheckpoint(input: CreateCheckpointInput) {
       longitude: input.longitude,
       radius: input.radius ?? 10,
       type: input.type,
-      content: input.content as Json,
+      content: input.content as unknown as Json,
       secret_solution: (input.secret_solution ?? null) as Json | null,
     })
     .select()
     .single();
 
   if (error) throw error;
-  return data as Checkpoint;
+  return data as unknown as Checkpoint;
 }
 
 export async function updateCheckpoint(checkpointId: string, updates: UpdateCheckpointInput) {
@@ -259,15 +259,17 @@ export async function updateCheckpoint(checkpointId: string, updates: UpdateChec
     .from('checkpoints')
     .update({
       ...rest,
-      ...(content !== undefined && { content: content as Json }),
-      ...(secret_solution !== undefined && { secret_solution: secret_solution as Json | null }),
+      ...(content !== undefined && { content: content as unknown as Json }),
+      ...(secret_solution !== undefined && {
+        secret_solution: secret_solution as unknown as Json | null,
+      }),
     })
     .eq('id', checkpointId)
     .select()
     .single();
 
   if (error) throw error;
-  return data as Checkpoint;
+  return data as unknown as Checkpoint;
 }
 
 export async function deleteCheckpoint(checkpointId: string) {
@@ -300,7 +302,7 @@ export async function getActiveSession(gameId: string) {
     .maybeSingle();
 
   if (error) throw error;
-  return data as GameSession | null;
+  return data as unknown as GameSession | null;
 }
 
 export async function startGameSession(gameId: string) {
@@ -331,13 +333,13 @@ export async function startGameSession(gameId: string) {
         hints_used: 0,
         wrong_attempts: 0,
         checkpoints_completed: [],
-      } as Json,
+      } as unknown as Json,
     })
     .select()
     .single();
 
   if (error) throw error;
-  return data as GameSession;
+  return data as unknown as GameSession;
 }
 
 export async function updateSessionProgress(
@@ -366,14 +368,14 @@ export async function updateSessionProgress(
     .from('game_sessions')
     .update({
       current_checkpoint_index: checkpointIndex,
-      ...(metadata && { metadata: metadata as Json }),
+      ...(metadata && { metadata: metadata as unknown as Json }),
     })
     .eq('id', sessionId)
     .select()
     .single();
 
   if (error) throw error;
-  return data as GameSession;
+  return data as unknown as GameSession;
 }
 
 export async function completeGameSession(sessionId: string, score: number) {
@@ -405,7 +407,7 @@ export async function completeGameSession(sessionId: string, score: number) {
     .single();
 
   if (error) throw error;
-  return data as GameSession;
+  return data as unknown as GameSession;
 }
 
 // ============================================================================
