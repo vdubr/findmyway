@@ -1,4 +1,5 @@
 import GoogleIcon from '@mui/icons-material/Google';
+import { ArrowBack as ArrowBackIcon, Map as MapIcon } from '@mui/icons-material';
 import {
   Alert,
   Box,
@@ -12,6 +13,7 @@ import {
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import FoxGuide from '../../../components/FoxGuide';
 import { useAuth } from '../AuthContext';
 
 export default function AuthPage() {
@@ -97,9 +99,21 @@ export default function AuthPage() {
 
   return (
     <Container maxWidth="sm">
+      {/* Tlačítko zpět */}
+      <Box sx={{ pt: 2 }}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate(-1)}
+          color="inherit"
+          sx={{ textTransform: 'none', color: 'text.secondary' }}
+        >
+          Zpět
+        </Button>
+      </Box>
+
       <Box
         sx={{
-          minHeight: '100vh',
+          minHeight: 'calc(100vh - 56px)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -108,8 +122,21 @@ export default function AuthPage() {
           py: 4,
         }}
       >
-        <Typography variant="h2" color="primary">
-          {isSignUp ? 'Registrace do GeoQuest' : 'Přihlášení do GeoQuest'}
+        {/* Logo aplikace + liška */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ width: 100, height: 100 }}>
+            <FoxGuide inline state="sitting" />
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <MapIcon color="primary" sx={{ fontSize: 28 }} />
+            <Typography variant="h5" color="primary" fontWeight={700}>
+              FindMyWay
+            </Typography>
+          </Box>
+        </Box>
+
+        <Typography variant="h5" fontWeight={600}>
+          {isSignUp ? 'Vytvořit účet' : 'Přihlášení'}
         </Typography>
 
         <Typography variant="body1" color="text.secondary" textAlign="center">
