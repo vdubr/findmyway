@@ -32,6 +32,8 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../features/auth/AuthContext';
+import { useGameEditorStore } from '../features/admin/store/gameEditorStore';
+import { useGamePlayStore } from '../features/player/store/gamePlayStore';
 import FoxGuide from './FoxGuide';
 import OfflineIndicator from './OfflineIndicator';
 import PWAInstallPrompt from './PWAInstallPrompt';
@@ -41,12 +43,18 @@ interface AppLayoutProps {
   children: ReactNode;
 }
 
-// Názvy stránek pro drobečkovou navigaci
-const PAGE_LABELS: Record<string, string> = {
-  '/admin': 'Správa her',
-  '/profile': 'Můj profil',
-  '/auth': 'Přihlášení',
+// Labely záložek adminu
+const TAB_LABELS: Record<string, string> = {
+  base: 'Základní info',
+  checkpoints: 'Checkpointy',
+  demo: 'Demo',
 };
+
+// Breadcrumb položka
+interface Crumb {
+  label: string;
+  path?: string; // klikatelná → naviguje; undefined = aktuální (neklikatelná)
+}
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const navigate = useNavigate();
@@ -54,6 +62,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, profile, signOut } = useAuth();
+
+  // Názvy her ze storů
+  const editorGame = useGameEditorStore((s) => s.currentGame);
+  const playGame = useGamePlayStore((s) => s.game);
 
   // Uživatelský dropdown (pravá část)
   const [userAnchorEl, setUserAnchorEl] = useState<null | HTMLElement>(null);
@@ -76,23 +88,53 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   // Zobrazované jméno uživatele
   const displayName = profile?.username ?? user?.email ?? 'Uživatel';
-  // Iniciála pro Avatar
   const avatarLetter = displayName.charAt(0).toUpperCase();
 
-  // Je uživatel na hlavní stránce (výběr her)?
+  // Je uživatel na hlavní stránce?
   const isHome = location.pathname === '/';
 
-  // Název aktuální stránky pro drobečkovou navigaci
-  const getBreadcrumbLabel = (): string | null => {
-    if (isHome) return null;
-    const path = location.pathname;
-    if (PAGE_LABELS[path]) return PAGE_LABELS[path];
-    if (path.startsWith('/admin')) return 'Správa her';
-    if (path.startsWith('/play/')) return 'Hra';
-    return null;
+  // Sestavení drobečkové navigace
+  const buildBreadcrumbs = (): Crumb[] => {
+    const parts = location.pathname.split('/').filter(Boolean);
+    if (parts.length === 0) return [];
+
+    // /admin
+    if (parts[0] === 'admin') {
+      if (parts.length === 1) {
+        return [{ label: 'Správa her' }];
+      }
+
+      // /admin/:gameId/:tab
+      const gameId = parts[1];
+      const tab = parts[2];
+      const gameTitle =
+        editorGame?.title ?? (gameId === 'new' ? 'Nová hra' : '…');
+      const crumbs: Crumb[] = [
+        { label: 'Správa her', path: '/admin' },
+        { label: gameTitle, path: `/admin/${gameId}/base` },
+      ];
+      if (tab && TAB_LABELS[tab]) {
+        crumbs.push({ label: TAB_LABELS[tab] });
+      }
+      return crumbs;
+    }
+
+    // /play/:gameId
+    if (parts[0] === 'play' && parts[1]) {
+      const gameTitle = playGame?.title ?? '…';
+      return [{ label: gameTitle }];
+    }
+
+    // /profile
+    if (parts[0] === 'profile') return [{ label: 'Můj profil' }];
+
+    // /auth
+    if (parts[0] === 'auth') return [{ label: 'Přihlášení' }];
+
+    return [];
   };
 
-  const breadcrumbLabel = getBreadcrumbLabel();
+  const breadcrumbs = buildBreadcrumbs();
 
   // Bottom navigation value based on current route
   const getBottomNavValue = () => {
@@ -110,7 +152,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Header */}
       <AppBar position="static" elevation={2}>
         <Toolbar sx={{ position: 'relative' }}>
-          {/* Ikona her – aktivní na /, jinak jen ikona s drobečkovou navigací */}
+          {/* Ikona her – aktivní na / */}
           <Tooltip title="Výběr her">
             <IconButton
               color="inherit"
@@ -126,23 +168,49 @@ export default function AppLayout({ children }: AppLayoutProps) {
             </IconButton>
           </Tooltip>
 
-          {/* Drobečková navigace – zobrazí se jen mimo hlavní stránku */}
-          {breadcrumbLabel && (
-            <Box sx={{ display: 'flex', alignItems: 'center', ml: 0.5 }}>
-              <ChevronRightIcon sx={{ fontSize: 20, opacity: 0.6 }} />
-              <Typography
-                variant="body1"
-                sx={{ fontWeight: 600, ml: 0.5, fontSize: '1rem' }}
-              >
-                {breadcrumbLabel}
-              </Typography>
+          {/* Víceúrovňová drobečková navigace */}
+          {breadcrumbs.map((crumb, i) => (
+            <Box key={crumb.label} sx={{ display: 'flex', alignItems: 'center' }}>
+              <ChevronRightIcon sx={{ fontSize: 18, opacity: 0.55, mx: 0.25 }} />
+              {crumb.path ? (
+                <Button
+                  color="inherit"
+                  onClick={() => navigate(crumb.path!)}
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: i === breadcrumbs.length - 1 ? 600 : 400,
+                    fontSize: '0.95rem',
+                    px: 0.75,
+                    minWidth: 0,
+                    opacity: 0.85,
+                    '&:hover': { opacity: 1 },
+                  }}
+                >
+                  {crumb.label}
+                </Button>
+              ) : (
+                <Typography
+                  variant="body1"
+                  sx={{
+                    fontWeight: 600,
+                    fontSize: '0.95rem',
+                    px: 0.75,
+                    maxWidth: isMobile ? 120 : 220,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {crumb.label}
+                </Typography>
+              )}
             </Box>
-          )}
+          ))}
 
           {/* Spacer */}
           <Box sx={{ flexGrow: 1 }} />
 
-          {/* Liska pruvodce uprostred hlavicky */}
+          {/* Liška průvodce uprostřed */}
           <Box
             sx={{
               position: 'absolute',
@@ -252,7 +320,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         component="main"
         sx={{
           flexGrow: 1,
-          pb: isMobile && user ? 7 : 0, // Padding pro bottom navigation
+          pb: isMobile && user ? 7 : 0,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'auto',
@@ -274,7 +342,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 navigate('/admin');
                 break;
               case 2:
-                // Navigate to active game or game list
                 navigate('/');
                 break;
             }
@@ -290,9 +357,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
             zIndex: 1000,
           }}
         >
-          <BottomNavigationAction label="Domu" icon={<HomeIcon />} />
-          <BottomNavigationAction label="Vytvorit" icon={<CreateIcon />} />
-          <BottomNavigationAction label="Hrat" icon={<MapIcon />} />
+          <BottomNavigationAction label="Domů" icon={<HomeIcon />} />
+          <BottomNavigationAction label="Vytvořit" icon={<CreateIcon />} />
+          <BottomNavigationAction label="Hrát" icon={<MapIcon />} />
         </BottomNavigation>
       )}
 
