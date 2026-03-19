@@ -1,7 +1,8 @@
 import {
-  KeyboardArrowDown as ArrowDownIcon,
+  ChevronRight as ChevronRightIcon,
   Create as CreateIcon,
   Home as HomeIcon,
+  KeyboardArrowDown as ArrowDownIcon,
   Login as LoginIcon,
   Logout as LogoutIcon,
   Map as MapIcon,
@@ -16,11 +17,13 @@ import {
   Box,
   Button,
   Divider,
+  IconButton,
   ListItemIcon,
   ListItemText,
   Menu,
   MenuItem,
   Toolbar,
+  Tooltip,
   Typography,
   useMediaQuery,
   useTheme,
@@ -38,12 +41,11 @@ interface AppLayoutProps {
   children: ReactNode;
 }
 
-// Konfigurace stranek s jejich nazvy a ikonami
-const PAGE_CONFIG: Record<string, { title: string; icon: ReactNode }> = {
-  '/': { title: 'Dostupne hry', icon: <HomeIcon /> },
-  '/admin': { title: 'Sprava her', icon: <SettingsIcon /> },
-  '/profile': { title: 'Muj profil', icon: <PersonIcon /> },
-  '/auth': { title: 'Prihlaseni', icon: <LoginIcon /> },
+// Názvy stránek pro drobečkovou navigaci
+const PAGE_LABELS: Record<string, string> = {
+  '/admin': 'Správa her',
+  '/profile': 'Můj profil',
+  '/auth': 'Přihlášení',
 };
 
 export default function AppLayout({ children }: AppLayoutProps) {
@@ -53,15 +55,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, profile, signOut } = useAuth();
 
-  // Navigační dropdown (levá část)
-  const [navAnchorEl, setNavAnchorEl] = useState<null | HTMLElement>(null);
   // Uživatelský dropdown (pravá část)
   const [userAnchorEl, setUserAnchorEl] = useState<null | HTMLElement>(null);
-
-  const handleNavOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setNavAnchorEl(event.currentTarget);
-  };
-  const handleNavClose = () => setNavAnchorEl(null);
 
   const handleUserOpen = (event: React.MouseEvent<HTMLElement>) => {
     setUserAnchorEl(event.currentTarget);
@@ -69,7 +64,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const handleUserClose = () => setUserAnchorEl(null);
 
   const handleNavigate = (path: string) => {
-    handleNavClose();
     handleUserClose();
     navigate(path);
   };
@@ -85,23 +79,20 @@ export default function AppLayout({ children }: AppLayoutProps) {
   // Iniciála pro Avatar
   const avatarLetter = displayName.charAt(0).toUpperCase();
 
-  // Ziskat nazev aktualni stranky
-  const getCurrentPageTitle = (): string => {
+  // Je uživatel na hlavní stránce (výběr her)?
+  const isHome = location.pathname === '/';
+
+  // Název aktuální stránky pro drobečkovou navigaci
+  const getBreadcrumbLabel = (): string | null => {
+    if (isHome) return null;
     const path = location.pathname;
-
-    // Presna shoda
-    if (PAGE_CONFIG[path]) {
-      return PAGE_CONFIG[path].title;
-    }
-
-    // Hrani hry - /play/:gameId
-    if (path.startsWith('/play/')) {
-      return 'Hra';
-    }
-
-    // Default
-    return 'GeoQuest';
+    if (PAGE_LABELS[path]) return PAGE_LABELS[path];
+    if (path.startsWith('/admin')) return 'Správa her';
+    if (path.startsWith('/play/')) return 'Hra';
+    return null;
   };
+
+  const breadcrumbLabel = getBreadcrumbLabel();
 
   // Bottom navigation value based on current route
   const getBottomNavValue = () => {
@@ -111,8 +102,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
     return 0;
   };
 
-  const currentPageTitle = getCurrentPageTitle();
-
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       {/* Offline Indicator */}
@@ -121,50 +110,34 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Header */}
       <AppBar position="static" elevation={2}>
         <Toolbar sx={{ position: 'relative' }}>
-          {/* Logo - kliknutelne, naviguje na home */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              cursor: 'pointer',
-              mr: 2,
-            }}
-            onClick={() => navigate('/')}
-          >
-            <MapIcon sx={{ fontSize: 28 }} />
-          </Box>
+          {/* Ikona her – aktivní na /, jinak jen ikona s drobečkovou navigací */}
+          <Tooltip title="Výběr her">
+            <IconButton
+              color="inherit"
+              onClick={() => navigate('/')}
+              sx={{
+                borderRadius: 2,
+                px: 1.5,
+                bgcolor: isHome ? 'rgba(255,255,255,0.15)' : 'transparent',
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
+              }}
+            >
+              <MapIcon sx={{ fontSize: 26 }} />
+            </IconButton>
+          </Tooltip>
 
-          {/* Nazev stranky s dropdown - jen navigace */}
-          <Button
-            color="inherit"
-            onClick={handleNavOpen}
-            endIcon={<ArrowDownIcon />}
-            sx={{
-              textTransform: 'none',
-              fontSize: '1.1rem',
-              fontWeight: 600,
-              px: 1,
-            }}
-          >
-            {currentPageTitle}
-          </Button>
-
-          {/* Navigační dropdown */}
-          <Menu
-            anchorEl={navAnchorEl}
-            open={Boolean(navAnchorEl)}
-            onClose={handleNavClose}
-            transformOrigin={{ horizontal: 'left', vertical: 'top' }}
-            anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
-            PaperProps={{ sx: { minWidth: 200 } }}
-          >
-            <MenuItem onClick={() => handleNavigate('/')} selected={location.pathname === '/'}>
-              <ListItemIcon>
-                <HomeIcon />
-              </ListItemIcon>
-              <ListItemText>Dostupné hry</ListItemText>
-            </MenuItem>
-          </Menu>
+          {/* Drobečková navigace – zobrazí se jen mimo hlavní stránku */}
+          {breadcrumbLabel && (
+            <Box sx={{ display: 'flex', alignItems: 'center', ml: 0.5 }}>
+              <ChevronRightIcon sx={{ fontSize: 20, opacity: 0.6 }} />
+              <Typography
+                variant="body1"
+                sx={{ fontWeight: 600, ml: 0.5, fontSize: '1rem' }}
+              >
+                {breadcrumbLabel}
+              </Typography>
+            </Box>
+          )}
 
           {/* Spacer */}
           <Box sx={{ flexGrow: 1 }} />
