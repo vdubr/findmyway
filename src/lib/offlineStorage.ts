@@ -1,6 +1,6 @@
 // Offline storage pomocí IndexedDB pro ukládání her a checkpointů
 import localforage from 'localforage';
-import type { Checkpoint, Game } from '../types';
+import type { Checkpoint, Game, GameSession } from '../types';
 
 // Konfigurace IndexedDB stores
 const gamesStore = localforage.createInstance({
@@ -74,15 +74,6 @@ export async function getCachedCheckpoints(gameId: string): Promise<Checkpoint[]
 }
 
 // === SESSIONS ===
-
-export interface GameSession {
-  game_id: string;
-  user_id: string;
-  current_checkpoint_index: number;
-  completed_checkpoints: string[];
-  started_at: number;
-  completed_at?: number;
-}
 
 export async function saveGameSession(session: GameSession): Promise<void> {
   const key = `${session.game_id}_${session.user_id}`;
