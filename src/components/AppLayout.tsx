@@ -10,6 +10,7 @@ import {
 } from '@mui/icons-material';
 import {
   AppBar,
+  Avatar,
   BottomNavigation,
   BottomNavigationAction,
   Box,
@@ -20,6 +21,7 @@ import {
   Menu,
   MenuItem,
   Toolbar,
+  Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
@@ -49,28 +51,39 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
 
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  // Navigační dropdown (levá část)
+  const [navAnchorEl, setNavAnchorEl] = useState<null | HTMLElement>(null);
+  // Uživatelský dropdown (pravá část)
+  const [userAnchorEl, setUserAnchorEl] = useState<null | HTMLElement>(null);
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
+  const handleNavOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setNavAnchorEl(event.currentTarget);
   };
+  const handleNavClose = () => setNavAnchorEl(null);
 
-  const handleMenuClose = () => {
-    setAnchorEl(null);
+  const handleUserOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setUserAnchorEl(event.currentTarget);
   };
+  const handleUserClose = () => setUserAnchorEl(null);
 
   const handleNavigate = (path: string) => {
-    handleMenuClose();
+    handleNavClose();
+    handleUserClose();
     navigate(path);
   };
 
   const handleSignOut = async () => {
-    handleMenuClose();
+    handleUserClose();
     await signOut();
     navigate('/auth');
   };
+
+  // Zobrazované jméno uživatele
+  const displayName = profile?.username ?? user?.email ?? 'Uživatel';
+  // Iniciála pro Avatar
+  const avatarLetter = displayName.charAt(0).toUpperCase();
 
   // Ziskat nazev aktualni stranky
   const getCurrentPageTitle = (): string => {
@@ -121,10 +134,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <MapIcon sx={{ fontSize: 28 }} />
           </Box>
 
-          {/* Nazev stranky s dropdown - kliknutelny */}
+          {/* Nazev stranky s dropdown - jen navigace */}
           <Button
             color="inherit"
-            onClick={handleMenuOpen}
+            onClick={handleNavOpen}
             endIcon={<ArrowDownIcon />}
             sx={{
               textTransform: 'none',
@@ -136,66 +149,21 @@ export default function AppLayout({ children }: AppLayoutProps) {
             {currentPageTitle}
           </Button>
 
-          {/* Dropdown menu */}
+          {/* Navigační dropdown */}
           <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
+            anchorEl={navAnchorEl}
+            open={Boolean(navAnchorEl)}
+            onClose={handleNavClose}
             transformOrigin={{ horizontal: 'left', vertical: 'top' }}
             anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
-            PaperProps={{
-              sx: { minWidth: 200 },
-            }}
+            PaperProps={{ sx: { minWidth: 200 } }}
           >
-            {/* Navigace */}
             <MenuItem onClick={() => handleNavigate('/')} selected={location.pathname === '/'}>
               <ListItemIcon>
                 <HomeIcon />
               </ListItemIcon>
-              <ListItemText>Dostupne hry</ListItemText>
+              <ListItemText>Dostupné hry</ListItemText>
             </MenuItem>
-
-            {user && (
-              <>
-                <MenuItem
-                  onClick={() => handleNavigate('/admin')}
-                  selected={location.pathname.startsWith('/admin')}
-                >
-                  <ListItemIcon>
-                    <SettingsIcon />
-                  </ListItemIcon>
-                  <ListItemText>Sprava her</ListItemText>
-                </MenuItem>
-
-                <MenuItem
-                  onClick={() => handleNavigate('/profile')}
-                  selected={location.pathname === '/profile'}
-                >
-                  <ListItemIcon>
-                    <PersonIcon />
-                  </ListItemIcon>
-                  <ListItemText>Muj profil</ListItemText>
-                </MenuItem>
-
-                <Divider />
-
-                <MenuItem onClick={handleSignOut}>
-                  <ListItemIcon>
-                    <LogoutIcon />
-                  </ListItemIcon>
-                  <ListItemText>Odhlasit se</ListItemText>
-                </MenuItem>
-              </>
-            )}
-
-            {!user && (
-              <MenuItem onClick={() => handleNavigate('/auth')}>
-                <ListItemIcon>
-                  <LoginIcon />
-                </ListItemIcon>
-                <ListItemText>Prihlasit se</ListItemText>
-              </MenuItem>
-            )}
           </Menu>
 
           {/* Spacer */}
@@ -218,6 +186,91 @@ export default function AppLayout({ children }: AppLayoutProps) {
           >
             <FoxGuide inline />
           </Box>
+
+          {/* Uživatelská sekce - pravá část */}
+          {user ? (
+            <>
+              <Button
+                color="inherit"
+                onClick={handleUserOpen}
+                endIcon={<ArrowDownIcon />}
+                startIcon={
+                  <Avatar
+                    src={profile?.avatar_url ?? undefined}
+                    sx={{ width: 28, height: 28, fontSize: '0.85rem' }}
+                  >
+                    {avatarLetter}
+                  </Avatar>
+                }
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  px: 1,
+                  gap: 0.5,
+                }}
+              >
+                {!isMobile && (
+                  <Typography variant="body2" noWrap sx={{ maxWidth: 140 }}>
+                    {displayName}
+                  </Typography>
+                )}
+              </Button>
+
+              {/* Uživatelský dropdown */}
+              <Menu
+                anchorEl={userAnchorEl}
+                open={Boolean(userAnchorEl)}
+                onClose={handleUserClose}
+                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                PaperProps={{ sx: { minWidth: 200 } }}
+              >
+                <MenuItem
+                  onClick={() => handleNavigate('/admin')}
+                  selected={location.pathname.startsWith('/admin')}
+                >
+                  <ListItemIcon>
+                    <SettingsIcon />
+                  </ListItemIcon>
+                  <ListItemText>Správa her</ListItemText>
+                </MenuItem>
+
+                <MenuItem
+                  onClick={() => handleNavigate('/profile')}
+                  selected={location.pathname === '/profile'}
+                >
+                  <ListItemIcon>
+                    <PersonIcon />
+                  </ListItemIcon>
+                  <ListItemText>Můj profil</ListItemText>
+                </MenuItem>
+
+                <Divider />
+
+                <MenuItem onClick={handleSignOut}>
+                  <ListItemIcon>
+                    <LogoutIcon />
+                  </ListItemIcon>
+                  <ListItemText>Odhlásit se</ListItemText>
+                </MenuItem>
+              </Menu>
+            </>
+          ) : (
+            <Button
+              color="inherit"
+              startIcon={<LoginIcon />}
+              onClick={() => navigate('/auth')}
+              variant="outlined"
+              size="small"
+              sx={{
+                borderColor: 'rgba(255,255,255,0.5)',
+                '&:hover': { borderColor: 'white' },
+                textTransform: 'none',
+              }}
+            >
+              Přihlásit se
+            </Button>
+          )}
         </Toolbar>
       </AppBar>
 
