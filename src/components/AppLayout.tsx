@@ -1,8 +1,6 @@
 import {
-  ChevronRight as ChevronRightIcon,
-  Create as CreateIcon,
-  Home as HomeIcon,
   KeyboardArrowDown as ArrowDownIcon,
+  ChevronRight as ChevronRightIcon,
   Login as LoginIcon,
   Logout as LogoutIcon,
   Map as MapIcon,
@@ -12,8 +10,6 @@ import {
 import {
   AppBar,
   Avatar,
-  BottomNavigation,
-  BottomNavigationAction,
   Box,
   Button,
   Divider,
@@ -31,8 +27,8 @@ import {
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../features/auth/AuthContext';
 import { useGameEditorStore } from '../features/admin/store/gameEditorStore';
+import { useAuth } from '../features/auth/AuthContext';
 import { useGamePlayStore } from '../features/player/store/gamePlayStore';
 import FoxGuide from './FoxGuide';
 import OfflineIndicator from './OfflineIndicator';
@@ -107,8 +103,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       // /admin/:gameId/:tab
       const gameId = parts[1];
       const tab = parts[2];
-      const gameTitle =
-        editorGame?.title ?? (gameId === 'new' ? 'Nová hra' : '…');
+      const gameTitle = editorGame?.title ?? (gameId === 'new' ? 'Nová hra' : '…');
       const crumbs: Crumb[] = [
         { label: 'Správa her', path: '/admin' },
         { label: gameTitle, path: `/admin/${gameId}/base` },
@@ -135,14 +130,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
   };
 
   const breadcrumbs = buildBreadcrumbs();
-
-  // Bottom navigation value based on current route
-  const getBottomNavValue = () => {
-    if (location.pathname === '/') return 0;
-    if (location.pathname.startsWith('/admin')) return 1;
-    if (location.pathname.startsWith('/play')) return 2;
-    return 0;
-  };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
@@ -320,7 +307,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         component="main"
         sx={{
           flexGrow: 1,
-          pb: isMobile && user ? 7 : 0,
+          pb: 0,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'auto',
@@ -328,40 +315,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
       >
         {children}
       </Box>
-
-      {/* Bottom Navigation (jen na mobile a kdyz je user prihlasen) */}
-      {isMobile && user && (
-        <BottomNavigation
-          value={getBottomNavValue()}
-          onChange={(_event, newValue) => {
-            switch (newValue) {
-              case 0:
-                navigate('/');
-                break;
-              case 1:
-                navigate('/admin');
-                break;
-              case 2:
-                navigate('/');
-                break;
-            }
-          }}
-          showLabels
-          sx={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            borderTop: 1,
-            borderColor: 'divider',
-            zIndex: 1000,
-          }}
-        >
-          <BottomNavigationAction label="Domů" icon={<HomeIcon />} />
-          <BottomNavigationAction label="Vytvořit" icon={<CreateIcon />} />
-          <BottomNavigationAction label="Hrát" icon={<MapIcon />} />
-        </BottomNavigation>
-      )}
 
       {/* PWA Install Prompt */}
       <PWAInstallPrompt />
