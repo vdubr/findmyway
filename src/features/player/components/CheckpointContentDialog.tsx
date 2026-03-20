@@ -125,7 +125,7 @@ export default function CheckpointContentDialog({
       inputLatitude,
       inputLongitude,
       checkpoint.secret_solution,
-      1,
+      1
     );
 
     setValidationResult(result);

@@ -5,6 +5,7 @@ import { LocationOn as LocationIcon, PlayArrow as PlayIcon } from '@mui/icons-ma
 import { Box, Button, Card, CardActions, CardContent, Chip, Grid, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import type { Game } from '../../../types';
+import { GAME_TAGS } from '../../../utils/constants';
 
 interface GamesCardViewProps {
   games: Game[];
@@ -48,6 +49,12 @@ export default function GamesCardView({ games }: GamesCardViewProps) {
                     color="primary"
                     variant="outlined"
                   />
+                  {game.tags?.map((tagId) => {
+                    const tagDef = GAME_TAGS.find((t) => t.id === tagId);
+                    return tagDef ? (
+                      <Chip key={tagId} label={tagDef.label} size="small" variant="outlined" />
+                    ) : null;
+                  })}
                 </Box>
               </CardContent>
 

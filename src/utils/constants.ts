@@ -39,3 +39,10 @@ export const MAP_SIGNIFICANT_MOVE_THRESHOLD = 10; // px/m, pod tímto prahem se 
 
 // Výchozí tolerance GPS
 export const DEFAULT_RADIUS_TOLERANCE = 10; // metry tolerance navíc k radiusu checkpointu
+
+// Předdefinované tagy pro kategorizaci her
+export const GAME_TAGS = [
+  { id: 'nature', label: 'Příroda' },
+  { id: 'bike', label: 'Kolo' },
+  { id: 'tasks', label: 'Úkoly' },
+] as const;

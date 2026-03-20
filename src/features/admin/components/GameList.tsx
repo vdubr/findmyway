@@ -32,6 +32,7 @@ import ErrorDisplay from '../../../components/ErrorDisplay';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 import { deleteGame, getActivePlayersCount, getMyGames, updateGame } from '../../../lib/api';
 import type { Game } from '../../../types';
+import { GAME_TAGS } from '../../../utils/constants';
 import LivePlayersMap from './LivePlayersMap';
 
 export default function GameList() {
@@ -158,13 +159,25 @@ export default function GameList() {
                     )}
 
                     {/* Metadata */}
-                    <Stack direction="row" spacing={1} flexWrap="wrap">
+                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                       <Chip
                         icon={game.is_public ? <PublicIcon /> : <LockIcon />}
                         label={game.is_public ? 'Veřejná' : 'Soukromá'}
                         size="small"
                       />
                       <Chip label={`Obtížnost: ${game.difficulty}/5`} size="small" />
+                      {game.tags?.map((tagId) => {
+                        const tagDef = GAME_TAGS.find((t) => t.id === tagId);
+                        return tagDef ? (
+                          <Chip
+                            key={tagId}
+                            label={tagDef.label}
+                            size="small"
+                            variant="outlined"
+                            color="primary"
+                          />
+                        ) : null;
+                      })}
                     </Stack>
 
                     {/* Datum vytvoření */}

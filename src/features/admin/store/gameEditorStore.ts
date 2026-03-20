@@ -92,6 +92,7 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
         description: gameData.description || null,
         is_public: gameData.is_public,
         difficulty: gameData.difficulty,
+        tags: gameData.tags ?? [],
         settings: {
           radius_tolerance: gameData.settings?.radius_tolerance || 10,
           allow_skip: gameData.settings?.allow_skip || false,
@@ -180,6 +181,7 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
             description: gameData.description || null,
             is_public: gameData.is_public,
             difficulty: gameData.difficulty,
+            tags: gameData.tags ?? state.currentGame.tags ?? [],
             settings: {
               radius_tolerance: gameData.settings?.radius_tolerance || 10,
               allow_skip: gameData.settings?.allow_skip || false,

@@ -2,6 +2,7 @@ import { ViewModule as CardsIcon, Map as MapIcon, Search as SearchIcon } from '@
 import {
   Alert,
   Box,
+  Chip,
   Container,
   InputAdornment,
   TextField,
@@ -14,6 +15,7 @@ import ErrorDisplay from '../../../components/ErrorDisplay';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 import { getPublicGamesWithCheckpoints } from '../../../lib/api';
 import type { Checkpoint, Game } from '../../../types';
+import { GAME_TAGS } from '../../../utils/constants';
 import { useAuth } from '../../auth/AuthContext';
 import GamesCardView from '../components/GamesCardView';
 import GamesMapView from '../components/GamesMapView';
@@ -30,6 +32,7 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTag, setActiveTag] = useState<string | null>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: loadGames je stabilni funkce, spousti se pouze pri mountu
   useEffect(() => {
@@ -56,11 +59,30 @@ export default function HomePage() {
     }
   };
 
+  // Má uživatel vlastní hry?
+  const hasOwnGames = useMemo(
+    () => user && games.some((g) => g.creator_id === user.id),
+    [games, user]
+  );
+
   const filteredGames = useMemo(() => {
-    if (!searchQuery.trim()) return games;
-    const q = searchQuery.toLowerCase().trim();
-    return games.filter((g) => g.title.toLowerCase().includes(q));
-  }, [games, searchQuery]);
+    let result = games;
+
+    // Tag filter
+    if (activeTag === 'my-games' && user) {
+      result = result.filter((g) => g.creator_id === user.id);
+    } else if (activeTag) {
+      result = result.filter((g) => g.tags?.includes(activeTag));
+    }
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter((g) => g.title.toLowerCase().includes(q));
+    }
+
+    return result;
+  }, [games, searchQuery, activeTag, user]);
 
   if (loading) {
     return <LoadingSpinner />;
@@ -107,6 +129,29 @@ export default function HomePage() {
               Mapa
             </ToggleButton>
           </ToggleButtonGroup>
+        </Box>
+      )}
+
+      {/* Tag filtry */}
+      {games.length > 0 && (
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3 }}>
+          {hasOwnGames && (
+            <Chip
+              label="Moje hry"
+              color={activeTag === 'my-games' ? 'primary' : 'default'}
+              variant={activeTag === 'my-games' ? 'filled' : 'outlined'}
+              onClick={() => setActiveTag(activeTag === 'my-games' ? null : 'my-games')}
+            />
+          )}
+          {GAME_TAGS.map((tag) => (
+            <Chip
+              key={tag.id}
+              label={tag.label}
+              color={activeTag === tag.id ? 'primary' : 'default'}
+              variant={activeTag === tag.id ? 'filled' : 'outlined'}
+              onClick={() => setActiveTag(activeTag === tag.id ? null : tag.id)}
+            />
+          ))}
         </Box>
       )}
 

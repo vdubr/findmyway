@@ -24,6 +24,7 @@ export interface Game {
   is_public: boolean;
   difficulty: 1 | 2 | 3 | 4 | 5;
   settings: GameSettings;
+  tags: string[];
   status: GameStatus;
   created_at: string;
   updated_at: string;
@@ -163,6 +164,7 @@ export interface CreateGameInput {
   description?: string;
   is_public: boolean;
   difficulty: 1 | 2 | 3 | 4 | 5;
+  tags?: string[];
   settings?: Partial<GameSettings>;
 }
 
@@ -171,6 +173,7 @@ export interface UpdateGameInput {
   description?: string;
   is_public?: boolean;
   difficulty?: 1 | 2 | 3 | 4 | 5;
+  tags?: string[];
   settings?: Partial<GameSettings>;
   status?: GameStatus;
 }
