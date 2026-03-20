@@ -73,6 +73,8 @@ export default function CheckpointContentDialog({
   const [missingConfigError, setMissingConfigError] = useState(false);
 
   // Reset stavu při změně checkpointu nebo otevření
+  const checkpointId = checkpoint.id;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: checkpointId je záměrná závislost - reset stavu při změně checkpointu
   useEffect(() => {
     if (open) {
       setPhase('video');
@@ -80,7 +82,7 @@ export default function CheckpointContentDialog({
       setPuzzleAnswer('');
       setMissingConfigError(false);
     }
-  }, [open, checkpoint.id]);
+  }, [open, checkpointId]);
 
   const handleVideoEnd = () => {
     setPhase('content');
