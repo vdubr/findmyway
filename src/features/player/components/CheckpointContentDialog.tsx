@@ -5,7 +5,6 @@
 import { CheckCircle as CheckIcon, Close as CloseIcon } from '@mui/icons-material';
 import {
   Alert,
-  Box,
   Button,
   Card,
   CardContent,
