@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   FormControlLabel,
   Slider,
   Stack,
@@ -15,6 +16,7 @@ import {
 } from '@mui/material';
 import { useState } from 'react';
 import type { CreateGameInput } from '../../../types';
+import { GAME_TAGS } from '../../../utils/constants';
 
 interface GameCreatorFormProps {
   initialValues?: Partial<CreateGameInput>;
@@ -29,6 +31,7 @@ const DEFAULT_VALUES: CreateGameInput = {
   description: '',
   is_public: true,
   difficulty: 3,
+  tags: [],
   settings: {
     radius_tolerance: 10,
     allow_skip: false,
@@ -137,6 +140,32 @@ export default function GameCreatorForm({
                 disabled={isLoading}
                 valueLabelDisplay="auto"
               />
+            </Box>
+
+            {/* Tagy */}
+            <Box>
+              <Typography gutterBottom>Kategorie</Typography>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {GAME_TAGS.map((tag) => {
+                  const selected = formData.tags?.includes(tag.id) ?? false;
+                  return (
+                    <Chip
+                      key={tag.id}
+                      label={tag.label}
+                      color={selected ? 'primary' : 'default'}
+                      variant={selected ? 'filled' : 'outlined'}
+                      onClick={() => {
+                        const current = formData.tags ?? [];
+                        const next = selected
+                          ? current.filter((t) => t !== tag.id)
+                          : [...current, tag.id];
+                        handleChange('tags', next);
+                      }}
+                      disabled={isLoading}
+                    />
+                  );
+                })}
+              </Box>
             </Box>
 
             {/* Veřejná hra */}

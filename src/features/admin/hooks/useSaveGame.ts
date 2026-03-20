@@ -28,9 +28,10 @@ export function useSaveGame(): UseSaveGameReturn {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const { currentGame, tempCheckpoints, deletedCheckpointIds, reset } = useGameEditorStore();
+  const { reset } = useGameEditorStore();
 
   const saveNewGame = async () => {
+    const { currentGame, tempCheckpoints } = useGameEditorStore.getState();
     if (!currentGame) return;
 
     try {
@@ -43,6 +44,7 @@ export function useSaveGame(): UseSaveGameReturn {
         description: currentGame.description || undefined,
         is_public: currentGame.is_public,
         difficulty: currentGame.difficulty,
+        tags: currentGame.tags,
         settings: currentGame.settings,
       });
 
@@ -79,6 +81,7 @@ export function useSaveGame(): UseSaveGameReturn {
   };
 
   const updateExistingGame = async () => {
+    const { currentGame, tempCheckpoints, deletedCheckpointIds } = useGameEditorStore.getState();
     if (!currentGame?.id) return;
 
     try {
@@ -92,6 +95,7 @@ export function useSaveGame(): UseSaveGameReturn {
         is_public: currentGame.is_public,
         difficulty: currentGame.difficulty,
         settings: currentGame.settings,
+        tags: currentGame.tags,
       });
 
       // 2. Handle checkpoints - update existing, create new

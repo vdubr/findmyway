@@ -182,6 +182,7 @@ export type Database = {
           is_public: boolean;
           settings: Json;
           status: string;
+          tags: string[];
           title: string;
           updated_at: string;
         };
@@ -194,6 +195,7 @@ export type Database = {
           is_public?: boolean;
           settings?: Json;
           status?: string;
+          tags?: string[];
           title: string;
           updated_at?: string;
         };
@@ -206,6 +208,7 @@ export type Database = {
           is_public?: boolean;
           settings?: Json;
           status?: string;
+          tags?: string[];
           title?: string;
           updated_at?: string;
         };

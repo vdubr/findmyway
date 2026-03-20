@@ -78,7 +78,7 @@ export default function AdminEditPage() {
   // Zpracovat formular - editace existujici hry
   const handleEditFormSubmit = async (gameData: CreateGameInput) => {
     updateCurrentGame(gameData);
-    navigate(`/admin/${gameId}/checkpoints`);
+    await updateExistingGame();
   };
 
   // Zrusit editaci
@@ -165,6 +165,7 @@ export default function AdminEditPage() {
                   description: currentGame.description || '',
                   is_public: currentGame.is_public,
                   difficulty: currentGame.difficulty,
+                  tags: currentGame.tags ?? [],
                   settings: currentGame.settings,
                 }}
                 onSubmit={handleFormSubmit}
