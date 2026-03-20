@@ -1,21 +1,15 @@
-// Seznam vlastních her s možností editace a mazání
+// Seznam vlastnich her s moznosti editace a mazani
 
 import {
   Delete as DeleteIcon,
   Edit as EditIcon,
-  Lock as LockIcon,
   People as PeopleIcon,
-  Public as PublicIcon,
   Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import {
   Alert,
   Box,
   Button,
-  Card,
-  CardActions,
-  CardContent,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -29,10 +23,10 @@ import {
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ErrorDisplay from '../../../components/ErrorDisplay';
+import GameCard from '../../../components/GameCard';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 import { deleteGame, getActivePlayersCount, getMyGames, updateGame } from '../../../lib/api';
 import type { Game } from '../../../types';
-import { GAME_TAGS } from '../../../utils/constants';
 import LivePlayersMap from './LivePlayersMap';
 
 export default function GameList() {
@@ -47,7 +41,7 @@ export default function GameList() {
   const [playerCounts, setPlayerCounts] = useState<Record<string, number>>({});
   const [liveMapGame, setLiveMapGame] = useState<Game | null>(null);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: loadGames je stabilní funkce, spouští se pouze při mountu
+  // biome-ignore lint/correctness/useExhaustiveDependencies: loadGames je stabilni funkce, spousti se pouze pri mountu
   useEffect(() => {
     loadGames();
   }, []);
@@ -80,7 +74,7 @@ export default function GameList() {
         setPlayerCounts(countsMap);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Chyba při načítání her');
+      setError(err instanceof Error ? err.message : 'Chyba pri nacitani her');
     } finally {
       setIsLoading(false);
     }
@@ -100,7 +94,7 @@ export default function GameList() {
       setDeleteDialogOpen(false);
       setGameToDelete(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Chyba při mazání hry');
+      setError(err instanceof Error ? err.message : 'Chyba pri mazani hry');
     }
   };
 
@@ -110,7 +104,7 @@ export default function GameList() {
       const updated = await updateGame(game.id, { status: newStatus });
       setGames((prev) => prev.map((g) => (g.id === game.id ? updated : g)));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Chyba při aktualizaci hry');
+      setError(err instanceof Error ? err.message : 'Chyba pri aktualizaci hry');
     }
   };
 
@@ -121,73 +115,17 @@ export default function GameList() {
     <Box>
       {games.length === 0 ? (
         <Alert severity="info">
-          Zatím jste nevytvořili žádnou hru. Začněte kliknutím na tlačítko "Nová hra".
+          Zatim jste nevytvorili zadnou hru. Zacnete kliknutim na tlacitko "Nova hra".
         </Alert>
       ) : (
         <Grid container spacing={3}>
           {games.map((game) => (
             <Grid key={game.id} size={{ xs: 12, sm: 6, md: 4 }}>
-              <Card>
-                <CardContent>
-                  <Stack spacing={2}>
-                    {/* Název a status */}
-                    <Stack direction="row" justifyContent="space-between" alignItems="start">
-                      <Typography variant="h6" component="div">
-                        {game.title}
-                      </Typography>
-                      <Chip
-                        label={game.status}
-                        size="small"
-                        color={game.status === 'published' ? 'success' : 'default'}
-                      />
-                    </Stack>
-
-                    {/* Popis */}
-                    {game.description && (
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        {game.description}
-                      </Typography>
-                    )}
-
-                    {/* Metadata */}
-                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                      <Chip
-                        icon={game.is_public ? <PublicIcon /> : <LockIcon />}
-                        label={game.is_public ? 'Veřejná' : 'Soukromá'}
-                        size="small"
-                      />
-                      <Chip label={`Obtížnost: ${game.difficulty}/5`} size="small" />
-                      {game.tags?.map((tagId) => {
-                        const tagDef = GAME_TAGS.find((t) => t.id === tagId);
-                        return tagDef ? (
-                          <Chip
-                            key={tagId}
-                            label={tagDef.label}
-                            size="small"
-                            variant="outlined"
-                            color="primary"
-                          />
-                        ) : null;
-                      })}
-                    </Stack>
-
-                    {/* Datum vytvoření */}
-                    <Typography variant="caption" color="text.secondary">
-                      Vytvořeno: {new Date(game.created_at).toLocaleDateString('cs-CZ')}
-                    </Typography>
-                  </Stack>
-                </CardContent>
-
-                <CardActions>
+              <GameCard
+                game={game}
+                showStatus
+                showDate
+                actions={
                   <Stack direction="row" spacing={1} width="100%" justifyContent="flex-end">
                     {/* Tlacitko pro zobrazeni aktivnich hracu */}
                     {game.settings?.share_location_required && (
@@ -246,8 +184,8 @@ export default function GameList() {
                       <DeleteIcon />
                     </IconButton>
                   </Stack>
-                </CardActions>
-              </Card>
+                }
+              />
             </Grid>
           ))}
         </Grid>
@@ -258,12 +196,12 @@ export default function GameList() {
         <DialogTitle>Smazat hru?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Opravdu chcete smazat hru "{gameToDelete?.title}"? Tato akce je nevratná a smaže i
-            všechny checkpointy.
+            Opravdu chcete smazat hru "{gameToDelete?.title}"? Tato akce je nevratna a smaze i
+            vsechny checkpointy.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Zrušit</Button>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Zrusit</Button>
           <Button onClick={handleDeleteConfirm} color="error" variant="contained">
             Smazat
           </Button>
