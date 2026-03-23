@@ -296,6 +296,10 @@ export default function PlayerPage() {
     }
   }, [currentCheckpoint]);
 
+  if (isLoading) return <LoadingSpinner />;
+  if (error) return <ErrorDisplay message={error} onRetry={loadGameData} />;
+  if (!game || !currentCheckpoint) return null;
+
   // Prepare map markers
   const markers: MapMarker[] = [];
 
@@ -312,22 +316,16 @@ export default function PlayerPage() {
   }
 
   // Add current checkpoint
-  if (currentCheckpoint) {
-    markers.push({
-      id: currentCheckpoint.id,
-      location: {
-        latitude: currentCheckpoint.latitude,
-        longitude: currentCheckpoint.longitude,
-      },
-      type: 'target',
-      label: `${currentCheckpointIndex + 1}`,
-      radius: (game?.settings.show_radius ?? true) ? currentCheckpoint.radius : undefined,
-    });
-  }
-
-  if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorDisplay message={error} onRetry={loadGameData} />;
-  if (!game || !currentCheckpoint) return null;
+  markers.push({
+    id: currentCheckpoint.id,
+    location: {
+      latitude: currentCheckpoint.latitude,
+      longitude: currentCheckpoint.longitude,
+    },
+    type: 'target',
+    label: `${currentCheckpointIndex + 1}`,
+    radius: (game.settings.show_radius ?? true) ? currentCheckpoint.radius : undefined,
+  });
 
   return (
     <Box
