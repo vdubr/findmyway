@@ -1,6 +1,6 @@
 // Formulář pro vytvoření nové hry nebo editaci existující
 
-import { Cancel as CancelIcon, Save as SaveIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, Save as SaveIcon } from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -21,9 +21,14 @@ import { GAME_TAGS } from '../../../utils/constants';
 interface GameCreatorFormProps {
   initialValues?: Partial<CreateGameInput>;
   onSubmit: (gameData: CreateGameInput) => void;
-  onCancel?: () => void;
   isLoading?: boolean;
   isEditMode?: boolean; // True pokud editujeme existujici hru
+  // Stav publikace (jen v editacnim rezimu)
+  isPublished?: boolean;
+  isPublishing?: boolean;
+  onTogglePublish?: () => void;
+  // Callback pro smazani hry (jen v editacnim rezimu)
+  onDelete?: () => void;
 }
 
 const DEFAULT_VALUES: CreateGameInput = {
@@ -38,15 +43,19 @@ const DEFAULT_VALUES: CreateGameInput = {
     max_players: null,
     time_limit: null,
     share_location_required: false,
+    show_radius: true,
   },
 };
 
 export default function GameCreatorForm({
   initialValues,
   onSubmit,
-  onCancel,
   isLoading = false,
   isEditMode = false,
+  isPublished = false,
+  isPublishing = false,
+  onTogglePublish,
+  onDelete,
 }: GameCreatorFormProps) {
   const [formData, setFormData] = useState<CreateGameInput>({
     ...DEFAULT_VALUES,
@@ -103,6 +112,21 @@ export default function GameCreatorForm({
 
         <Box component="form" onSubmit={handleSubmit}>
           <Stack spacing={3}>
+            {/* Publikace – jen v editacnim rezimu */}
+            {isEditMode && onTogglePublish && (
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isPublished}
+                    onChange={onTogglePublish}
+                    disabled={isPublishing}
+                    color="success"
+                  />
+                }
+                label={isPublished ? 'Publikováno' : 'Nepublikováno'}
+              />
+            )}
+
             {/* Název hry */}
             <TextField
               label="Název hry"
@@ -222,6 +246,18 @@ export default function GameCreatorForm({
               label="Vyzadovat sdileni polohy hracu (admin vidi pozice v realnem case)"
             />
 
+            {/* Zobrazit radius checkpointu */}
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.settings?.show_radius ?? true}
+                  onChange={(e) => handleSettingsChange('show_radius', e.target.checked)}
+                  disabled={isLoading}
+                />
+              }
+              label="Zobrazovat hráčům kruh dosahu checkpointu"
+            />
+
             {/* Max hráči */}
             <TextField
               label="Maximální počet hráčů (volitelné)"
@@ -249,16 +285,19 @@ export default function GameCreatorForm({
             />
 
             {/* Action buttons */}
-            <Stack direction="row" spacing={2} justifyContent="flex-end">
-              {onCancel && (
+            <Stack direction="row" spacing={2} justifyContent="space-between">
+              {onDelete ? (
                 <Button
-                  variant="outlined"
-                  onClick={onCancel}
+                  variant="contained"
+                  color="error"
+                  onClick={onDelete}
                   disabled={isLoading}
-                  startIcon={<CancelIcon />}
+                  startIcon={<DeleteIcon />}
                 >
-                  Zrušit
+                  Smazat hru
                 </Button>
+              ) : (
+                <Box />
               )}
               <Button
                 type="submit"

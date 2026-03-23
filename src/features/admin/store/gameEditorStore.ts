@@ -99,6 +99,7 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
           max_players: gameData.settings?.max_players || null,
           time_limit: gameData.settings?.time_limit || null,
           share_location_required: gameData.settings?.share_location_required || false,
+          show_radius: gameData.settings?.show_radius ?? true,
         },
         status: 'draft',
         created_at: new Date().toISOString(),
@@ -188,6 +189,7 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
               max_players: gameData.settings?.max_players || null,
               time_limit: gameData.settings?.time_limit || null,
               share_location_required: gameData.settings?.share_location_required || false,
+              show_radius: gameData.settings?.show_radius ?? true,
             },
           }
         : null,

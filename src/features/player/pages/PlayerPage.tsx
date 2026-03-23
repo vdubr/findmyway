@@ -321,6 +321,7 @@ export default function PlayerPage() {
       },
       type: 'target',
       label: `${currentCheckpointIndex + 1}`,
+      radius: (game?.settings.show_radius ?? true) ? currentCheckpoint.radius : undefined,
     });
   }
 

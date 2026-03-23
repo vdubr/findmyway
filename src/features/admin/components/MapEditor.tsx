@@ -36,12 +36,15 @@ interface MapEditorProps {
 
 export default function MapEditor({ onSave, isLoading = false }: MapEditorProps) {
   const {
+    currentGame,
     tempCheckpoints,
     selectedCheckpointId,
     addTempCheckpoint,
     deleteTempCheckpoint,
     selectCheckpoint,
   } = useGameEditorStore();
+
+  const showRadii = currentGame?.settings?.show_radius ?? true;
 
   const mapRef = useRef<MapZoomRef>(null);
 
@@ -99,9 +102,9 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
       location: { latitude: cp.latitude, longitude: cp.longitude },
       type: 'checkpoint' as const,
       label: `${cp.order_index + 1}`,
-      radius: cp.radius,
+      radius: showRadii ? cp.radius : undefined,
     }));
-  }, [tempCheckpoints]);
+  }, [tempCheckpoints, showRadii]);
 
   const handleMapClick = (location: GeoLocation) => {
     addTempCheckpoint(location.latitude, location.longitude);

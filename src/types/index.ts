@@ -36,6 +36,7 @@ export interface GameSettings {
   max_players: number | null;
   time_limit: number | null; // v minutách
   share_location_required: boolean; // zda admin požaduje sdílení polohy hráčů
+  show_radius: boolean; // zda se hráčům zobrazuje kruh radiusu checkpointu
 }
 
 export type CheckpointType = 'info' | 'puzzle' | 'input';
