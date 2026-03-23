@@ -1,6 +1,7 @@
 import {
   KeyboardArrowDown as ArrowDownIcon,
   ChevronRight as ChevronRightIcon,
+  InfoOutlined as InfoIcon,
   Login as LoginIcon,
   Logout as LogoutIcon,
   Map as MapIcon,
@@ -18,6 +19,7 @@ import {
   ListItemText,
   Menu,
   MenuItem,
+  Popover,
   Toolbar,
   Tooltip,
   Typography,
@@ -65,6 +67,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   // Uživatelský dropdown (pravá část)
   const [userAnchorEl, setUserAnchorEl] = useState<null | HTMLElement>(null);
+
+  // Popover s verzí aplikace
+  const [versionAnchorEl, setVersionAnchorEl] = useState<null | HTMLElement>(null);
 
   const handleUserOpen = (event: React.MouseEvent<HTMLElement>) => {
     setUserAnchorEl(event.currentTarget);
@@ -321,6 +326,44 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* PWA Update Prompt */}
       <PWAUpdatePrompt />
+
+      {/* Tlačítko verze – vpravo dole */}
+      <Tooltip title="Verze aplikace">
+        <IconButton
+          size="small"
+          onClick={(e) => setVersionAnchorEl(e.currentTarget)}
+          sx={{
+            position: 'fixed',
+            bottom: 12,
+            right: 12,
+            bgcolor: 'background.paper',
+            boxShadow: 2,
+            width: 32,
+            height: 32,
+            zIndex: 1200,
+            '&:hover': { bgcolor: 'action.hover' },
+          }}
+        >
+          <InfoIcon sx={{ fontSize: 18 }} />
+        </IconButton>
+      </Tooltip>
+
+      <Popover
+        open={Boolean(versionAnchorEl)}
+        anchorEl={versionAnchorEl}
+        onClose={() => setVersionAnchorEl(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Box sx={{ px: 2, py: 1.5 }}>
+          <Typography variant="caption" color="text.secondary">
+            Build
+          </Typography>
+          <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
+            {__BUILD_TIME__}
+          </Typography>
+        </Box>
+      </Popover>
     </Box>
   );
 }

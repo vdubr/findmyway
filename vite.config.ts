@@ -2,8 +2,21 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// Datum a čas buildu pro zobrazení verze v UI
+const buildTime = new Date().toLocaleString('cs-CZ', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: 'Europe/Prague',
+});
+
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    __BUILD_TIME__: JSON.stringify(buildTime),
+  },
   plugins: [
     react(),
     VitePWA({
