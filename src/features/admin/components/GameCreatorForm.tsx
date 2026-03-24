@@ -204,6 +204,18 @@ export default function GameCreatorForm({
               label="Veřejná hra (viditelná pro všechny)"
             />
 
+            {/* Zobrazit radius checkpointu */}
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.settings?.show_radius ?? true}
+                  onChange={(e) => handleSettingsChange('show_radius', e.target.checked)}
+                  disabled={isLoading}
+                />
+              }
+              label="Zobrazovat hráčům kruh dosahu checkpointu"
+            />
+
             {/* Pokročilá nastavení */}
             <Typography variant="h6" sx={{ mt: 2 }}>
               Pokročilá nastavení
@@ -244,18 +256,6 @@ export default function GameCreatorForm({
                 />
               }
               label="Vyzadovat sdileni polohy hracu (admin vidi pozice v realnem case)"
-            />
-
-            {/* Zobrazit radius checkpointu */}
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.settings?.show_radius ?? true}
-                  onChange={(e) => handleSettingsChange('show_radius', e.target.checked)}
-                  disabled={isLoading}
-                />
-              }
-              label="Zobrazovat hráčům kruh dosahu checkpointu"
             />
 
             {/* Max hráči */}
