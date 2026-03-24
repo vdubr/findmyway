@@ -1,7 +1,13 @@
-import { ViewModule as CardsIcon, Map as MapIcon, Search as SearchIcon } from '@mui/icons-material';
+import {
+  Add as AddIcon,
+  ViewModule as CardsIcon,
+  Map as MapIcon,
+  Search as SearchIcon,
+} from '@mui/icons-material';
 import {
   Alert,
   Box,
+  Button,
   Chip,
   Container,
   InputAdornment,
@@ -11,11 +17,14 @@ import {
   Typography,
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ErrorDisplay from '../../../components/ErrorDisplay';
 import LoadingSpinner from '../../../components/LoadingSpinner';
+import { useGeolocation } from '../../../hooks/useGeolocation';
 import { getPublicGamesWithCheckpoints } from '../../../lib/api';
 import type { Checkpoint, Game } from '../../../types';
 import { GAME_TAGS } from '../../../utils/constants';
+import { calculateDistance } from '../../../utils/geo';
 import { useAuth } from '../../auth/AuthContext';
 import GamesCardView from '../components/GamesCardView';
 import GamesMapView from '../components/GamesMapView';
@@ -27,6 +36,7 @@ type GameWithCheckpoints = Game & { checkpoints: Checkpoint[] };
 
 export default function HomePage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [games, setGames] = useState<GameWithCheckpoints[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,9 +44,13 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
 
+  // Geolokace pro razeni podle vzdalenosti
+  const { position, requestPermission } = useGeolocation();
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: loadGames je stabilni funkce, spousti se pouze pri mountu
   useEffect(() => {
     loadGames();
+    requestPermission();
   }, []);
 
   const loadGames = async () => {
@@ -65,6 +79,22 @@ export default function HomePage() {
     [games, user]
   );
 
+  // Vzdalenosti her od aktualni pozice uzivatele (game.id → metry)
+  const distances = useMemo<Record<string, number>>(() => {
+    if (!position) return {};
+    const map: Record<string, number> = {};
+    for (const game of games) {
+      const first = game.checkpoints?.slice().sort((a, b) => a.order_index - b.order_index)[0];
+      if (first) {
+        map[game.id] = calculateDistance(
+          { latitude: position.latitude, longitude: position.longitude },
+          { latitude: first.latitude, longitude: first.longitude }
+        );
+      }
+    }
+    return map;
+  }, [games, position]);
+
   const filteredGames = useMemo(() => {
     let result = games;
 
@@ -81,8 +111,17 @@ export default function HomePage() {
       result = result.filter((g) => g.title.toLowerCase().includes(q));
     }
 
+    // Razeni podle vzdalenosti (hry bez pozice jdou na konec)
+    if (position) {
+      result = [...result].sort((a, b) => {
+        const da = distances[a.id] ?? Number.POSITIVE_INFINITY;
+        const db = distances[b.id] ?? Number.POSITIVE_INFINITY;
+        return da - db;
+      });
+    }
+
     return result;
-  }, [games, searchQuery, activeTag, user]);
+  }, [games, searchQuery, activeTag, user, position, distances]);
 
   if (loading) {
     return <LoadingSpinner />;
@@ -93,7 +132,7 @@ export default function HomePage() {
       {/* Error display */}
       {error && <ErrorDisplay message={error} onRetry={loadGames} />}
 
-      {/* Toolbar: vyhledavani + prepinac */}
+      {/* Toolbar: vyhledavani + prepinac + nova hra */}
       {games.length > 0 && (
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3 }}>
           <TextField
@@ -129,6 +168,17 @@ export default function HomePage() {
               Mapa
             </ToggleButton>
           </ToggleButtonGroup>
+          {user && (
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={() => navigate('/admin/new/base')}
+              sx={{ height: 40 }}
+            >
+              Nová hra
+            </Button>
+          )}
         </Box>
       )}
 
@@ -166,9 +216,13 @@ export default function HomePage() {
           Žádná hra neodpovídá hledanému výrazu „{searchQuery}"
         </Typography>
       ) : viewMode === 'cards' ? (
-        <GamesCardView games={filteredGames} />
+        <GamesCardView games={filteredGames} distances={distances} userId={user?.id} />
       ) : (
-        <GamesMapView games={filteredGames} />
+        <GamesMapView
+          games={filteredGames}
+          userPosition={position}
+          onRequestLocation={requestPermission}
+        />
       )}
     </Container>
   );

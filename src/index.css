@@ -59,6 +59,19 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+/* Odstranění focus ringu na dotykových zařízeních (mobil/tablet) */
+@media (hover: none) and (pointer: coarse) {
+  *:focus,
+  *:focus-visible {
+    outline: none !important;
+  }
+
+  /* MUI používá box-shadow pro focus ring u tlačítek a ikon */
+  .Mui-focusVisible {
+    box-shadow: none !important;
+  }
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

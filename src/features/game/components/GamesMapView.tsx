@@ -4,9 +4,20 @@
 import {
   Close as CloseIcon,
   LocationOn as LocationIcon,
+  MyLocation as MyLocationIcon,
   PlayArrow as PlayIcon,
 } from '@mui/icons-material';
-import { Box, Button, Card, CardActions, CardContent, Chip, Typography } from '@mui/material';
+import {
+  Box,
+  Button,
+  Card,
+  CardActions,
+  CardContent,
+  Chip,
+  IconButton,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 import { Feature } from 'ol';
 import { Point } from 'ol/geom';
 import TileLayer from 'ol/layer/Tile';
@@ -20,7 +31,7 @@ import View from 'ol/View';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'ol/ol.css';
-import type { Checkpoint, Game, GeoLocation } from '../../../types';
+import type { Checkpoint, Game, GeoLocation, GPSPosition } from '../../../types';
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../../utils/constants';
 import { calculateCentroid } from '../../../utils/geo';
 
@@ -32,15 +43,34 @@ interface GameWithCentroid extends Game {
 
 interface GamesMapViewProps {
   games: (Game & { checkpoints: Checkpoint[] })[];
+  userPosition?: GPSPosition | null;
+  onRequestLocation?: () => void;
 }
 
-export default function GamesMapView({ games }: GamesMapViewProps) {
+export default function GamesMapView({
+  games,
+  userPosition,
+  onRequestLocation,
+}: GamesMapViewProps) {
   const navigate = useNavigate();
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<OLMap | null>(null);
   const [selectedGame, setSelectedGame] = useState<GameWithCentroid | null>(null);
   const markersLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const validGamesRef = useRef<GameWithCentroid[]>([]);
+
+  // Vycentrovat mapu na polohu uzivatele
+  const handleCenterOnUser = () => {
+    if (userPosition && map) {
+      map.getView().animate({
+        center: fromLonLat([userPosition.longitude, userPosition.latitude]),
+        zoom: 14,
+        duration: 500,
+      });
+    } else {
+      onRequestLocation?.();
+    }
+  };
 
   // Vypocet teziště pro kazdu hru
   const gamesWithCentroids: GameWithCentroid[] = useMemo(() => {
@@ -194,6 +224,24 @@ export default function GamesMapView({ games }: GamesMapViewProps) {
           overflow: 'hidden',
         }}
       />
+
+      {/* Tlacitko vycentrovat na polohu uzivatele */}
+      <Tooltip title={userPosition ? 'Moje poloha' : 'Povolit polohu'}>
+        <IconButton
+          onClick={handleCenterOnUser}
+          sx={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            bgcolor: 'background.paper',
+            boxShadow: 2,
+            zIndex: 1000,
+            '&:hover': { bgcolor: 'action.hover' },
+          }}
+        >
+          <MyLocationIcon color={userPosition ? 'primary' : 'action'} />
+        </IconButton>
+      </Tooltip>
 
       {/* Info karta vybrane hry */}
       {selectedGame && (

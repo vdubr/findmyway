@@ -1,15 +1,31 @@
 // Editace existujici hry - wrapper s URL routovanim
 // Nacte hru podle gameId z URL a zobrazuje taby (base/checkpoints/demo)
 
-import { Alert, Box, Container, Snackbar, Tab, Tabs } from '@mui/material';
-import { useEffect } from 'react';
+import { People as PeopleIcon } from '@mui/icons-material';
+import {
+  Alert,
+  Box,
+  Button,
+  Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Snackbar,
+  Tab,
+  Tabs,
+} from '@mui/material';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ErrorDisplay from '../../../components/ErrorDisplay';
 import LoadingSpinner from '../../../components/LoadingSpinner';
+import { deleteGame, updateGame } from '../../../lib/api';
 import type { CreateGameInput } from '../../../types';
 import CheckpointEditor from '../components/CheckpointEditor';
 import DemoPlayer from '../components/DemoPlayer';
 import GameCreatorForm from '../components/GameCreatorForm';
+import LivePlayersMap from '../components/LivePlayersMap';
 import MapEditor from '../components/MapEditor';
 import { useSaveGame } from '../hooks/useSaveGame';
 import { useGameEditorStore } from '../store/gameEditorStore';
@@ -25,6 +41,12 @@ export default function AdminEditPage() {
   const navigate = useNavigate();
   const { isSaving, successMessage, errorMessage, saveNewGame, updateExistingGame, clearMessages } =
     useSaveGame();
+
+  // Stavy pro delete dialog a live players
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [showLivePlayers, setShowLivePlayers] = useState(false);
 
   const {
     currentGame,
@@ -81,10 +103,34 @@ export default function AdminEditPage() {
     await updateExistingGame();
   };
 
-  // Zrusit editaci
-  const handleCancel = () => {
-    reset();
-    navigate('/admin');
+  // Smazat hru
+  const handleDeleteConfirm = async () => {
+    if (!currentGame?.id) return;
+    try {
+      await deleteGame(currentGame.id);
+      reset();
+      navigate('/');
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Chyba pri mazani hry');
+    } finally {
+      setDeleteDialogOpen(false);
+    }
+  };
+
+  // Prepnout publikaci
+  const handleTogglePublish = async () => {
+    if (!currentGame?.id) return;
+    try {
+      setIsPublishing(true);
+      const newStatus = currentGame.status === 'published' ? 'draft' : 'published';
+      await updateGame(currentGame.id, { status: newStatus });
+      // Reload hry pro aktualizaci stavu v store
+      await loadGame(currentGame.id);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Chyba pri zmene stavu hry');
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   // Loading stav
@@ -127,6 +173,29 @@ export default function AdminEditPage() {
         }),
       }}
     >
+      {/* Action bar – jen pro existujici hry */}
+      {!isNewGame && currentGame && (
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 1,
+            py: 1.5,
+            flexShrink: 0,
+          }}
+        >
+          {currentGame.settings?.share_location_required && (
+            <Button
+              size="small"
+              startIcon={<PeopleIcon />}
+              onClick={() => setShowLivePlayers(true)}
+            >
+              Živí hráči
+            </Button>
+          )}
+        </Box>
+      )}
+
       {/* Taby navigace - zafixovane nahoze */}
       <Box
         sx={{
@@ -156,22 +225,27 @@ export default function AdminEditPage() {
       {currentTab === 'base' && (
         <Box sx={{ py: 3 }}>
           {isNewGame && !currentGame ? (
-            <GameCreatorForm onSubmit={handleFormSubmit} onCancel={handleCancel} />
+            <GameCreatorForm onSubmit={handleFormSubmit} />
           ) : (
             currentGame && (
-              <GameCreatorForm
-                initialValues={{
-                  title: currentGame.title,
-                  description: currentGame.description || '',
-                  is_public: currentGame.is_public,
-                  difficulty: currentGame.difficulty,
-                  tags: currentGame.tags ?? [],
-                  settings: currentGame.settings,
-                }}
-                onSubmit={handleFormSubmit}
-                onCancel={handleCancel}
-                isEditMode={!isNewGame}
-              />
+              <>
+                <GameCreatorForm
+                  initialValues={{
+                    title: currentGame.title,
+                    description: currentGame.description || '',
+                    is_public: currentGame.is_public,
+                    difficulty: currentGame.difficulty,
+                    tags: currentGame.tags ?? [],
+                    settings: currentGame.settings,
+                  }}
+                  onSubmit={handleFormSubmit}
+                  isEditMode={!isNewGame}
+                  isPublished={currentGame.status === 'published'}
+                  isPublishing={isPublishing}
+                  onTogglePublish={handleTogglePublish}
+                  onDelete={() => setDeleteDialogOpen(true)}
+                />
+              </>
             )
           )}
         </Box>
@@ -218,6 +292,38 @@ export default function AdminEditPage() {
           {errorMessage}
         </Alert>
       </Snackbar>
+
+      <Snackbar open={!!actionError} autoHideDuration={6000} onClose={() => setActionError(null)}>
+        <Alert severity="error" onClose={() => setActionError(null)}>
+          {actionError}
+        </Alert>
+      </Snackbar>
+
+      {/* Dialog potvrzeni smazani */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Smazat hru?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Opravdu chcete smazat hru "{currentGame?.title}"? Tato akce je nevratna a smaze i
+            vsechny checkpointy.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Zrusit</Button>
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+            Smazat
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Live players mapa */}
+      {showLivePlayers && currentGame && (
+        <LivePlayersMap
+          game={currentGame}
+          open={showLivePlayers}
+          onClose={() => setShowLivePlayers(false)}
+        />
+      )}
     </Container>
   );
 }

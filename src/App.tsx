@@ -7,7 +7,6 @@ import AppLayout from './components/AppLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminEditPage from './features/admin/pages/AdminEditPage';
-import AdminPage from './features/admin/pages/AdminPage';
 
 // Auth
 import { AuthProvider } from './features/auth/AuthContext';
@@ -44,15 +43,8 @@ function App() {
                 {/* Verejna stranka - hrat hru muze kdokoli */}
                 <Route path="/play/:gameId" element={<PlayerPage />} />
 
-                {/* Admin - seznam her */}
-                <Route
-                  path="/admin"
-                  element={
-                    <ProtectedRoute>
-                      <AdminPage />
-                    </ProtectedRoute>
-                  }
-                />
+                {/* Admin - seznam her zaniknul, presmerovat na hlavni stranku */}
+                <Route path="/admin" element={<Navigate to="/" replace />} />
 
                 {/* Admin - nova hra nebo editace existujici */}
                 <Route

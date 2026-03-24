@@ -6,7 +6,6 @@ import {
   Logout as LogoutIcon,
   Map as MapIcon,
   Person as PersonIcon,
-  Settings as SettingsIcon,
 } from '@mui/icons-material';
 import {
   AppBar,
@@ -101,17 +100,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
     // /admin
     if (parts[0] === 'admin') {
-      if (parts.length === 1) {
-        return [{ label: 'Správa her' }];
-      }
-
       // /admin/:gameId/:tab
       const gameId = parts[1];
       const tab = parts[2];
       const gameTitle = editorGame?.title ?? (gameId === 'new' ? 'Nová hra' : '…');
       const crumbs: Crumb[] = [
-        { label: 'Správa her', path: '/admin' },
-        { label: gameTitle, path: `/admin/${gameId}/base` },
+        { label: gameTitle, path: gameId !== 'new' ? `/admin/${gameId}/base` : undefined },
       ];
       if (tab && TAB_LABELS[tab]) {
         crumbs.push({ label: TAB_LABELS[tab] });
@@ -258,16 +252,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                 PaperProps={{ sx: { minWidth: 200 } }}
               >
-                <MenuItem
-                  onClick={() => handleNavigate('/admin')}
-                  selected={location.pathname.startsWith('/admin')}
-                >
-                  <ListItemIcon>
-                    <SettingsIcon />
-                  </ListItemIcon>
-                  <ListItemText>Správa her</ListItemText>
-                </MenuItem>
-
                 <MenuItem
                   onClick={() => handleNavigate('/profile')}
                   selected={location.pathname === '/profile'}

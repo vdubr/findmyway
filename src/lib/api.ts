@@ -162,6 +162,7 @@ export async function createGame(input: CreateGameInput) {
         time_limit: null,
       }) as Json,
       status: 'draft',
+      tags: input.tags ?? [],
     })
     .select()
     .single();
@@ -171,12 +172,13 @@ export async function createGame(input: CreateGameInput) {
 }
 
 export async function updateGame(gameId: string, updates: UpdateGameInput) {
-  const { settings, ...rest } = updates;
+  const { settings, tags, ...rest } = updates;
   const { data, error } = await supabase
     .from('games')
     .update({
       ...rest,
       ...(settings !== undefined && { settings: settings as Json }),
+      ...(tags !== undefined && { tags }),
     })
     .eq('id', gameId)
     .select()
