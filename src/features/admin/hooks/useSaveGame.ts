@@ -8,6 +8,7 @@ import {
   createGame,
   deleteCheckpoint,
   deleteGame,
+  shiftCheckpointOrderIndex,
   updateCheckpoint,
   updateGame,
 } from '../../../lib/api';
@@ -102,6 +103,14 @@ export function useSaveGame(): UseSaveGameReturn {
       const existingCheckpoints = tempCheckpoints.filter((cp) => cp.id);
       const newCheckpoints = tempCheckpoints.filter((cp) => !cp.id);
 
+      // Dvouprůchodové uložení order_index – vyhnutí se unique constraint porušení.
+      // Průchod 1: přesunout na dočasná velká čísla (10000+), aby se předešlo konfliktům.
+      const TEMP_OFFSET = 10000;
+      for (let i = 0; i < existingCheckpoints.length; i++) {
+        await shiftCheckpointOrderIndex(existingCheckpoints[i].id!, TEMP_OFFSET + i);
+      }
+
+      // Průchod 2: nastavit skutečné hodnoty
       for (const checkpoint of existingCheckpoints) {
         await updateCheckpoint(checkpoint.id!, {
           order_index: checkpoint.order_index,

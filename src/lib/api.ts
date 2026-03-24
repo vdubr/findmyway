@@ -274,6 +274,16 @@ export async function updateCheckpoint(checkpointId: string, updates: UpdateChec
   return data as unknown as Checkpoint;
 }
 
+// Pomocná funkce pro přesunutí order_index na dočasnou hodnotu (vyhnutí se unique constraint při reorder)
+export async function shiftCheckpointOrderIndex(checkpointId: string, tempIndex: number) {
+  const { error } = await supabase
+    .from('checkpoints')
+    .update({ order_index: tempIndex })
+    .eq('id', checkpointId);
+
+  if (error) throw error;
+}
+
 export async function deleteCheckpoint(checkpointId: string) {
   const { error } = await supabase.from('checkpoints').delete().eq('id', checkpointId);
 

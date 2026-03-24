@@ -23,6 +23,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { DragEvent } from 'react';
 import type { GeoLocation } from '../../../types';
 import { calculateCentroid } from '../../../utils/geo';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
@@ -42,6 +43,7 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
     addTempCheckpoint,
     deleteTempCheckpoint,
     selectCheckpoint,
+    reorderCheckpoints,
   } = useGameEditorStore();
 
   const showRadii = currentGame?.settings?.show_radius ?? true;
@@ -117,6 +119,36 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
 
   const handleDeleteCheckpoint = (tempId: string) => {
     deleteTempCheckpoint(tempId);
+  };
+
+  // Drag-and-drop stav
+  const dragIndexRef = useRef<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = (e: DragEvent, index: number) => {
+    dragIndexRef.current = index;
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  };
+
+  const handleDrop = (e: DragEvent, toIndex: number) => {
+    e.preventDefault();
+    const fromIndex = dragIndexRef.current;
+    if (fromIndex !== null && fromIndex !== toIndex) {
+      reorderCheckpoints(fromIndex, toIndex);
+    }
+    dragIndexRef.current = null;
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    dragIndexRef.current = null;
+    setDragOverIndex(null);
   };
 
   const canSave = tempCheckpoints.length > 0;
@@ -210,20 +242,28 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
                   {tempCheckpoints.map((checkpoint, index) => (
                     <ListItem
                       key={checkpoint.tempId}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDrop={(e) => handleDrop(e, index)}
+                      onDragEnd={handleDragEnd}
                       sx={{
                         border: 1,
-                        borderColor: 'divider',
+                        borderColor: dragOverIndex === index ? 'primary.main' : 'divider',
                         borderRadius: 1,
                         mb: 1,
                         cursor: 'pointer',
                         bgcolor:
-                          selectedCheckpointId === checkpoint.tempId
-                            ? 'action.selected'
-                            : 'background.paper',
+                          dragOverIndex === index
+                            ? 'action.hover'
+                            : selectedCheckpointId === checkpoint.tempId
+                              ? 'action.selected'
+                              : 'background.paper',
+                        transition: 'border-color 0.15s, bgcolor 0.15s',
                         '&:hover': {
                           bgcolor:
-                            selectedCheckpointId === checkpoint.tempId
-                              ? 'action.selected'
+                            dragOverIndex === index || selectedCheckpointId === checkpoint.tempId
+                              ? undefined
                               : 'action.hover',
                         },
                       }}
@@ -238,7 +278,10 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
                           <Tooltip title="Editovat">
                             <IconButton
                               size="small"
-                              onClick={() => handleEditCheckpoint(checkpoint.tempId)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditCheckpoint(checkpoint.tempId);
+                              }}
                             >
                               <EditIcon fontSize="small" />
                             </IconButton>
@@ -247,7 +290,10 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
                             <IconButton
                               size="small"
                               color="error"
-                              onClick={() => handleDeleteCheckpoint(checkpoint.tempId)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteCheckpoint(checkpoint.tempId);
+                              }}
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
@@ -255,7 +301,9 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
                         </Stack>
                       }
                     >
-                      <DragIcon sx={{ mr: 1, color: 'text.disabled', cursor: 'grab' }} />
+                      <DragIcon
+                        sx={{ mr: 1, color: 'text.disabled', cursor: 'grab', flexShrink: 0 }}
+                      />
                       <ListItemText
                         primary={
                           <Stack direction="row" spacing={1} alignItems="center">

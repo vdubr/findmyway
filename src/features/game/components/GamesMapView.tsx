@@ -189,7 +189,7 @@ export default function GamesMapView({
             }),
           }),
           text: new Text({
-            text: game.checkpoints.length.toString(),
+            text: game.title.charAt(0).toUpperCase(),
             fill: new Fill({ color: '#fff' }),
             font: 'bold 12px sans-serif',
           }),
