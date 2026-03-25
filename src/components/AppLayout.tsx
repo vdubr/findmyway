@@ -135,9 +135,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        // safe-area padding podbarvuje oblast hodin barvou AppBaru
-        bgcolor: 'primary.main',
-        paddingTop: 'env(safe-area-inset-top)',
         height: '100dvh',
         overflow: 'hidden',
       }}
@@ -146,7 +143,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <OfflineIndicator />
 
       {/* Header */}
-      <AppBar position="static" elevation={2}>
+      <AppBar position="static" elevation={2} sx={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <Toolbar sx={{ position: 'relative' }}>
           {/* Ikona her – aktivní na / */}
           <Tooltip title="Výběr her">
