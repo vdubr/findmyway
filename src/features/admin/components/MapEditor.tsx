@@ -152,8 +152,10 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
   };
 
   // Touch drag-and-drop pro mobilní zařízení
+  // touchmove musí být non-passive aby šlo volat preventDefault() a zabránit scrollování
+  const listRef = useRef<HTMLUListElement>(null);
+
   const getIndexFromPoint = (x: number, y: number): number | null => {
-    // Dočasně schovat prvek pod prstem aby elementFromPoint vrátil cíl
     const el = document.elementFromPoint(x, y);
     if (!el) return null;
     const item = (el as HTMLElement).closest('[data-drag-index]') as HTMLElement | null;
@@ -163,14 +165,6 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
 
   const handleTouchStart = (_e: TouchEvent, index: number) => {
     dragIndexRef.current = index;
-  };
-
-  const handleTouchMove = (e: TouchEvent) => {
-    if (dragIndexRef.current === null) return;
-    e.preventDefault();
-    const touch = e.touches[0];
-    const idx = getIndexFromPoint(touch.clientX, touch.clientY);
-    if (idx !== null) setDragOverIndex(idx);
   };
 
   const handleTouchEnd = (e: TouchEvent) => {
@@ -183,6 +177,21 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
     dragIndexRef.current = null;
     setDragOverIndex(null);
   };
+
+  // Registrace non-passive touchmove přímo na DOM – React neumožňuje passive: false přes JSX
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const onTouchMove = (e: globalThis.TouchEvent) => {
+      if (dragIndexRef.current === null) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const idx = getIndexFromPoint(touch.clientX, touch.clientY);
+      if (idx !== null) setDragOverIndex(idx);
+    };
+    list.addEventListener('touchmove', onTouchMove, { passive: false });
+    return () => list.removeEventListener('touchmove', onTouchMove);
+  }, []);
 
   const canSave = tempCheckpoints.length > 0;
 
@@ -271,7 +280,7 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
                   </Typography>
                 </Paper>
               ) : (
-                <List sx={{ flex: 1, overflow: 'auto' }}>
+                <List ref={listRef} sx={{ flex: 1, overflow: 'auto' }}>
                   {tempCheckpoints.map((checkpoint, index) => (
                     <ListItem
                       key={checkpoint.tempId}
@@ -282,7 +291,6 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
                       onDrop={(e) => handleDrop(e, index)}
                       onDragEnd={handleDragEnd}
                       onTouchStart={(e) => handleTouchStart(e, index)}
-                      onTouchMove={handleTouchMove}
                       onTouchEnd={handleTouchEnd}
                       sx={{
                         border: 1,
