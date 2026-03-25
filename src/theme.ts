@@ -36,7 +36,7 @@ const theme = createTheme({
       contrastText: '#1B4332',
     },
     background: {
-      default: '#F1FAEE', // Jemně krémová jako ranní mlha v lese
+      default: 'transparent', // Bez background na body – html zůstává zelená pro Safari toolbar detekci
       paper: '#FFFFFF',
     },
     text: {
