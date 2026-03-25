@@ -135,15 +135,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        height: '100dvh',
-        overflow: 'hidden',
+        minHeight: '100dvh',
       }}
     >
       {/* Offline Indicator */}
       <OfflineIndicator />
 
       {/* Header */}
-      <AppBar position="static" elevation={2} sx={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <AppBar position="fixed" elevation={2} sx={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <Toolbar sx={{ position: 'relative' }}>
           {/* Ikona her – aktivní na / */}
           <Tooltip title="Výběr her">
@@ -303,11 +302,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
         component="main"
         sx={{
           flexGrow: 1,
+          mt: { xs: '56px', sm: '64px' },
           pb: 'env(safe-area-inset-bottom)',
           bgcolor: '#F1FAEE',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'auto',
         }}
       >
         {children}

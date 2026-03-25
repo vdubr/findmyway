@@ -24,29 +24,19 @@ a:hover {
 /* Safari detekuje barvu toolbaru z html elementu – musí být nastavena trvale */
 html {
   background-color: #2d6a4f;
-  height: 100%;
-  overflow: hidden;
 }
 
 body {
   margin: 0;
   padding: 0;
   min-width: 320px;
-  height: 100%;
   width: 100%;
-  overflow: hidden;
-  /* Zamezí iOS Safari "bounce" scrollu a posunu hlavičky */
   overscroll-behavior: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
 }
 
 #root {
   width: 100%;
-  height: 100%;
+  min-height: 100vh;
 }
 
 h1 {
