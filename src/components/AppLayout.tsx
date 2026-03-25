@@ -136,7 +136,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <OfflineIndicator />
 
       {/* Header */}
-      <AppBar position="static" elevation={2}>
+      <AppBar position="static" elevation={2} sx={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <Toolbar sx={{ position: 'relative' }}>
           {/* Ikona her – aktivní na / */}
           <Tooltip title="Výběr her">
