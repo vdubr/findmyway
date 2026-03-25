@@ -151,7 +151,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           <Tooltip title="Výběr her">
             <IconButton
               color="inherit"
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/games')}
               sx={{
                 borderRadius: 2,
                 px: 1.5,
@@ -205,23 +205,26 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {/* Spacer */}
           <Box sx={{ flexGrow: 1 }} />
 
-          {/* Liška průvodce uprostřed */}
-          <Box
-            sx={{
-              position: 'absolute',
-              left: '50%',
-              top: '50%',
-              transform: 'translate(-50%, -50%)',
-              height: 64,
-              width: 64,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              pointerEvents: 'none',
-            }}
-          >
-            <FoxGuide inline />
-          </Box>
+          {/* Liška průvodce uprostřed – klik vede na homepage */}
+          <Tooltip title="Domů">
+            <Box
+              onClick={() => navigate('/')}
+              sx={{
+                position: 'absolute',
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                height: 64,
+                width: 64,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <FoxGuide inline />
+            </Box>
+          </Tooltip>
 
           {/* Uživatelská sekce - pravá část */}
           {user ? (
