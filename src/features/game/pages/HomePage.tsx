@@ -50,7 +50,12 @@ export default function HomePage() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: loadGames je stabilni funkce, spousti se pouze pri mountu
   useEffect(() => {
     loadGames();
-    requestPermission();
+    // Polohu nežádáme automaticky – pouze pokud už bylo oprávnění dříve uděleno
+    navigator.permissions?.query({ name: 'geolocation' }).then((result) => {
+      if (result.state === 'granted') {
+        requestPermission();
+      }
+    });
   }, []);
 
   const loadGames = async () => {
