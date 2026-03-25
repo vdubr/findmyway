@@ -131,12 +131,22 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const breadcrumbs = buildBreadcrumbs();
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        // safe-area padding podbarvuje oblast hodin barvou AppBaru
+        bgcolor: 'primary.main',
+        paddingTop: 'env(safe-area-inset-top)',
+        height: '100dvh',
+        overflow: 'hidden',
+      }}
+    >
       {/* Offline Indicator */}
       <OfflineIndicator />
 
       {/* Header */}
-      <AppBar position="static" elevation={2} sx={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <AppBar position="static" elevation={2}>
         <Toolbar sx={{ position: 'relative' }}>
           {/* Ikona her – aktivní na / */}
           <Tooltip title="Výběr her">
@@ -300,6 +310,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'auto',
+          bgcolor: 'background.default',
         }}
       >
         {children}
