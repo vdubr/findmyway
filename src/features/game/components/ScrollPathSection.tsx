@@ -63,7 +63,7 @@ export default function ScrollPathSection() {
     <Box
       ref={scrollContainerRef}
       sx={{
-        height: '300vh',
+        height: '600vh',
         position: 'relative',
       }}
     >
