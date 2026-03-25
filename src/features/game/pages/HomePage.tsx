@@ -2,7 +2,6 @@ import {
   Add as AddIcon,
   ViewModule as CardsIcon,
   Map as MapIcon,
-  MyLocation as MyLocationIcon,
   Search as SearchIcon,
 } from '@mui/icons-material';
 import {
@@ -11,12 +10,10 @@ import {
   Button,
   Chip,
   Container,
-  IconButton,
   InputAdornment,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
-  Tooltip,
   Typography,
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
@@ -48,24 +45,13 @@ export default function HomePage() {
   const [activeTag, setActiveTag] = useState<string | null>(null);
 
   // Geolokace pro razeni podle vzdalenosti
-  const { position, error: geoError, requestPermission } = useGeolocation();
-  const [geoRequested, setGeoRequested] = useState(false);
+  const { position, requestPermission } = useGeolocation();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: loadGames je stabilni funkce, spousti se pouze pri mountu
   useEffect(() => {
     loadGames();
-    // Polohu nežádáme automaticky – pouze pokud už bylo oprávnění dříve uděleno (bez dialogu)
-    navigator.permissions?.query({ name: 'geolocation' }).then((result) => {
-      if (result.state === 'granted') {
-        requestPermission();
-      }
-    });
+    requestPermission();
   }, []);
-
-  const handleRequestLocation = async () => {
-    setGeoRequested(true);
-    await requestPermission();
-  };
 
   const loadGames = async () => {
     try {
@@ -182,19 +168,6 @@ export default function HomePage() {
               Mapa
             </ToggleButton>
           </ToggleButtonGroup>
-          <Tooltip
-            title={
-              position
-                ? 'Řazení podle vzdálenosti je aktivní'
-                : geoError && geoRequested
-                  ? geoError
-                  : 'Řadit hry podle vzdálenosti'
-            }
-          >
-            <IconButton onClick={handleRequestLocation} sx={{ height: 40, width: 40 }}>
-              <MyLocationIcon color={position ? 'primary' : 'action'} />
-            </IconButton>
-          </Tooltip>
           {user && (
             <Button
               variant="contained"
@@ -208,13 +181,6 @@ export default function HomePage() {
           )}
         </Box>
       )}
-      {/* Chyba geolokace – zobrazit jen pokud uživatel explicitně požádal */}
-      {geoError && geoRequested && !position && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          {geoError}
-        </Alert>
-      )}
-
       {/* Tag filtry */}
       {games.length > 0 && (
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3 }}>
