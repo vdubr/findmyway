@@ -20,7 +20,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       includeAssets: ['vite.svg', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'GeoQuest - GPS Treasure Hunt',
@@ -46,6 +46,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         runtimeCaching: [
           {
