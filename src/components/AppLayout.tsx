@@ -307,10 +307,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
         sx={{
           flexGrow: 1,
           pb: 0,
+          bgcolor: '#F1FAEE',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'auto',
-          bgcolor: 'background.default',
         }}
       >
         {children}
