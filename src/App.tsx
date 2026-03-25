@@ -14,6 +14,7 @@ import AuthPage from './features/auth/pages/AuthPage';
 
 // Pages
 import HomePage from './features/game/pages/HomePage';
+import LandingPage from './features/game/pages/LandingPage';
 import PlayerPage from './features/player/pages/PlayerPage';
 import ProfilePage from './features/profile/pages/ProfilePage';
 import theme from './theme';
@@ -37,14 +38,17 @@ function App() {
                 {/* Auth page */}
                 <Route path="/auth" element={<AuthPage />} />
 
-                {/* Verejna stranka */}
-                <Route path="/" element={<HomePage />} />
+                {/* Uvitaci stranka */}
+                <Route path="/" element={<LandingPage />} />
+
+                {/* Seznam her */}
+                <Route path="/games" element={<HomePage />} />
 
                 {/* Verejna stranka - hrat hru muze kdokoli */}
                 <Route path="/play/:gameId" element={<PlayerPage />} />
 
                 {/* Admin - seznam her zaniknul, presmerovat na hlavni stranku */}
-                <Route path="/admin" element={<Navigate to="/" replace />} />
+                <Route path="/admin" element={<Navigate to="/games" replace />} />
 
                 {/* Admin - nova hra nebo editace existujici */}
                 <Route

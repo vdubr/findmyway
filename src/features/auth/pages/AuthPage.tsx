@@ -28,7 +28,7 @@ export default function AuthPage() {
   // Pokud je uživatel už přihlášen, přesměruj ho
   useEffect(() => {
     if (user) {
-      navigate('/', { replace: true });
+      navigate('/games', { replace: true });
     }
   }, [user, navigate]);
 

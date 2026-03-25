@@ -109,7 +109,7 @@ export default function AdminEditPage() {
     try {
       await deleteGame(currentGame.id);
       reset();
-      navigate('/');
+      navigate('/games');
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Chyba pri mazani hry');
     } finally {

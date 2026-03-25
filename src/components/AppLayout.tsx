@@ -90,13 +90,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const displayName = profile?.username ?? user?.email ?? 'Uživatel';
   const avatarLetter = displayName.charAt(0).toUpperCase();
 
-  // Je uživatel na hlavní stránce?
-  const isHome = location.pathname === '/';
+  // Je uživatel na hlavní stránce nebo seznamu her?
+  const isHome = location.pathname === '/' || location.pathname === '/games';
 
   // Sestavení drobečkové navigace
   const buildBreadcrumbs = (): Crumb[] => {
     const parts = location.pathname.split('/').filter(Boolean);
     if (parts.length === 0) return [];
+
+    // /games
+    if (parts[0] === 'games') return [{ label: 'Hry' }];
 
     // /admin
     if (parts[0] === 'admin') {
