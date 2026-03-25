@@ -128,101 +128,117 @@ export default function HomePage() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Error display */}
-      {error && <ErrorDisplay message={error} onRetry={loadGames} />}
-
-      {/* Toolbar: vyhledavani + prepinac + nova hra */}
+    <>
+      {/* Fixní toolbar pod AppBarem */}
       {games.length > 0 && (
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3 }}>
-          <TextField
-            placeholder="Hledat hru..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            size="small"
-            autoComplete="off"
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" />
-                  </InputAdornment>
-                ),
-              },
-            }}
-            sx={{ flexGrow: 1 }}
-          />
-          <ToggleButtonGroup
-            value={viewMode}
-            exclusive
-            onChange={handleViewModeChange}
-            size="small"
-            aria-label="rezim zobrazeni"
-          >
-            <ToggleButton value="cards" aria-label="karty">
-              <CardsIcon sx={{ mr: 0.5 }} />
-              Karty
-            </ToggleButton>
-            <ToggleButton value="map" aria-label="mapa">
-              <MapIcon sx={{ mr: 0.5 }} />
-              Mapa
-            </ToggleButton>
-          </ToggleButtonGroup>
-          {user && (
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<AddIcon />}
-              onClick={() => navigate('/admin/new/base')}
-              sx={{ height: 40 }}
-            >
-              Nová hra
-            </Button>
-          )}
-        </Box>
-      )}
-      {/* Tag filtry */}
-      {games.length > 0 && (
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3 }}>
-          {hasOwnGames && (
-            <Chip
-              label="Moje hry"
-              color={activeTag === 'my-games' ? 'primary' : 'default'}
-              variant={activeTag === 'my-games' ? 'filled' : 'outlined'}
-              onClick={() => setActiveTag(activeTag === 'my-games' ? null : 'my-games')}
-            />
-          )}
-          {GAME_TAGS.map((tag) => (
-            <Chip
-              key={tag.id}
-              label={tag.label}
-              color={activeTag === tag.id ? 'primary' : 'default'}
-              variant={activeTag === tag.id ? 'filled' : 'outlined'}
-              onClick={() => setActiveTag(activeTag === tag.id ? null : tag.id)}
-            />
-          ))}
+        <Box
+          sx={{
+            position: 'sticky',
+            top: { xs: 56, sm: 64 },
+            zIndex: 1100,
+            bgcolor: '#F1FAEE',
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            px: 2,
+            pt: 2,
+            pb: 1.5,
+          }}
+        >
+          <Container maxWidth="lg" disableGutters>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 1.5 }}>
+              <TextField
+                placeholder="Hledat hru..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                size="small"
+                autoComplete="off"
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+                sx={{ flexGrow: 1 }}
+              />
+              <ToggleButtonGroup
+                value={viewMode}
+                exclusive
+                onChange={handleViewModeChange}
+                size="small"
+                aria-label="rezim zobrazeni"
+              >
+                <ToggleButton value="cards" aria-label="karty">
+                  <CardsIcon sx={{ mr: 0.5 }} />
+                  Karty
+                </ToggleButton>
+                <ToggleButton value="map" aria-label="mapa">
+                  <MapIcon sx={{ mr: 0.5 }} />
+                  Mapa
+                </ToggleButton>
+              </ToggleButtonGroup>
+              {user && (
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={() => navigate('/admin/new/base')}
+                  sx={{ height: 40 }}
+                >
+                  Nová hra
+                </Button>
+              )}
+            </Box>
+            {/* Tag filtry */}
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {hasOwnGames && (
+                <Chip
+                  label="Moje hry"
+                  color={activeTag === 'my-games' ? 'primary' : 'default'}
+                  variant={activeTag === 'my-games' ? 'filled' : 'outlined'}
+                  onClick={() => setActiveTag(activeTag === 'my-games' ? null : 'my-games')}
+                />
+              )}
+              {GAME_TAGS.map((tag) => (
+                <Chip
+                  key={tag.id}
+                  label={tag.label}
+                  color={activeTag === tag.id ? 'primary' : 'default'}
+                  variant={activeTag === tag.id ? 'filled' : 'outlined'}
+                  onClick={() => setActiveTag(activeTag === tag.id ? null : tag.id)}
+                />
+              ))}
+            </Box>
+          </Container>
         </Box>
       )}
 
       {/* Obsah */}
-      {games.length === 0 ? (
-        <Alert severity="info">
-          <Typography>Zatim nejsou k dispozici zadne verejne hry.</Typography>
-          {user && <Typography variant="body2">Budte prvni a vytvorte hru!</Typography>}
-        </Alert>
-      ) : filteredGames.length === 0 ? (
-        <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-          Žádná hra neodpovídá hledanému výrazu „{searchQuery}"
-        </Typography>
-      ) : viewMode === 'cards' ? (
-        <GamesCardView games={filteredGames} distances={distances} userId={user?.id} />
-      ) : (
-        <GamesMapView
-          games={filteredGames}
-          userPosition={position}
-          onRequestLocation={requestPermission}
-        />
-      )}
-    </Container>
+      <Container maxWidth="lg" sx={{ py: 3 }}>
+        {/* Error display */}
+        {error && <ErrorDisplay message={error} onRetry={loadGames} />}
+
+        {games.length === 0 ? (
+          <Alert severity="info">
+            <Typography>Zatim nejsou k dispozici zadne verejne hry.</Typography>
+            {user && <Typography variant="body2">Budte prvni a vytvorte hru!</Typography>}
+          </Alert>
+        ) : filteredGames.length === 0 ? (
+          <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+            Žádná hra neodpovídá hledanému výrazu „{searchQuery}"
+          </Typography>
+        ) : viewMode === 'cards' ? (
+          <GamesCardView games={filteredGames} distances={distances} userId={user?.id} />
+        ) : (
+          <GamesMapView
+            games={filteredGames}
+            userPosition={position}
+            onRequestLocation={requestPermission}
+          />
+        )}
+      </Container>
+    </>
   );
 }
