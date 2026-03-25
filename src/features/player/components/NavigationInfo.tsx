@@ -72,7 +72,7 @@ export default function NavigationInfo({
         left: '50%',
         transform: 'translateX(-50%)',
         width: 300,
-        bgcolor: 'background.paper',
+        bgcolor: '#F1FAEE',
         borderRadius: '50% 50% 0 0 / 100% 100% 0 0',
         px: 3,
         pt: 3,

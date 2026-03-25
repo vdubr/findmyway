@@ -35,7 +35,7 @@ export default function DistanceIndicator({
       {/* Progress bar card */}
       <Card
         sx={{
-          bgcolor: checkpointReached ? 'success.light' : 'background.paper',
+          bgcolor: checkpointReached ? 'success.light' : '#F1FAEE',
         }}
       >
         <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
