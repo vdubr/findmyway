@@ -167,7 +167,10 @@ export default function AdminEditPage() {
         flexDirection: 'column',
         // Pro checkpoints tab - zabrat celou dostupnou vysku, nescrollovat
         ...(currentTab === 'checkpoints' && {
-          height: { xs: 'calc(100dvh - 56px)', sm: 'calc(100dvh - 64px)' },
+          height: {
+            xs: 'calc(100dvh - 56px - env(safe-area-inset-top))',
+            sm: 'calc(100dvh - 64px - env(safe-area-inset-top))',
+          },
           minHeight: 0,
           overflow: 'hidden',
         }),

@@ -330,7 +330,10 @@ export default function PlayerPage() {
   return (
     <Box
       sx={{
-        height: { xs: 'calc(100dvh - 56px)', sm: 'calc(100dvh - 64px)' },
+        height: {
+          xs: 'calc(100dvh - 56px - env(safe-area-inset-top))',
+          sm: 'calc(100dvh - 64px - env(safe-area-inset-top))',
+        },
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',

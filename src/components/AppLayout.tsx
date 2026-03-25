@@ -302,7 +302,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
         component="main"
         sx={{
           flexGrow: 1,
-          mt: { xs: '56px', sm: '64px' },
+          mt: {
+            xs: 'calc(56px + env(safe-area-inset-top))',
+            sm: 'calc(64px + env(safe-area-inset-top))',
+          },
           pb: 'env(safe-area-inset-bottom)',
           bgcolor: '#F1FAEE',
           display: 'flex',
