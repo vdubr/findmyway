@@ -23,7 +23,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { DragEvent } from 'react';
+import type { DragEvent, TouchEvent } from 'react';
 import type { GeoLocation } from '../../../types';
 import { calculateCentroid } from '../../../utils/geo';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
@@ -121,7 +121,7 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
     deleteTempCheckpoint(tempId);
   };
 
-  // Drag-and-drop stav
+  // Drag-and-drop stav (myš i dotyk)
   const dragIndexRef = useRef<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -147,6 +147,39 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
   };
 
   const handleDragEnd = () => {
+    dragIndexRef.current = null;
+    setDragOverIndex(null);
+  };
+
+  // Touch drag-and-drop pro mobilní zařízení
+  const getIndexFromPoint = (x: number, y: number): number | null => {
+    // Dočasně schovat prvek pod prstem aby elementFromPoint vrátil cíl
+    const el = document.elementFromPoint(x, y);
+    if (!el) return null;
+    const item = (el as HTMLElement).closest('[data-drag-index]') as HTMLElement | null;
+    if (!item) return null;
+    return Number(item.dataset.dragIndex);
+  };
+
+  const handleTouchStart = (_e: TouchEvent, index: number) => {
+    dragIndexRef.current = index;
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    if (dragIndexRef.current === null) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const idx = getIndexFromPoint(touch.clientX, touch.clientY);
+    if (idx !== null) setDragOverIndex(idx);
+  };
+
+  const handleTouchEnd = (e: TouchEvent) => {
+    const touch = e.changedTouches[0];
+    const toIndex = getIndexFromPoint(touch.clientX, touch.clientY);
+    const fromIndex = dragIndexRef.current;
+    if (fromIndex !== null && toIndex !== null && fromIndex !== toIndex) {
+      reorderCheckpoints(fromIndex, toIndex);
+    }
     dragIndexRef.current = null;
     setDragOverIndex(null);
   };
@@ -243,10 +276,14 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
                     <ListItem
                       key={checkpoint.tempId}
                       draggable
+                      data-drag-index={index}
                       onDragStart={(e) => handleDragStart(e, index)}
                       onDragOver={(e) => handleDragOver(e, index)}
                       onDrop={(e) => handleDrop(e, index)}
                       onDragEnd={handleDragEnd}
+                      onTouchStart={(e) => handleTouchStart(e, index)}
+                      onTouchMove={handleTouchMove}
+                      onTouchEnd={handleTouchEnd}
                       sx={{
                         border: 1,
                         borderColor: dragOverIndex === index ? 'primary.main' : 'divider',
