@@ -197,9 +197,21 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
 
   return (
     <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ flex: 1, minHeight: 0 }}>
-        {/* Mapa */}
-        <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        spacing={2}
+        sx={{ flex: 1, minHeight: { xs: 'auto', md: 0 } }}
+      >
+        {/* Mapa – na mobilu fixní výška, na desktopu roste */}
+        <Box
+          sx={{
+            flex: { xs: 'none', md: 1 },
+            height: { xs: 320, md: 'auto' },
+            minHeight: { xs: 'auto', md: 0 },
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
           <Card sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <CardContent
               sx={{
@@ -241,16 +253,24 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
           </Card>
         </Box>
 
-        {/* Seznam checkpointů */}
+        {/* Seznam checkpointů – na mobilu přirozená výška, na desktopu omezená scrollem */}
         <Box
           sx={{
             width: { xs: '100%', md: 350 },
-            minHeight: { xs: 300, md: 0 },
+            minHeight: { xs: 'auto', md: 0 },
+            flex: { xs: 'none', md: '0 0 350px' },
             display: 'flex',
             flexDirection: 'column',
           }}
         >
-          <Card sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <Card
+            sx={{
+              flex: { xs: 'none', md: 1 },
+              minHeight: 0,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
             <CardContent
               sx={{
                 flex: 1,
@@ -280,7 +300,10 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
                   </Typography>
                 </Paper>
               ) : (
-                <List ref={listRef} sx={{ flex: 1, overflow: 'auto' }}>
+                <List
+                  ref={listRef}
+                  sx={{ flex: { xs: 'none', md: 1 }, overflow: { xs: 'visible', md: 'auto' } }}
+                >
                   {tempCheckpoints.map((checkpoint, index) => (
                     <ListItem
                       key={checkpoint.tempId}
