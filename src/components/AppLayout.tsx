@@ -303,7 +303,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         component="main"
         sx={{
           flexGrow: 1,
-          pb: 0,
+          pb: 'env(safe-area-inset-bottom)',
           bgcolor: '#F1FAEE',
           display: 'flex',
           flexDirection: 'column',
