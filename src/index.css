@@ -21,6 +21,11 @@ a:hover {
   color: #535bf2;
 }
 
+/* Safari detekuje barvu toolbaru z html elementu – musí být nastavena trvale */
+html {
+  background-color: #2d6a4f;
+}
+
 body {
   margin: 0;
   padding: 0;
