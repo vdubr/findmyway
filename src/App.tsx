@@ -1,6 +1,6 @@
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider } from '@mui/material/styles';
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useParams } from 'react-router-dom';
 import AppLayout from './components/AppLayout';
 
 // Components
@@ -13,11 +13,33 @@ import { AuthProvider } from './features/auth/AuthContext';
 import AuthPage from './features/auth/pages/AuthPage';
 
 // Pages
+import GameDetailPage from './features/game/pages/GameDetailPage';
 import HomePage from './features/game/pages/HomePage';
 import LandingPage from './features/game/pages/LandingPage';
 import PlayerPage from './features/player/pages/PlayerPage';
 import ProfilePage from './features/profile/pages/ProfilePage';
 import theme from './theme';
+
+// Pomocné redirect komponenty pro zpětnou kompatibilitu
+function RedirectPlay() {
+  const { gameId } = useParams<{ gameId: string }>();
+  return <Navigate to={`/games/${gameId}/game`} replace />;
+}
+
+function RedirectAdmin() {
+  const { gameId, tab } = useParams<{ gameId: string; tab: string }>();
+  return <Navigate to={`/games/${gameId}/edit/${tab}`} replace />;
+}
+
+function RedirectAdminNew() {
+  const { tab } = useParams<{ tab: string }>();
+  return <Navigate to={`/games/new/edit/${tab}`} replace />;
+}
+
+function RedirectAdminBase() {
+  const { gameId } = useParams<{ gameId: string }>();
+  return <Navigate to={`/games/${gameId}/edit/base`} replace />;
+}
 
 function App() {
   return (
@@ -44,15 +66,15 @@ function App() {
                 {/* Seznam her */}
                 <Route path="/games" element={<HomePage />} />
 
-                {/* Verejna stranka - hrat hru muze kdokoli */}
-                <Route path="/play/:gameId" element={<PlayerPage />} />
+                {/* Detail hry */}
+                <Route path="/games/:gameId" element={<GameDetailPage />} />
 
-                {/* Admin - seznam her zaniknul, presmerovat na hlavni stranku */}
-                <Route path="/admin" element={<Navigate to="/games" replace />} />
+                {/* Hrani hry */}
+                <Route path="/games/:gameId/game" element={<PlayerPage />} />
 
-                {/* Admin - nova hra nebo editace existujici */}
+                {/* Editace hry */}
                 <Route
-                  path="/admin/:gameId/:tab"
+                  path="/games/:gameId/edit/:tab"
                   element={
                     <ProtectedRoute>
                       <AdminEditPage />
@@ -60,8 +82,15 @@ function App() {
                   }
                 />
 
-                {/* Admin - redirect /admin/:gameId na /admin/:gameId/base */}
-                <Route path="/admin/:gameId" element={<Navigate to="base" replace />} />
+                {/* Redirect /games/:gameId/edit -> /games/:gameId/edit/base */}
+                <Route path="/games/:gameId/edit" element={<Navigate to="base" replace />} />
+
+                {/* Zpetna kompatibilita – stare URL presmerovat na nove */}
+                <Route path="/play/:gameId" element={<RedirectPlay />} />
+                <Route path="/admin/new/:tab" element={<RedirectAdminNew />} />
+                <Route path="/admin/:gameId/:tab" element={<RedirectAdmin />} />
+                <Route path="/admin/:gameId" element={<RedirectAdminBase />} />
+                <Route path="/admin" element={<Navigate to="/games" replace />} />
 
                 <Route
                   path="/profile"

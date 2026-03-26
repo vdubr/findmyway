@@ -256,7 +256,7 @@ export default function PlayerPage() {
   };
 
   const handleBackToHome = () => {
-    navigate('/games');
+    navigate(gameId ? `/games/${gameId}` : '/games');
   };
 
   const dismissAlert = (alertId: string) => {

@@ -30,6 +30,7 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useGameEditorStore } from '../features/admin/store/gameEditorStore';
 import { useAuth } from '../features/auth/AuthContext';
+import { useGameDetailStore } from '../features/game/store/gameDetailStore';
 import { useGamePlayStore } from '../features/player/store/gamePlayStore';
 import FoxGuide from './FoxGuide';
 import OfflineIndicator from './OfflineIndicator';
@@ -39,13 +40,6 @@ import PWAUpdatePrompt from './PWAUpdatePrompt';
 interface AppLayoutProps {
   children: ReactNode;
 }
-
-// Labely záložek adminu
-const TAB_LABELS: Record<string, string> = {
-  base: 'Základní info',
-  checkpoints: 'Checkpointy',
-  demo: 'Demo',
-};
 
 // Breadcrumb položka
 interface Crumb {
@@ -63,6 +57,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   // Názvy her ze storů
   const editorGame = useGameEditorStore((s) => s.currentGame);
   const playGame = useGamePlayStore((s) => s.game);
+  const detailGame = useGameDetailStore((s) => s.game);
 
   // Uživatelský dropdown (pravá část)
   const [userAnchorEl, setUserAnchorEl] = useState<null | HTMLElement>(null);
@@ -98,27 +93,30 @@ export default function AppLayout({ children }: AppLayoutProps) {
     const parts = location.pathname.split('/').filter(Boolean);
     if (parts.length === 0) return [];
 
-    // /games
-    if (parts[0] === 'games') return [{ label: 'Hry' }];
+    // /games nebo /games/new (bez dalšího segmentu)
+    if (parts[0] === 'games' && parts.length <= 1) return [];
 
-    // /admin
-    if (parts[0] === 'admin') {
-      // /admin/:gameId/:tab
+    // /games/:gameId/edit/:tab nebo /games/new/edit/:tab
+    if (parts[0] === 'games' && parts[2] === 'edit') {
       const gameId = parts[1];
-      const tab = parts[2];
-      const gameTitle = editorGame?.title ?? (gameId === 'new' ? 'Nová hra' : '…');
-      const crumbs: Crumb[] = [
-        { label: gameTitle, path: gameId !== 'new' ? `/admin/${gameId}/base` : undefined },
+      const isNew = gameId === 'new';
+      const gameTitle = editorGame?.title ?? (isNew ? 'Nová hra' : '…');
+      return [
+        { label: gameTitle, path: !isNew ? `/games/${gameId}` : undefined },
+        { label: 'Editace' },
       ];
-      if (tab && TAB_LABELS[tab]) {
-        crumbs.push({ label: TAB_LABELS[tab] });
-      }
-      return crumbs;
     }
 
-    // /play/:gameId
-    if (parts[0] === 'play' && parts[1]) {
+    // /games/:gameId/game – aktivní hra
+    if (parts[0] === 'games' && parts[2] === 'game') {
+      const gameId = parts[1];
       const gameTitle = playGame?.title ?? '…';
+      return [{ label: gameTitle, path: `/games/${gameId}` }];
+    }
+
+    // /games/:gameId – detail hry
+    if (parts[0] === 'games' && parts[1]) {
+      const gameTitle = detailGame?.title ?? '…';
       return [{ label: gameTitle }];
     }
 

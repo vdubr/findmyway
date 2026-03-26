@@ -5,11 +5,9 @@ import {
   Edit as EditIcon,
   LocationOn as LocationIcon,
   NearMe as NearMeIcon,
-  PlayArrow as PlayIcon,
 } from '@mui/icons-material';
 import {
   Box,
-  Button,
   Card,
   CardActions,
   CardContent,
@@ -50,10 +48,12 @@ export default function GameCard({
 
   return (
     <Card
+      onClick={() => navigate(`/games/${game.id}`)}
       sx={{
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
+        cursor: 'pointer',
         transition: 'transform 0.2s',
         '&:hover': {
           transform: 'translateY(-4px)',
@@ -142,18 +142,7 @@ export default function GameCard({
         </Stack>
       </CardContent>
 
-      <CardActions>
-        {actions ?? (
-          <Button
-            variant="contained"
-            startIcon={<PlayIcon />}
-            onClick={() => navigate(`/play/${game.id}`)}
-            fullWidth
-          >
-            Hrat
-          </Button>
-        )}
-      </CardActions>
+      {actions && <CardActions>{actions}</CardActions>}
     </Card>
   );
 }

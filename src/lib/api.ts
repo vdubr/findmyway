@@ -82,6 +82,24 @@ export async function getPublicGamesWithCheckpoints() {
   return data;
 }
 
+// Draft hry přihlášeného uživatele s checkpointy (pro seznam her)
+export async function getMyDraftGamesWithCheckpoints() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from('games')
+    .select('*, creator:profiles!creator_id(*), checkpoints(*)')
+    .eq('creator_id', user.id)
+    .eq('status', 'draft')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data;
+}
+
 export async function getMyGames() {
   const {
     data: { user },

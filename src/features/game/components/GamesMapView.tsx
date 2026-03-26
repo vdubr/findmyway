@@ -298,10 +298,10 @@ export default function GamesMapView({
             <Button
               variant="contained"
               startIcon={<PlayIcon />}
-              onClick={() => navigate(`/play/${selectedGame.id}`)}
+              onClick={() => navigate(`/games/${selectedGame.id}`)}
               fullWidth
             >
-              Hrat
+              Detail
             </Button>
           </CardActions>
         </Card>

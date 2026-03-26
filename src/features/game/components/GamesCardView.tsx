@@ -27,7 +27,7 @@ export default function GamesCardView({ games, distances, userId }: GamesCardVie
               distance={distances?.[game.id]}
               onEdit={
                 userId && game.creator_id === userId
-                  ? () => navigate(`/admin/${game.id}/base`)
+                  ? () => navigate(`/games/${game.id}/edit/base`)
                   : undefined
               }
             />

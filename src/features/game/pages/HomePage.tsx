@@ -21,7 +21,7 @@ import { useNavigate } from 'react-router-dom';
 import ErrorDisplay from '../../../components/ErrorDisplay';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 import { useGeolocation } from '../../../hooks/useGeolocation';
-import { getPublicGamesWithCheckpoints } from '../../../lib/api';
+import { getMyDraftGamesWithCheckpoints, getPublicGamesWithCheckpoints } from '../../../lib/api';
 import type { Checkpoint, Game } from '../../../types';
 import { GAME_TAGS } from '../../../utils/constants';
 import { calculateDistance } from '../../../utils/geo';
@@ -38,6 +38,7 @@ export default function HomePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [games, setGames] = useState<GameWithCheckpoints[]>([]);
+  const [draftGames, setDraftGames] = useState<GameWithCheckpoints[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
@@ -57,8 +58,12 @@ export default function HomePage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await getPublicGamesWithCheckpoints();
-      setGames(data as unknown as GameWithCheckpoints[]);
+      const [publicData, draftData] = await Promise.all([
+        getPublicGamesWithCheckpoints(),
+        getMyDraftGamesWithCheckpoints(),
+      ]);
+      setGames(publicData as unknown as GameWithCheckpoints[]);
+      setDraftGames(draftData as unknown as GameWithCheckpoints[]);
     } catch (err) {
       console.error('Error loading games:', err);
       setError('Nepodarilo se nacist hry');
@@ -96,13 +101,17 @@ export default function HomePage() {
   }, [games, position]);
 
   const filteredGames = useMemo(() => {
-    let result = games;
+    // Draftované hry přihlášeného uživatele
+    const isDrafts = activeTag === 'drafts' && user;
+    let result = isDrafts ? draftGames : games;
 
-    // Tag filter
-    if (activeTag === 'my-games' && user) {
-      result = result.filter((g) => g.creator_id === user.id);
-    } else if (activeTag) {
-      result = result.filter((g) => g.tags?.includes(activeTag));
+    // Tag filter (jen pro veřejné hry)
+    if (!isDrafts) {
+      if (activeTag === 'my-games' && user) {
+        result = result.filter((g) => g.creator_id === user.id);
+      } else if (activeTag) {
+        result = result.filter((g) => g.tags?.includes(activeTag));
+      }
     }
 
     // Search filter
@@ -121,7 +130,7 @@ export default function HomePage() {
     }
 
     return result;
-  }, [games, searchQuery, activeTag, user, position, distances]);
+  }, [games, draftGames, searchQuery, activeTag, user, position, distances]);
 
   if (loading) {
     return <LoadingSpinner />;
@@ -184,7 +193,7 @@ export default function HomePage() {
                   variant="contained"
                   size="small"
                   startIcon={<AddIcon />}
-                  onClick={() => navigate('/admin/new/base')}
+                  onClick={() => navigate('/games/new/edit/base')}
                   sx={{ height: 40 }}
                 >
                   Nová hra
@@ -199,6 +208,14 @@ export default function HomePage() {
                   color={activeTag === 'my-games' ? 'primary' : 'default'}
                   variant={activeTag === 'my-games' ? 'filled' : 'outlined'}
                   onClick={() => setActiveTag(activeTag === 'my-games' ? null : 'my-games')}
+                />
+              )}
+              {user && draftGames.length > 0 && (
+                <Chip
+                  label={`Draftované (${draftGames.length})`}
+                  color={activeTag === 'drafts' ? 'warning' : 'default'}
+                  variant={activeTag === 'drafts' ? 'filled' : 'outlined'}
+                  onClick={() => setActiveTag(activeTag === 'drafts' ? null : 'drafts')}
                 />
               )}
               {GAME_TAGS.map((tag) => (

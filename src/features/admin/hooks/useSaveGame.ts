@@ -73,7 +73,7 @@ export function useSaveGame(): UseSaveGameReturn {
 
       setSuccessMessage(`Hra "${createdGame.title}" byla uspesne vytvorena!`);
       reset();
-      navigate('/games');
+      navigate(`/games/${createdGame.id}/edit/base`);
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Chyba pri ukladani hry');
     } finally {
@@ -143,7 +143,7 @@ export function useSaveGame(): UseSaveGameReturn {
 
       setSuccessMessage(`Hra "${currentGame.title}" byla uspesne aktualizovana!`);
       reset();
-      navigate('/games');
+      navigate(`/games/${currentGame.id}`);
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Chyba pri ukladani zmen');
     } finally {
