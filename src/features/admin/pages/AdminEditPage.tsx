@@ -57,6 +57,7 @@ export default function AdminEditPage() {
     loadGame,
     initNewGame,
     updateCurrentGame,
+    setCurrentGame,
     selectCheckpoint,
     reset,
   } = useGameEditorStore();
@@ -67,34 +68,33 @@ export default function AdminEditPage() {
   // Je to nova hra?
   const isNewGame = gameId === 'new';
 
-  // Nacist hru z API pri mountu (jen pro existujici hry)
+  // Nacist hru z API pri mountu (jen pro existujici hry); nova hra = reset storu
   useEffect(() => {
-    if (!isNewGame && gameId) {
+    if (isNewGame) {
+      reset();
+    } else if (gameId) {
       loadGame(gameId);
     }
-    // Cleanup pri odchodu ze stranky
-    return () => {
-      // Reset jen pokud odchazime uplne pryc z admin edit
-      // (ne pri prepinani tabu)
-    };
-  }, [gameId, isNewGame, loadGame]);
+  }, [gameId, isNewGame, loadGame, reset]);
 
   // Redirect na /base pokud je nevalidni tab
   useEffect(() => {
     if (tab && !VALID_TABS.includes(tab as TabValue)) {
-      navigate(`/admin/${gameId}/base`, { replace: true });
+      const base = isNewGame ? '/games/new/edit/base' : `/games/${gameId}/edit/base`;
+      navigate(base, { replace: true });
     }
-  }, [tab, gameId, navigate]);
+  }, [tab, gameId, isNewGame, navigate]);
 
   // Prepnuti tabu
   const handleTabChange = (_: React.SyntheticEvent, newValue: TabValue) => {
-    navigate(`/admin/${gameId}/${newValue}`);
+    const path = isNewGame ? `/games/new/edit/${newValue}` : `/games/${gameId}/edit/${newValue}`;
+    navigate(path);
   };
 
   // Zpracovat formular - nova hra
   const handleNewGameFormSubmit = async (gameData: CreateGameInput) => {
     initNewGame(gameData);
-    navigate(`/admin/new/checkpoints`);
+    navigate('/games/new/edit/checkpoints');
   };
 
   // Zpracovat formular - editace existujici hry
@@ -124,8 +124,7 @@ export default function AdminEditPage() {
       setIsPublishing(true);
       const newStatus = currentGame.status === 'published' ? 'draft' : 'published';
       await updateGame(currentGame.id, { status: newStatus });
-      // Reload hry pro aktualizaci stavu v store
-      await loadGame(currentGame.id);
+      setCurrentGame({ ...currentGame, status: newStatus });
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Chyba pri zmene stavu hry');
     } finally {
@@ -278,7 +277,7 @@ export default function AdminEditPage() {
           <DemoPlayer
             game={currentGame}
             tempCheckpoints={tempCheckpoints}
-            onExit={() => navigate(`/admin/${gameId}/checkpoints`)}
+            onExit={() => navigate(`/games/${gameId}/edit/checkpoints`)}
           />
         </Box>
       )}
