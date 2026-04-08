@@ -4,7 +4,7 @@ import {
   InfoOutlined as InfoIcon,
   Login as LoginIcon,
   Logout as LogoutIcon,
-  Map as MapIcon,
+  Pets as PetsIcon,
   Person as PersonIcon,
 } from '@mui/icons-material';
 import {
@@ -157,7 +157,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
               }}
             >
-              <MapIcon sx={{ fontSize: 26 }} />
+              <PetsIcon sx={{ fontSize: 26 }} />
             </IconButton>
           </Tooltip>
 
@@ -283,20 +283,25 @@ export default function AppLayout({ children }: AppLayoutProps) {
               </Menu>
             </>
           ) : (
-            <Button
-              color="inherit"
-              startIcon={<LoginIcon />}
-              onClick={() => navigate('/auth')}
-              variant="outlined"
-              size="small"
-              sx={{
-                borderColor: 'rgba(255,255,255,0.5)',
-                '&:hover': { borderColor: 'white' },
-                textTransform: 'none',
-              }}
-            >
-              Přihlásit se
-            </Button>
+            <Tooltip title="Přihlásit se">
+              <Button
+                color="inherit"
+                onClick={() => navigate('/auth')}
+                startIcon={<LoginIcon sx={{ fontSize: 26 }} />}
+                sx={{
+                  borderRadius: 2,
+                  px: 1.5,
+                  textTransform: 'none',
+                  minWidth: 0,
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
+                  '& .MuiButton-startIcon': { mr: { xs: 0, sm: 1 } },
+                }}
+              >
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  Přihlásit se
+                </Box>
+              </Button>
+            </Tooltip>
           )}
         </Toolbar>
       </AppBar>

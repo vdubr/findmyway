@@ -148,16 +148,6 @@ export default function PlayerPage() {
     }
   }, [position, gameStarted]);
 
-  // Centrovat mapu na GPS pozici pokud je follow mode aktivni
-  useEffect(() => {
-    if (followGps && position && mapRef.current) {
-      mapRef.current.centerOnLocation({
-        latitude: position.latitude,
-        longitude: position.longitude,
-      });
-    }
-  }, [followGps, position]);
-
   // Periodicky odesilat pozici hrace, pokud je sdileni vyzadovano
   useEffect(() => {
     // Pokud neni vyzadovano sdileni, nebo neni session/pozice, nic nedelat

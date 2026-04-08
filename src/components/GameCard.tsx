@@ -1,11 +1,7 @@
 // Sdilena komponenta pro zobrazeni karty hry
 // Pouziva se v adminu (editovatelna) i v prehledu her (jen pro cteni)
 
-import {
-  Edit as EditIcon,
-  LocationOn as LocationIcon,
-  NearMe as NearMeIcon,
-} from '@mui/icons-material';
+import { Edit as EditIcon, Flag as FlagIcon, NearMe as NearMeIcon } from '@mui/icons-material';
 import {
   Box,
   Card,
@@ -21,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Game } from '../types';
 import { GAME_TAGS } from '../utils/constants';
 import { formatDistance } from '../utils/geo';
+import DifficultyIcon from './DifficultyIcon';
 
 interface GameCardProps {
   game: Game;
@@ -32,6 +29,10 @@ interface GameCardProps {
   showDate?: boolean;
   // Vzdalenost od uzivatele v metrech
   distance?: number;
+  // Pocet waypointu (checkpointu) v hre
+  checkpointCount?: number;
+  // Celkova delka trasy v metrech
+  routeDistance?: number;
   // Callback pro editaci hry (zobrazí tužku v hlavičce karty)
   onEdit?: () => void;
 }
@@ -42,6 +43,8 @@ export default function GameCard({
   showStatus = false,
   showDate = false,
   distance,
+  checkpointCount,
+  routeDistance,
   onEdit,
 }: GameCardProps) {
   const navigate = useNavigate();
@@ -110,8 +113,8 @@ export default function GameCard({
           {/* Metadata - obtiznost, vzdalenost a tagy */}
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Chip
-              icon={<LocationIcon />}
-              label={`Obtiznost: ${'*'.repeat(game.difficulty)}`}
+              icon={<DifficultyIcon value={game.difficulty} />}
+              label=""
               size="small"
               color="primary"
               variant="outlined"
@@ -122,6 +125,22 @@ export default function GameCard({
                 label={formatDistance(distance)}
                 size="small"
                 color="secondary"
+                variant="outlined"
+              />
+            )}
+            {checkpointCount !== undefined && (
+              <Chip
+                icon={<FlagIcon />}
+                label={String(checkpointCount)}
+                size="small"
+                variant="outlined"
+              />
+            )}
+            {routeDistance !== undefined && (
+              <Chip
+                icon={<NearMeIcon />}
+                label={formatDistance(routeDistance)}
+                size="small"
                 variant="outlined"
               />
             )}

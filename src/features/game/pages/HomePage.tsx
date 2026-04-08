@@ -154,7 +154,7 @@ export default function HomePage() {
           }}
         >
           <Container maxWidth="lg" disableGutters>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 1.5 }}>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 1.5, flexWrap: 'wrap' }}>
               <TextField
                 placeholder="Hledat hru..."
                 value={searchQuery}
@@ -170,7 +170,7 @@ export default function HomePage() {
                     ),
                   },
                 }}
-                sx={{ flexGrow: 1 }}
+                sx={{ flexGrow: 1, width: { xs: '100%', sm: 'auto' } }}
               />
               <ToggleButtonGroup
                 value={viewMode}

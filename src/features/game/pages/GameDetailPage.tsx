@@ -1,11 +1,18 @@
 // Detail hry – popis, mapa checkpointů, info o tvůrci, tlačítka Hrát/Editovat
 
+import { Edit as EditIcon, Flag as FlagIcon, PlayArrow as PlayIcon } from '@mui/icons-material';
+import DifficultyIcon from '../../../components/DifficultyIcon';
 import {
-  Edit as EditIcon,
-  LocationOn as LocationIcon,
-  PlayArrow as PlayIcon,
-} from '@mui/icons-material';
-import { Box, Button, Chip, Container, Divider, Stack, Typography } from '@mui/material';
+  Box,
+  Button,
+  Chip,
+  Container,
+  Divider,
+  FormControlLabel,
+  Stack,
+  Switch,
+  Typography,
+} from '@mui/material';
 import { useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ErrorDisplay from '../../../components/ErrorDisplay';
@@ -17,6 +24,7 @@ import { getGameById } from '../../../lib/api';
 import { useState } from 'react';
 import type { Checkpoint, GameWithCreator } from '../../../types';
 import { GAME_TAGS } from '../../../utils/constants';
+import { calculateDistance, formatDistance } from '../../../utils/geo';
 
 // Typ pro hru s tvůrcem a checkpointy
 type GameFull = GameWithCreator & { checkpoints: Checkpoint[] };
@@ -30,6 +38,7 @@ export default function GameDetailPage() {
   const [game, setGame] = useState<GameFull | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAllWaypoints, setShowAllWaypoints] = useState(false);
 
   useEffect(() => {
     if (!gameId) return;
@@ -54,27 +63,45 @@ export default function GameDetailPage() {
     return () => setDetailGame(null);
   }, [gameId, setDetailGame]);
 
-  // Markery checkpointů pro mapu
-  const markers = useMemo<MapMarker[]>(() => {
+  // Seřazené checkpointy podle order_index
+  const sortedCheckpoints = useMemo(() => {
     if (!game?.checkpoints) return [];
-    return game.checkpoints.map((cp, i) => ({
+    return [...game.checkpoints].sort((a, b) => a.order_index - b.order_index);
+  }, [game]);
+
+  // Celková délka trasy
+  const routeDistance = useMemo(() => {
+    if (sortedCheckpoints.length < 2) return undefined;
+    return sortedCheckpoints.reduce(
+      (sum, cp, i) => (i === 0 ? 0 : sum + calculateDistance(sortedCheckpoints[i - 1], cp)),
+      0
+    );
+  }, [sortedCheckpoints]);
+
+  // Markery checkpointů pro mapu – defaultně jen první
+  const markers = useMemo<MapMarker[]>(() => {
+    const visible = showAllWaypoints ? sortedCheckpoints : sortedCheckpoints.slice(0, 1);
+    return visible.map((cp, i) => ({
       id: cp.id ?? String(i),
       location: { latitude: cp.latitude, longitude: cp.longitude },
       type: 'checkpoint' as const,
-      label: String(i + 1),
+      label: showAllWaypoints ? String(sortedCheckpoints.indexOf(cp) + 1) : '1',
     }));
-  }, [game]);
+  }, [sortedCheckpoints, showAllWaypoints]);
 
-  // Střed mapy = centroid checkpointů
+  // Střed mapy = první checkpoint (nebo centroid při zobrazení všech)
   const mapCenter = useMemo(() => {
-    if (!game?.checkpoints?.length) return undefined;
-    const lats = game.checkpoints.map((cp) => cp.latitude);
-    const lons = game.checkpoints.map((cp) => cp.longitude);
+    if (!sortedCheckpoints.length) return undefined;
+    if (!showAllWaypoints) {
+      return { latitude: sortedCheckpoints[0].latitude, longitude: sortedCheckpoints[0].longitude };
+    }
+    const lats = sortedCheckpoints.map((cp) => cp.latitude);
+    const lons = sortedCheckpoints.map((cp) => cp.longitude);
     return {
       latitude: lats.reduce((a, b) => a + b, 0) / lats.length,
       longitude: lons.reduce((a, b) => a + b, 0) / lons.length,
     };
-  }, [game]);
+  }, [sortedCheckpoints, showAllWaypoints]);
 
   const isCreator = user && game && user.id === game.creator_id;
 
@@ -112,15 +139,15 @@ export default function GameDetailPage() {
         {/* Metadata */}
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <Chip
-            icon={<LocationIcon />}
-            label={`Obtížnost: ${'★'.repeat(game.difficulty)}${'☆'.repeat(5 - game.difficulty)}`}
+            icon={<DifficultyIcon value={game.difficulty} />}
+            label=""
             color="primary"
             variant="outlined"
           />
-          <Chip
-            label={`${game.checkpoints.length} ${game.checkpoints.length === 1 ? 'checkpoint' : game.checkpoints.length < 5 ? 'checkpointy' : 'checkpointů'}`}
-            variant="outlined"
-          />
+          <Chip icon={<FlagIcon />} label={String(game.checkpoints.length)} variant="outlined" />
+          {routeDistance !== undefined && (
+            <Chip label={formatDistance(routeDistance)} variant="outlined" />
+          )}
           {game.tags?.map((tagId) => {
             const tagDef = GAME_TAGS.find((t) => t.id === tagId);
             return tagDef ? (
@@ -128,11 +155,6 @@ export default function GameDetailPage() {
             ) : null;
           })}
         </Box>
-
-        {/* Tvůrce */}
-        <Typography variant="body2" color="text.secondary">
-          Vytvořil: <strong>{game.creator?.username ?? 'Neznámý'}</strong>
-        </Typography>
 
         <Divider />
 
@@ -144,11 +166,30 @@ export default function GameDetailPage() {
         )}
 
         {/* Mapa checkpointů */}
-        {markers.length > 0 && (
-          <Box sx={{ borderRadius: 2, overflow: 'hidden' }}>
-            <MapComponent center={mapCenter} zoom={13} markers={markers} height={320} />
+        {sortedCheckpoints.length > 0 && (
+          <Box>
+            <Box sx={{ borderRadius: 2, overflow: 'hidden' }}>
+              <MapComponent center={mapCenter} zoom={13} markers={markers} height={320} />
+            </Box>
+            {sortedCheckpoints.length > 1 && (
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={showAllWaypoints}
+                    onChange={(e) => setShowAllWaypoints(e.target.checked)}
+                  />
+                }
+                label="Zobrazit všechny waypointy"
+                sx={{ mt: 1, color: 'text.secondary' }}
+              />
+            )}
           </Box>
         )}
+
+        {/* Tvůrce – méně výrazně pod mapou */}
+        <Typography variant="caption" color="text.disabled">
+          Vytvořil: {game.creator?.username ?? 'Neznámý'}
+        </Typography>
       </Stack>
     </Container>
   );
