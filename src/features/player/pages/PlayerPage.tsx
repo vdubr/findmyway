@@ -5,6 +5,7 @@ import {
   LocationOn as LocationIcon,
   MyLocation as MyLocationIcon,
   PlayArrow as PlayIcon,
+  SkipNext as SkipNextIcon,
 } from '@mui/icons-material';
 import {
   Alert,
@@ -581,6 +582,20 @@ export default function PlayerPage() {
                 sx={{ mt: 1 }}
               >
                 Zobrazit checkpoint
+              </Button>
+            )}
+
+            {/* Skip waypoint button – jen pokud hra povoluje přeskakování */}
+            {game.settings.allow_skip && !showCheckpointContent && (
+              <Button
+                variant="outlined"
+                size="large"
+                startIcon={<SkipNextIcon />}
+                onClick={handleSkipCheckpoint}
+                fullWidth
+                sx={{ mt: 1, bgcolor: 'background.paper' }}
+              >
+                Přeskočit waypoint
               </Button>
             )}
           </Box>
