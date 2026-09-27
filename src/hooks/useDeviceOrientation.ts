@@ -1,5 +1,5 @@
 // Custom hook pro sledování orientace zařízení (kompas)
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // iOS Safari specifické rozšíření DeviceOrientationEvent
 interface DeviceOrientationEventIOS extends DeviceOrientationEvent {
@@ -9,6 +9,17 @@ interface DeviceOrientationEventIOS extends DeviceOrientationEvent {
 // iOS 13+ static metoda pro žádost o povolení orientace
 interface DeviceOrientationEventIOSStatic {
   requestPermission?: () => Promise<'granted' | 'denied'>;
+}
+
+// Minimální změna azimutu, na kterou se reaguje – bez ní by se mapa překreslovala ~60× za sekundu
+const HEADING_CHANGE_THRESHOLD = 2;
+
+// Chrome na Androidu posílá v 'deviceorientation' relativní alpha (vůči orientaci při startu),
+// absolutní azimut vůči severu je jen v 'deviceorientationabsolute'
+const ABSOLUTE_EVENT = 'deviceorientationabsolute';
+
+function angleDiff(a: number, b: number): number {
+  return Math.abs(((a - b + 540) % 360) - 180);
 }
 
 interface UseDeviceOrientationReturn {
@@ -22,6 +33,7 @@ export function useDeviceOrientation(): UseDeviceOrientationReturn {
   const [heading, setHeading] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSupported, setIsSupported] = useState(false);
+  const lastHeadingRef = useRef<number | null>(null);
 
   useEffect(() => {
     // Zkontrolovat podporu Device Orientation API
@@ -34,27 +46,39 @@ export function useDeviceOrientation(): UseDeviceOrientationReturn {
   }, []);
 
   const handleOrientation = useCallback((event: DeviceOrientationEvent) => {
-    // Alpha = kompas (0-360 stupňů)
-    // Normalizovat hodnotu (některé prohlížeče vrací null)
-    if (event.alpha !== null) {
-      // Alpha je úhel rotace kolem osy Z (kompas)
-      // 0° = sever, 90° = východ, 180° = jih, 270° = západ
-      const alpha = event.alpha;
+    const iosEvent = event as DeviceOrientationEventIOS;
+    let nextHeading: number;
 
-      // Pokud je k dispozici webkitCompassHeading (iOS Safari), použít to
-      const iosEvent = event as DeviceOrientationEventIOS;
-      if (iosEvent.webkitCompassHeading !== undefined) {
-        // webkitCompassHeading je přesnější na iOS
-        setHeading(iosEvent.webkitCompassHeading);
-      } else {
-        // Na Androidu použít alpha, ale převrátit (360 - alpha)
-        // protože alpha roste proti směru hodinových ručiček
-        setHeading(360 - alpha);
-      }
-
-      setError(null);
+    if (typeof iosEvent.webkitCompassHeading === 'number') {
+      // iOS Safari: přímo azimut od severu; záporná hodnota = nekalibrovaný kompas
+      if (iosEvent.webkitCompassHeading < 0) return;
+      nextHeading = iosEvent.webkitCompassHeading;
+    } else if (event.absolute && event.alpha !== null) {
+      // Absolutní alpha roste proti směru hodinových ručiček, proto 360 - alpha
+      nextHeading = (360 - event.alpha) % 360;
+    } else {
+      // Relativní alpha neukazuje k severu – raději žádný směr než špatný
+      return;
     }
+
+    const lastHeading = lastHeadingRef.current;
+    if (lastHeading !== null && angleDiff(nextHeading, lastHeading) < HEADING_CHANGE_THRESHOLD) {
+      return;
+    }
+    lastHeadingRef.current = nextHeading;
+    setHeading(nextHeading);
+    setError(null);
   }, []);
+
+  const addOrientationListener = useCallback(() => {
+    // Duplicitní registrace stejné funkce prohlížeč ignoruje.
+    // Přes Reflect.has, protože operátor `in` by zúžil typ window na never
+    if (Reflect.has(window, `on${ABSOLUTE_EVENT}`)) {
+      window.addEventListener(ABSOLUTE_EVENT, handleOrientation, true);
+    } else {
+      window.addEventListener('deviceorientation', handleOrientation, true);
+    }
+  }, [handleOrientation]);
 
   const requestPermission = useCallback(async () => {
     if (!isSupported) {
@@ -68,23 +92,24 @@ export function useDeviceOrientation(): UseDeviceOrientationReturn {
       if (typeof iosStatic.requestPermission === 'function') {
         const permission = await iosStatic.requestPermission();
         if (permission === 'granted') {
-          window.addEventListener('deviceorientation', handleOrientation, true);
+          addOrientationListener();
         } else {
           setError('Přístup k orientaci zařízení byl zamítnut.');
         }
       } else {
         // Android a starší iOS nepotřebují povolení
-        window.addEventListener('deviceorientation', handleOrientation, true);
+        addOrientationListener();
       }
     } catch (err) {
       console.error('Device orientation permission error:', err);
       setError(err instanceof Error ? err.message : 'Chyba při získávání orientace');
     }
-  }, [isSupported, handleOrientation]);
+  }, [isSupported, addOrientationListener]);
 
   // Cleanup listener on unmount
   useEffect(() => {
     return () => {
+      window.removeEventListener(ABSOLUTE_EVENT, handleOrientation, true);
       window.removeEventListener('deviceorientation', handleOrientation, true);
     };
   }, [handleOrientation]);

@@ -1,5 +1,5 @@
 // Custom hook pro sledování GPS pozice uživatele
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { GPSPosition } from '../types';
 
 interface UseGeolocationReturn {
@@ -14,9 +14,21 @@ export function useGeolocation(): UseGeolocationReturn {
   const [position, setPosition] = useState<GPSPosition | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false); // Start with false, only set to true when requesting permission
-  const [watchId, setWatchId] = useState<number | null>(null);
+
+  // Ref místo state: cleanup musí znát i watch spuštěný až po posledním renderu
+  const watchIdRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
+  // Jakmile dorazí fix ze sledování, přibližný jednorázový fix už ho nesmí přepsat
+  const hasWatchFixRef = useRef(false);
 
   const isSupported = 'geolocation' in navigator;
+
+  const clearWatch = useCallback(() => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+  }, []);
 
   const handleSuccess = useCallback((pos: GeolocationPosition) => {
     setPosition({
@@ -56,68 +68,51 @@ export function useGeolocation(): UseGeolocationReturn {
       return;
     }
 
-    try {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
+    clearWatch();
+    hasWatchFixRef.current = false;
 
-      console.log('Requesting geolocation permission...');
+    // Rychlý přibližný fix (Wi-Fi/IP), aby hráč nečekal na studený start GPS
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (!mountedRef.current || hasWatchFixRef.current) return;
+        handleSuccess(pos);
+      },
+      () => {
+        // Záměrně ignorováno – chybu (např. zamítnutí přístupu) nahlásí watchPosition
+      },
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+    );
 
-      // Nejprve zkusit presnou polohu (GPS), pokud selze, fallback na nizkou presnost (IP)
-      const tryGetPosition = (highAccuracy: boolean) => {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            console.log(
-              `Geolocation received (highAccuracy=${highAccuracy}):`,
-              pos.coords.accuracy,
-              'm'
-            );
-            handleSuccess(pos);
-
-            // Po uspesnem ziskani pozice spustit sledovani
-            const id = navigator.geolocation.watchPosition(handleSuccess, handleError, {
-              enableHighAccuracy: highAccuracy,
-              timeout: 30000,
-              maximumAge: 5000,
-            });
-
-            setWatchId(id);
-          },
-          (err) => {
-            // Pokud selze presna poloha, zkusit nizkou presnost (IP-based)
-            if (highAccuracy) {
-              console.warn(
-                'High accuracy geolocation failed, falling back to low accuracy:',
-                err.message
-              );
-              tryGetPosition(false);
-            } else {
-              handleError(err);
-            }
-          },
-          {
-            enableHighAccuracy: highAccuracy,
-            timeout: highAccuracy ? 5000 : 15000, // Desktop nemá GPS → selhání do 5s, IP fallback do 15s
-            maximumAge: 0,
-          }
-        );
-      };
-
-      tryGetPosition(true);
-    } catch (err) {
-      console.error('Exception in requestPermission:', err);
-      setError(err instanceof Error ? err.message : 'Chyba při získávání polohy');
-      setLoading(false);
-    }
-  }, [isSupported, handleSuccess, handleError]);
+    // Průběžné sledování vždy s vysokou přesností – detekce checkpointů potřebuje GPS,
+    // přibližná poloha (desítky až stovky metrů) by radius nikdy spolehlivě netrefila
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        if (!mountedRef.current) return;
+        hasWatchFixRef.current = true;
+        handleSuccess(pos);
+      },
+      (err) => {
+        if (!mountedRef.current) return;
+        handleError(err);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 30000,
+        maximumAge: 5000,
+      }
+    );
+  }, [isSupported, handleSuccess, handleError, clearWatch]);
 
   // Cleanup watch on unmount
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
-      if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
-      }
+      mountedRef.current = false;
+      clearWatch();
     };
-  }, [watchId]);
+  }, [clearWatch]);
 
   return {
     position,

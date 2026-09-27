@@ -17,9 +17,10 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import foxWaypointVideo from '../../../assets/fox/liska_waypoint.mp4';
 import type { Checkpoint, CoordinateDMS } from '../../../types';
+import { CHECKPOINT_COMPLETE_DELAY } from '../../../utils/constants';
 import { validateCoordinateInput } from '../../../utils/coordinateValidation';
 import CoordinatePicker from './CoordinatePicker';
 
@@ -29,16 +30,16 @@ interface CheckpointContentDialogProps {
   checkpointIndex?: number;
   totalCheckpoints?: number;
   onClose: () => void;
-  onComplete: () => void;
+  onComplete: (checkpointId: string) => void;
   canSkip?: boolean;
-  onSkip?: () => void;
+  onSkip?: (checkpointId: string) => void;
 }
 
 type Phase = 'video' | 'content';
 
 export default function CheckpointContentDialog({
   open,
-  checkpoint,
+  checkpoint: checkpointProp,
   checkpointIndex,
   totalCheckpoints,
   onClose,
@@ -47,6 +48,30 @@ export default function CheckpointContentDialog({
   onSkip,
 }: CheckpointContentDialogProps) {
   const [phase, setPhase] = useState<Phase>('video');
+
+  // Během zavírací animace držet obsah původního checkpointu – rodič už mezitím
+  // přepnul na další bod a ten se nesmí na chvíli ukázat (spoiler)
+  const [checkpoint, setShownCheckpoint] = useState(checkpointProp);
+  if (open && checkpoint !== checkpointProp) {
+    setShownCheckpoint(checkpointProp);
+  }
+
+  // Po správné odpovědi chvíli ukázat potvrzení, teprve pak pokračovat
+  const completeTimerRef = useRef<number | null>(null);
+  useEffect(() => {
+    return () => {
+      if (completeTimerRef.current !== null) window.clearTimeout(completeTimerRef.current);
+    };
+  }, []);
+
+  const completeAfterDelay = () => {
+    const completedId = checkpoint.id;
+    if (completeTimerRef.current !== null) window.clearTimeout(completeTimerRef.current);
+    completeTimerRef.current = window.setTimeout(() => {
+      completeTimerRef.current = null;
+      onComplete(completedId);
+    }, CHECKPOINT_COMPLETE_DELAY);
+  };
 
   // State pro coordinate input
   const [inputLatitude, setInputLatitude] = useState<CoordinateDMS>({
@@ -110,7 +135,7 @@ export default function CheckpointContentDialog({
     setIsSubmitting(false);
 
     if (isCorrect) {
-      onComplete();
+      completeAfterDelay();
     }
   };
 
@@ -133,7 +158,7 @@ export default function CheckpointContentDialog({
     setIsSubmitting(false);
 
     if (result.isValid) {
-      onComplete();
+      completeAfterDelay();
     }
   };
 
@@ -310,7 +335,7 @@ export default function CheckpointContentDialog({
               {/* Action buttons */}
               <Stack direction="row" spacing={2}>
                 {canSkip && onSkip && (
-                  <Button variant="outlined" onClick={onSkip} fullWidth>
+                  <Button variant="outlined" onClick={() => onSkip(checkpoint.id)} fullWidth>
                     Přeskočit
                   </Button>
                 )}
@@ -321,7 +346,7 @@ export default function CheckpointContentDialog({
                       ? handleCoordinateSubmit
                       : checkpoint.type === 'puzzle'
                         ? handlePuzzleSubmit
-                        : onComplete
+                        : () => onComplete(checkpoint.id)
                   }
                   startIcon={<CheckIcon />}
                   fullWidth

@@ -319,9 +319,10 @@ export async function getActiveSession(gameId: string) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Anonymní uživatel - použít localStorage
+  // Anonymní uživatel - použít localStorage (dokončená session se jako aktivní nevrací)
   if (!user) {
-    return getAnonymousSession(gameId);
+    const session = getAnonymousSession(gameId);
+    return session?.status === 'active' ? session : null;
   }
 
   // Přihlášený uživatel - použít Supabase
@@ -370,7 +371,14 @@ export async function startGameSession(gameId: string) {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    // Souběžný start (dvě záložky, StrictMode) – aktivní session mezitím vznikla jinde
+    if (error.code === '23505') {
+      const concurrentSession = await getActiveSession(gameId);
+      if (concurrentSession) return concurrentSession;
+    }
+    throw error;
+  }
   return data as unknown as GameSession;
 }
 

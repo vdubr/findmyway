@@ -20,16 +20,16 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ErrorDisplay from '../../../components/ErrorDisplay';
 import FoxGuide from '../../../components/FoxGuide';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 import { useDeviceOrientation } from '../../../hooks/useDeviceOrientation';
 import { useGeolocation } from '../../../hooks/useGeolocation';
+import { isAnonymousSessionId } from '../../../lib/anonymousSessions';
 import {
   deletePlayerLocation,
-  getActiveSession,
   getCheckpointsByGameId,
   getGameById,
   startGameSession,
@@ -91,49 +91,57 @@ export default function PlayerPage() {
     resetGame,
   } = useGamePlayStore();
 
+  // isCancelled: odpověď, která dorazí po odchodu ze stránky (nebo po změně hry), se zahodí
+  const loadGameData = useCallback(
+    async (isCancelled: () => boolean = () => false) => {
+      if (!gameId) return;
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const [gameData, checkpointsData] = await Promise.all([
+          getGameById(gameId),
+          getCheckpointsByGameId(gameId),
+        ]);
+        if (isCancelled()) return;
+
+        if (checkpointsData.length === 0) {
+          setError('Tato hra nemá žádné checkpointy.');
+          return;
+        }
+
+        // Vrátí aktivní session, nebo založí novou
+        const session = await startGameSession(gameId);
+        if (isCancelled()) return;
+
+        // Ulozit session id pro sdileni polohy
+        setSessionId(session.id);
+
+        initGame(gameData as unknown as Game, checkpointsData, session);
+      } catch (err) {
+        if (isCancelled()) return;
+        setError(err instanceof Error ? err.message : 'Chyba při načítání hry');
+      } finally {
+        if (!isCancelled()) setIsLoading(false);
+      }
+    },
+    [gameId, initGame]
+  );
+
   // Load game data
-  // biome-ignore lint/correctness/useExhaustiveDependencies: loadGameData a resetGame jsou stabilní funkce
+  // biome-ignore lint/correctness/useExhaustiveDependencies: resetGame je stabilní funkce ze store
   useEffect(() => {
     if (!gameId) return;
 
-    loadGameData();
+    let cancelled = false;
+    loadGameData(() => cancelled);
 
     return () => {
+      cancelled = true;
       resetGame();
     };
-  }, [gameId]);
-
-  const loadGameData = async () => {
-    if (!gameId) return;
-
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const gameData = await getGameById(gameId);
-      const checkpointsData = await getCheckpointsByGameId(gameId);
-
-      if (checkpointsData.length === 0) {
-        setError('Tato hra nemá žádné checkpointy.');
-        return;
-      }
-
-      // Check for active session or create new one
-      let session = await getActiveSession(gameId);
-      if (!session) {
-        session = await startGameSession(gameId);
-      }
-
-      // Ulozit session id pro sdileni polohy
-      setSessionId(session.id);
-
-      initGame(gameData as unknown as Game, checkpointsData, session);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Chyba při načítání hry');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [gameId, loadGameData]);
 
   // Update user position in store + auto-follow na první fix
   // biome-ignore lint/correctness/useExhaustiveDependencies: updateUserPosition je stabilní funkce ze store
@@ -149,101 +157,86 @@ export default function PlayerPage() {
     }
   }, [position, gameStarted]);
 
+  // Aktuální poloha a index v refech – efekt sdílení se kvůli nim nesmí restartovat
+  // (restart = DELETE + UPSERT při každém GPS fixu)
+  const positionRef = useRef(position);
+  positionRef.current = position;
+  const checkpointIndexRef = useRef(currentCheckpointIndex);
+  checkpointIndexRef.current = currentCheckpointIndex;
+
+  const shareRequired = game?.settings?.share_location_required ?? false;
+  // Poloha jde uložit jen k DB session přihlášeného hráče (RLS + UUID sloupec)
+  const isAnonymous = sessionId !== null && isAnonymousSessionId(sessionId);
+  const hasPosition = position !== null;
+
   // Periodicky odesilat pozici hrace, pokud je sdileni vyzadovano
   useEffect(() => {
-    // Pokud neni vyzadovano sdileni, nebo neni session/pozice, nic nedelat
-    const shareRequired = game?.settings?.share_location_required;
-    if (!shareRequired || !sessionId || !position || !gameStarted) {
+    if (
+      !shareRequired ||
+      !sessionId ||
+      isAnonymous ||
+      !gameStarted ||
+      showVictory ||
+      !hasPosition
+    ) {
       return;
     }
 
-    // Flag pro zruseni in-flight requestu pri re-runu efektu nebo unmountu
     let cancelled = false;
 
-    // Funkce pro odeslani pozice
     const sendLocation = async () => {
-      if (cancelled) return;
+      const current = positionRef.current;
+      if (cancelled || !current) return;
       try {
         await updatePlayerLocation(
           sessionId,
-          position.latitude,
-          position.longitude,
-          position.accuracy ?? null,
-          currentCheckpointIndex
+          current.latitude,
+          current.longitude,
+          current.accuracy ?? null,
+          checkpointIndexRef.current
         );
       } catch (err) {
-        console.warn('Chyba pri odesilani pozice:', err);
+        console.warn('Chyba při odesílání pozice:', err);
       }
     };
 
-    // Poslat pozici hned
+    // Poslat pozici hned a pak v intervalu
     sendLocation();
-
-    // Nastavit interval pro pravidelne odesilani
     const intervalId = setInterval(sendLocation, LOCATION_UPDATE_INTERVAL);
 
-    // Cleanup - pri ukonceni smazat pozici a zrusit interval
+    // Cleanup – při odchodu nebo konci hry smazat pozici a zrušit interval
     return () => {
       cancelled = true;
       clearInterval(intervalId);
-      // Smazat pozici pri odchodu (asynchronne, bez cekani)
       deletePlayerLocation(sessionId).catch((err) => {
-        console.warn('Chyba pri mazani pozice:', err);
+        console.warn('Chyba při mazání pozice:', err);
       });
     };
-  }, [
-    sessionId,
-    position,
-    gameStarted,
-    currentCheckpointIndex,
-    game?.settings?.share_location_required,
-  ]);
+  }, [shareRequired, sessionId, isAnonymous, gameStarted, showVictory, hasPosition]);
 
-  // Request GPS permission when starting game
-  const handleStartGame = async () => {
-    console.log('=== handleStartGame called ===');
-    console.log('gpsSupported:', gpsSupported);
-    console.log('gpsLoading:', gpsLoading);
-    console.log('gpsError:', gpsError);
-
+  // Start hry: povolení kompasu a GPS
+  const handleStartGame = () => {
     if (!gpsSupported) {
       setError('Váš prohlížeč nepodporuje geolokaci.');
       return;
     }
 
-    try {
-      console.log('Setting gameStarted to true...');
-      setGameStarted(true);
-      console.log('Calling requestPermission...');
-      await requestPermission();
-      console.log('requestPermission completed');
-
-      // Pokusit se získat i přístup k orientaci zařízení (kompas)
-      if (orientationSupported) {
-        try {
-          console.log('Requesting device orientation permission...');
-          await requestOrientationPermission();
-          console.log('Device orientation permission granted');
-        } catch (err) {
-          console.warn('Device orientation permission denied:', err);
-          // Není kritická chyba, hra může pokračovat bez kompasu
-        }
-      }
-    } catch (err) {
-      console.error('GPS permission error:', err);
-      setError('Nepodařilo se získat přístup k poloze. Zkontrolujte nastavení prohlížeče.');
-      setGameStarted(false);
+    // iOS povolí kompas jen přímo v obsluze kliknutí, proto jako první a bez čekání.
+    // Chyby si hook zpracuje sám, hra může běžet i bez kompasu.
+    if (orientationSupported) {
+      void requestOrientationPermission();
     }
+
+    setGameStarted(true);
+    void requestPermission();
   };
 
-  const handleCompleteCheckpoint = () => {
-    completeCurrentCheckpoint();
-    hideCheckpoint();
+  const handleCompleteCheckpoint = (checkpointId: string) => {
+    completeCurrentCheckpoint(checkpointId);
   };
 
-  const handleSkipCheckpoint = () => {
-    skipCheckpoint();
-    hideCheckpoint();
+  const handleSkipCheckpoint = (checkpointId: string) => {
+    skipCheckpoint(checkpointId);
   };
 
   const handleBackToHome = () => {
@@ -254,23 +247,20 @@ export default function PlayerPage() {
     setDismissedAlerts((prev) => new Set(prev).add(alertId));
   };
 
-  // Zapnout/vypnout sledovani GPS pozice na mape
-  // Čte pozici přímo ze store (getState) → callback je stabilní, nerekonstruuje se při každém GPS update
+  // Zapnout/vypnout sledovani GPS pozice na mape (centrování řeší efekt níže)
   const handleToggleFollowGps = useCallback(() => {
-    setFollowGps((prev) => {
-      const next = !prev;
-      if (next && mapRef.current) {
-        const pos = useGamePlayStore.getState().userPosition;
-        if (pos) {
-          mapRef.current.centerOnLocation({
-            latitude: pos.latitude,
-            longitude: pos.longitude,
-          });
-        }
-      }
-      return next;
-    });
+    setFollowGps((prev) => !prev);
   }, []);
+
+  // Ve follow režimu držet mapu vycentrovanou na hráči
+  useEffect(() => {
+    if (followGps && userPosition && mapRef.current) {
+      mapRef.current.centerOnLocation({
+        latitude: userPosition.latitude,
+        longitude: userPosition.longitude,
+      });
+    }
+  }, [followGps, userPosition]);
 
   // Deaktivace follow mode pri manualnim posunu mapy
   const handleMapMoveByUser = useCallback(() => {
@@ -287,36 +277,47 @@ export default function PlayerPage() {
     }
   }, [currentCheckpoint]);
 
+  // Vstupy mapy memoizované – MapComponent při každé nové referenci přestaví své vrstvy,
+  // takže bez memo by je přestavoval každý render (např. při každé změně kompasu)
+  const userLocation = useMemo(
+    () =>
+      userPosition ? { latitude: userPosition.latitude, longitude: userPosition.longitude } : null,
+    [userPosition]
+  );
+  const targetLocation = useMemo(
+    () =>
+      currentCheckpoint
+        ? { latitude: currentCheckpoint.latitude, longitude: currentCheckpoint.longitude }
+        : null,
+    [currentCheckpoint]
+  );
+  const showRadius = game?.settings.show_radius ?? true;
+
+  const markers = useMemo<MapMarker[]>(() => {
+    const result: MapMarker[] = [];
+    if (userLocation) {
+      result.push({ id: 'user', location: userLocation, type: 'user' });
+    }
+    if (currentCheckpoint && targetLocation) {
+      result.push({
+        id: currentCheckpoint.id,
+        location: targetLocation,
+        type: 'target',
+        label: `${currentCheckpointIndex + 1}`,
+        radius: showRadius ? currentCheckpoint.radius : undefined,
+      });
+    }
+    return result;
+  }, [userLocation, currentCheckpoint, targetLocation, currentCheckpointIndex, showRadius]);
+
+  const routeLine = useMemo(
+    () => (userLocation && targetLocation ? { from: userLocation, to: targetLocation } : null),
+    [userLocation, targetLocation]
+  );
+
   if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorDisplay message={error} onRetry={loadGameData} />;
+  if (error) return <ErrorDisplay message={error} onRetry={() => loadGameData()} />;
   if (!game || !currentCheckpoint) return null;
-
-  // Prepare map markers
-  const markers: MapMarker[] = [];
-
-  // Add user position
-  if (userPosition) {
-    markers.push({
-      id: 'user',
-      location: {
-        latitude: userPosition.latitude,
-        longitude: userPosition.longitude,
-      },
-      type: 'user',
-    });
-  }
-
-  // Add current checkpoint
-  markers.push({
-    id: currentCheckpoint.id,
-    location: {
-      latitude: currentCheckpoint.latitude,
-      longitude: currentCheckpoint.longitude,
-    },
-    type: 'target',
-    label: `${currentCheckpointIndex + 1}`,
-    radius: (game.settings.show_radius ?? true) ? currentCheckpoint.radius : undefined,
-  });
 
   return (
     <Box
@@ -370,12 +371,18 @@ export default function PlayerPage() {
               </Card>
 
               {/* Informace o sdileni polohy */}
-              {game.settings.share_location_required && (
-                <Alert severity="info">
-                  Tato hra vyzaduje sdileni vasi polohy s organizatorem hry. Vase pozice bude
-                  zobrazena v realnem case.
-                </Alert>
-              )}
+              {shareRequired &&
+                (isAnonymous ? (
+                  <Alert severity="warning">
+                    Tato hra vyžaduje sdílení polohy s organizátorem. Sdílení funguje jen pro
+                    přihlášené hráče – bez přihlášení vás organizátor na mapě neuvidí.
+                  </Alert>
+                ) : (
+                  <Alert severity="info">
+                    Tato hra vyžaduje sdílení vaší polohy s organizátorem hry. Vaše pozice bude
+                    zobrazena v reálném čase.
+                  </Alert>
+                ))}
 
               {!gpsSupported && (
                 <Alert severity="error">Váš prohlížeč nepodporuje geolokaci.</Alert>
@@ -498,31 +505,11 @@ export default function PlayerPage() {
                   longitude: currentCheckpoint.longitude,
                 }}
                 zoom={15}
-                userLocation={
-                  userPosition
-                    ? {
-                        latitude: userPosition.latitude,
-                        longitude: userPosition.longitude,
-                      }
-                    : null
-                }
+                userLocation={userLocation}
                 userAccuracy={position?.accuracy ?? null}
                 userHeading={heading}
                 markers={markers}
-                routeLine={
-                  userPosition && currentCheckpoint
-                    ? {
-                        from: {
-                          latitude: userPosition.latitude,
-                          longitude: userPosition.longitude,
-                        },
-                        to: {
-                          latitude: currentCheckpoint.latitude,
-                          longitude: currentCheckpoint.longitude,
-                        },
-                      }
-                    : null
-                }
+                routeLine={routeLine}
                 onMoveByUser={handleMapMoveByUser}
                 height="100%"
               />
@@ -543,7 +530,7 @@ export default function PlayerPage() {
                   },
                   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
                 }}
-                aria-label={followGps ? 'Vypnout sledovani polohy' : 'Sledovat polohu na mape'}
+                aria-label={followGps ? 'Vypnout sledování polohy' : 'Sledovat polohu na mapě'}
               >
                 {followGps ? <MyLocationIcon /> : <LocationDisabledIcon />}
               </Fab>
@@ -591,7 +578,7 @@ export default function PlayerPage() {
                 variant="outlined"
                 size="large"
                 startIcon={<SkipNextIcon />}
-                onClick={handleSkipCheckpoint}
+                onClick={() => handleSkipCheckpoint(currentCheckpoint.id)}
                 fullWidth
                 sx={{ mt: 1, bgcolor: 'background.paper' }}
               >
