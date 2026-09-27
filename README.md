@@ -14,14 +14,14 @@ GeoQuest je responzivní webová aplikace (PWA ready), která umožňuje vytvá�
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React 18+, TypeScript, Vite
+- **Frontend**: React 19, TypeScript, Vite
 - **UI**: Material UI (MUI) s vlastním hravým tématem
 - **Mapy**: OpenLayers + OpenStreetMap
 - **Backend/DB**: Supabase (PostgreSQL, Auth, Storage)
 - **State Management**: Zustand
 - **Routing**: React Router DOM
 - **Testing**: Vitest + React Testing Library
-- **Linting**: ESLint + Prettier
+- **Linting a formátování**: Biome
 
 ## 📁 Struktura projektu
 
