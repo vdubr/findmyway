@@ -1,7 +1,6 @@
 // Detail hry – popis, mapa checkpointů, info o tvůrci, tlačítka Hrát/Editovat
 
 import { Edit as EditIcon, Flag as FlagIcon, PlayArrow as PlayIcon } from '@mui/icons-material';
-import DifficultyIcon from '../../../components/DifficultyIcon';
 import {
   Box,
   Button,
@@ -13,18 +12,18 @@ import {
   Switch,
   Typography,
 } from '@mui/material';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import DifficultyIcon from '../../../components/DifficultyIcon';
 import ErrorDisplay from '../../../components/ErrorDisplay';
 import LoadingSpinner from '../../../components/LoadingSpinner';
-import { useAuth } from '../../auth/AuthContext';
-import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
-import { useGameDetailStore } from '../store/gameDetailStore';
 import { getGameById } from '../../../lib/api';
-import { useState } from 'react';
 import type { Checkpoint, GameWithCreator } from '../../../types';
 import { GAME_TAGS } from '../../../utils/constants';
 import { calculateDistance, formatDistance } from '../../../utils/geo';
+import { useAuth } from '../../auth/AuthContext';
+import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
+import { useGameDetailStore } from '../store/gameDetailStore';
 
 // Typ pro hru s tvůrcem a checkpointy
 type GameFull = GameWithCreator & { checkpoints: Checkpoint[] };

@@ -4,8 +4,8 @@ import {
   InfoOutlined as InfoIcon,
   Login as LoginIcon,
   Logout as LogoutIcon,
-  Pets as PetsIcon,
   Person as PersonIcon,
+  Pets as PetsIcon,
 } from '@mui/icons-material';
 import {
   AppBar,
