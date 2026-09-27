@@ -50,7 +50,7 @@ export default function ProfilePage() {
         const data = await getProfileStats(user.id);
         setStats(data);
       } catch (err) {
-        setStatsError(err instanceof Error ? err.message : 'Chyba pri nacitani statistik');
+        setStatsError(err instanceof Error ? err.message : 'Chyba při načítání statistik');
       } finally {
         setStatsLoading(false);
       }
@@ -59,11 +59,14 @@ export default function ProfilePage() {
     loadStats();
   }, [user?.id]);
 
-  // Aktualizovat lokalni state kdyz se zmeni profile
+  // Aktualizovat lokalni state kdyz se zmeni hodnoty profilu. Ne při každé nové instanci
+  // profilu (Supabase při návratu do záložky znovu hlásí SIGNED_IN a profil se načte znovu)
+  // a ne během editace – přepsalo by to rozepsané změny.
   useEffect(() => {
+    if (isEditing) return;
     setUsername(profile?.username || '');
     setAvatarUrl(profile?.avatar_url || '');
-  }, [profile]);
+  }, [profile?.username, profile?.avatar_url, isEditing]);
 
   const handleSave = async () => {
     if (!user?.id) return;
@@ -85,7 +88,7 @@ export default function ProfilePage() {
       // Skryt uspech po 3 sekundach
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Chyba pri ukladani profilu');
+      setSaveError(err instanceof Error ? err.message : 'Chyba při ukládání profilu');
     } finally {
       setIsSaving(false);
     }
@@ -105,7 +108,7 @@ export default function ProfilePage() {
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Typography variant="h4" color="primary" gutterBottom>
-        Muj profil
+        Můj profil
       </Typography>
 
       <Grid container spacing={3}>
@@ -139,12 +142,12 @@ export default function ProfilePage() {
                   value={user.email || ''}
                   disabled
                   fullWidth
-                  helperText="Email nelze zmenit"
+                  helperText="E-mail nelze změnit"
                 />
 
                 {/* Username */}
                 <TextField
-                  label="Uzivatelske jmeno"
+                  label="Uživatelské jméno"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   disabled={!isEditing || isSaving}
@@ -160,7 +163,7 @@ export default function ProfilePage() {
                     onChange={(e) => setAvatarUrl(e.target.value)}
                     disabled={isSaving}
                     fullWidth
-                    helperText="URL obrazku pro avatar (nepovinne)"
+                    helperText="URL obrázku pro avatar (nepovinné)"
                     autoComplete="photo"
                   />
                 )}
@@ -170,7 +173,7 @@ export default function ProfilePage() {
                   {isEditing ? (
                     <>
                       <Button variant="outlined" onClick={handleCancel} disabled={isSaving}>
-                        Zrusit
+                        Zrušit
                       </Button>
                       <Button
                         variant="contained"
@@ -178,7 +181,7 @@ export default function ProfilePage() {
                         onClick={handleSave}
                         disabled={isSaving}
                       >
-                        {isSaving ? 'Ukladam...' : 'Ulozit'}
+                        {isSaving ? 'Ukládám...' : 'Uložit'}
                       </Button>
                     </>
                   ) : (
@@ -211,7 +214,7 @@ export default function ProfilePage() {
               )}
 
               <Stack spacing={2}>
-                {/* Vytvorene hry */}
+                {/* Vytvořené hry */}
                 <Box
                   sx={{
                     display: 'flex',
@@ -225,7 +228,7 @@ export default function ProfilePage() {
                   <GamesIcon color="primary" sx={{ fontSize: 40 }} />
                   <Box>
                     <Typography variant="body2" color="text.secondary">
-                      Vytvorene hry
+                      Vytvořené hry
                     </Typography>
                     {statsLoading ? (
                       <Skeleton width={40} height={32} />
@@ -237,7 +240,7 @@ export default function ProfilePage() {
                   </Box>
                 </Box>
 
-                {/* Odehrane hry */}
+                {/* Odehrané hry */}
                 <Box
                   sx={{
                     display: 'flex',
@@ -251,7 +254,7 @@ export default function ProfilePage() {
                   <PlayIcon color="secondary" sx={{ fontSize: 40 }} />
                   <Box>
                     <Typography variant="body2" color="text.secondary">
-                      Odehrane hry
+                      Odehrané hry
                     </Typography>
                     {statsLoading ? (
                       <Skeleton width={40} height={32} />
@@ -263,7 +266,7 @@ export default function ProfilePage() {
                   </Box>
                 </Box>
 
-                {/* Dokoncene hry */}
+                {/* Dokončené hry */}
                 <Box
                   sx={{
                     display: 'flex',
@@ -277,7 +280,7 @@ export default function ProfilePage() {
                   <TrophyIcon sx={{ fontSize: 40, color: '#E9C46A' }} />
                   <Box>
                     <Typography variant="body2" color="text.secondary">
-                      Dokoncene hry
+                      Dokončené hry
                     </Typography>
                     {statsLoading ? (
                       <Skeleton width={40} height={32} />

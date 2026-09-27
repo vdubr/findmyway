@@ -13,12 +13,19 @@ import {
   Typography,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import FoxGuide from '../../../components/FoxGuide';
 import { useAuth } from '../AuthContext';
 
 export default function AuthPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  // Kam se vrátit po přihlášení (nastavuje ProtectedRoute), jen interní cesty
+  const fromState = (location.state as { from?: unknown } | null)?.from;
+  const redirectTo =
+    typeof fromState === 'string' && fromState.startsWith('/') && !fromState.startsWith('//')
+      ? fromState
+      : '/games';
   const { signInWithGoogle, signInWithEmail, signUpWithEmail, user } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -30,9 +37,9 @@ export default function AuthPage() {
   // Pokud je uživatel už přihlášen, přesměruj ho
   useEffect(() => {
     if (user) {
-      navigate('/games', { replace: true });
+      navigate(redirectTo, { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, redirectTo]);
 
   const handleGoogleLogin = async () => {
     try {
@@ -157,7 +164,7 @@ export default function AuthPage() {
               type="email"
               name="email"
               id="email"
-              autoComplete="username email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
