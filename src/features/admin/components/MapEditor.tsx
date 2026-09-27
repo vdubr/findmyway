@@ -22,8 +22,8 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DragEvent, TouchEvent } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GeoLocation } from '../../../types';
 import { calculateCentroid } from '../../../utils/geo';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
@@ -33,6 +33,15 @@ import { useGameEditorStore } from '../store/gameEditorStore';
 interface MapEditorProps {
   onSave?: () => void;
   isLoading?: boolean;
+}
+
+// Najde index položky seznamu checkpointů pod daným bodem obrazovky (pro touch drag)
+function getIndexFromPoint(x: number, y: number): number | null {
+  const el = document.elementFromPoint(x, y);
+  if (!el) return null;
+  const item = (el as HTMLElement).closest('[data-drag-index]') as HTMLElement | null;
+  if (!item) return null;
+  return Number(item.dataset.dragIndex);
 }
 
 export default function MapEditor({ onSave, isLoading = false }: MapEditorProps) {
@@ -155,14 +164,6 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
   // touchmove musí být non-passive aby šlo volat preventDefault() a zabránit scrollování
   const listRef = useRef<HTMLUListElement>(null);
 
-  const getIndexFromPoint = (x: number, y: number): number | null => {
-    const el = document.elementFromPoint(x, y);
-    if (!el) return null;
-    const item = (el as HTMLElement).closest('[data-drag-index]') as HTMLElement | null;
-    if (!item) return null;
-    return Number(item.dataset.dragIndex);
-  };
-
   const handleTouchStart = (_e: TouchEvent, index: number) => {
     dragIndexRef.current = index;
   };
@@ -178,10 +179,14 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
     setDragOverIndex(null);
   };
 
+  // Seznam se vykresluje jen když existují checkpointy – efekt se musí spustit znovu,
+  // jakmile se seznam objeví (např. u nové hry po přidání prvního checkpointu)
+  const hasCheckpoints = tempCheckpoints.length > 0;
+
   // Registrace non-passive touchmove přímo na DOM – React neumožňuje passive: false přes JSX
   useEffect(() => {
     const list = listRef.current;
-    if (!list) return;
+    if (!hasCheckpoints || !list) return;
     const onTouchMove = (e: globalThis.TouchEvent) => {
       if (dragIndexRef.current === null) return;
       e.preventDefault();
@@ -191,9 +196,9 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
     };
     list.addEventListener('touchmove', onTouchMove, { passive: false });
     return () => list.removeEventListener('touchmove', onTouchMove);
-  }, []);
+  }, [hasCheckpoints]);
 
-  const canSave = tempCheckpoints.length > 0;
+  const canSave = hasCheckpoints;
 
   return (
     <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
