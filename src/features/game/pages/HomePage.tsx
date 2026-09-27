@@ -22,7 +22,7 @@ import ErrorDisplay from '../../../components/ErrorDisplay';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 import { useGeolocation } from '../../../hooks/useGeolocation';
 import { getMyDraftGamesWithCheckpoints, getPublicGamesWithCheckpoints } from '../../../lib/api';
-import type { Checkpoint, Game } from '../../../types';
+import type { GameWithCheckpointSummary } from '../../../types';
 import { GAME_TAGS } from '../../../utils/constants';
 import { calculateDistance } from '../../../utils/geo';
 import { useAuth } from '../../auth/AuthContext';
@@ -31,8 +31,8 @@ import GamesMapView from '../components/GamesMapView';
 
 type ViewMode = 'cards' | 'map';
 
-// Typ pro hru s checkpointy (pro mapovy rezim)
-type GameWithCheckpoints = Game & { checkpoints: Checkpoint[] };
+// Hra s checkpointy v seznamu (jen poloha a pořadí – viz CHECKPOINT_SUMMARY_SELECT v api.ts)
+type GameWithCheckpoints = GameWithCheckpointSummary;
 
 export default function HomePage() {
   const { user } = useAuth();

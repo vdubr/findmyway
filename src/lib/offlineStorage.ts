@@ -70,7 +70,8 @@ export async function getCachedCheckpoints(gameId: string): Promise<Checkpoint[]
     checkpoints: Checkpoint[];
     cached_at: number;
   }>(gameId);
-  return data?.checkpoints ?? [];
+  // Řadit i tady – do cache se mohou dostat checkpointy v libovolném pořadí
+  return [...(data?.checkpoints ?? [])].sort((a, b) => a.order_index - b.order_index);
 }
 
 // === SESSIONS ===

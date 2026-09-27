@@ -7,6 +7,7 @@ import type {
   CreateGameInput,
   Game,
   GameSession,
+  GameWithCreator,
   PlayerLocation,
   Profile,
   SessionMetadata,
@@ -21,20 +22,64 @@ import {
   updateAnonymousSession,
 } from './anonymousSessions';
 import type { Json } from './database.types';
-import { cacheCheckpoints, cacheGame, getCachedCheckpoints, getCachedGame } from './offlineStorage';
+import {
+  cacheCheckpoints,
+  cacheGame,
+  getCachedCheckpoints,
+  getCachedGame,
+  removeCachedGame,
+} from './offlineStorage';
 import { supabase } from './supabase';
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+// Identita z lokálně uložené session – bez síťového požadavku, funguje i offline.
+// getUser() při výpadku sítě vrací user: null, takže přihlášený hráč by se tvářil jako anonym.
+// Oprávnění stejně ověřuje server (RLS) podle JWT.
+async function getCurrentUserId(): Promise<string | null> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return session?.user.id ?? null;
+}
+
+// Veřejné údaje o tvůrci – e-mail se do seznamů her ani do offline cache nenačítá
+const CREATOR_SELECT = 'creator:profiles!creator_id(id, username, avatar_url)';
+
+// Seznam her potřebuje z checkpointů jen polohu a pořadí (pin na mapě, vzdálenost),
+// řešení úkolů se do seznamu nestahují
+const CHECKPOINT_SUMMARY_SELECT = 'checkpoints(id, order_index, latitude, longitude)';
+
+// Síťová chyba = fetch vůbec neproběhl. PostgREST chyby (např. PGRST116 – řádek neexistuje
+// nebo k němu uživatel nemá přístup) mají code, síťové chyby z postgrest-js prázdný code.
+function isNetworkError(err: unknown): boolean {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return true;
+  if (err instanceof TypeError) return true;
+  const code = (err as { code?: unknown } | null)?.code;
+  return err != null && !code;
+}
+
+function warnCacheError(err: unknown) {
+  console.warn('Zápis do offline cache selhal:', err);
+}
+
+interface FetchOptions {
+  // Při výpadku sítě vrátit data z offline cache (hraní v terénu).
+  // Editor ji vypíná, aby neupravoval zastaralou kopii.
+  offlineFallback?: boolean;
+}
 
 // ============================================================================
 // PROFILES
 // ============================================================================
 
 export async function getCurrentProfile() {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  const userId = await getCurrentUserId();
+  if (!userId) return null;
 
-  const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
 
   if (error) throw error;
   return data as Profile;
@@ -62,7 +107,7 @@ export async function updateProfile(
 export async function getPublicGames() {
   const { data, error } = await supabase
     .from('games')
-    .select('*, creator:profiles!creator_id(*)')
+    .select(`*, ${CREATOR_SELECT}`)
     .eq('is_public', true)
     .eq('status', 'published')
     .order('created_at', { ascending: false });
@@ -75,7 +120,7 @@ export async function getPublicGames() {
 export async function getPublicGamesWithCheckpoints() {
   const { data, error } = await supabase
     .from('games')
-    .select('*, creator:profiles!creator_id(*), checkpoints(*)')
+    .select(`*, ${CREATOR_SELECT}, ${CHECKPOINT_SUMMARY_SELECT}`)
     .eq('is_public', true)
     .eq('status', 'published')
     .order('created_at', { ascending: false });
@@ -86,15 +131,13 @@ export async function getPublicGamesWithCheckpoints() {
 
 // Draft hry přihlášeného uživatele s checkpointy (pro seznam her)
 export async function getMyDraftGamesWithCheckpoints() {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return [];
+  const userId = await getCurrentUserId();
+  if (!userId) return [];
 
   const { data, error } = await supabase
     .from('games')
-    .select('*, creator:profiles!creator_id(*), checkpoints(*)')
-    .eq('creator_id', user.id)
+    .select(`*, ${CREATOR_SELECT}, ${CHECKPOINT_SUMMARY_SELECT}`)
+    .eq('creator_id', userId)
     .eq('status', 'draft')
     .order('created_at', { ascending: false });
 
@@ -103,74 +146,74 @@ export async function getMyDraftGamesWithCheckpoints() {
 }
 
 export async function getMyGames() {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
+  const userId = await getCurrentUserId();
+  if (!userId) throw new Error('Not authenticated');
 
   const { data, error } = await supabase
     .from('games')
-    .select('*, creator:profiles!creator_id(*)')
-    .eq('creator_id', user.id)
+    .select(`*, ${CREATOR_SELECT}`)
+    .eq('creator_id', userId)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
   return data;
 }
 
-export async function getGameById(gameId: string) {
-  // Offline-first strategie: zkusit cache, pak online, fallback na cache
+export type GameWithCreatorAndCheckpoints = GameWithCreator & { checkpoints: Checkpoint[] };
+
+export async function getGameById(
+  gameId: string,
+  { offlineFallback = true }: FetchOptions = {}
+): Promise<GameWithCreatorAndCheckpoints> {
+  let data: unknown = null;
+  let error: unknown = null;
   try {
-    // 1. Zkusit načíst z Supabase (online)
-    const { data, error } = await supabase
-      .from('games')
-      .select('*, creator:profiles!creator_id(*), checkpoints(*)')
-      .eq('id', gameId)
-      .single();
-
-    if (!error && data) {
-      // Úspěch - uložit do cache pro offline použití
-      await cacheGame(data as unknown as Game);
-      const dataWithCheckpoints = data as typeof data & {
-        checkpoints?: Checkpoint[];
-      };
-      if (dataWithCheckpoints.checkpoints) {
-        await cacheCheckpoints(gameId, dataWithCheckpoints.checkpoints as unknown as Checkpoint[]);
-      }
-      return data;
-    }
-
-    // 2. Online selhalo - zkusit cache
-    console.warn('Online fetch failed, trying cache:', error);
-    const cachedGame = await getCachedGame(gameId);
-    if (cachedGame) {
-      console.log('Using cached game data');
-      return cachedGame;
-    }
-
-    // 3. Cache není k dispozici - vyhodit chybu
-    throw error;
+    ({ data, error } = await fetchGame(gameId));
   } catch (err) {
-    // Poslední pokus - zkusit cache při jakékoli chybě
+    error = err;
+  }
+
+  if (!error && data) {
+    const game = data as GameWithCreatorAndCheckpoints;
+    // Zápis do cache je best-effort – selhání úložiště nesmí shodit úspěšný online fetch
+    cacheGame(game).catch(warnCacheError);
+    if (game.checkpoints) {
+      cacheCheckpoints(gameId, game.checkpoints).catch(warnCacheError);
+    }
+    return game;
+  }
+
+  if (offlineFallback && isNetworkError(error)) {
     const cachedGame = await getCachedGame(gameId);
     if (cachedGame) {
-      console.log('Using cached game data (fallback)');
-      return cachedGame;
+      console.warn('Offline – používám hru z cache');
+      return cachedGame as GameWithCreatorAndCheckpoints;
     }
-    throw err;
+  } else if ((error as { code?: string } | null)?.code === 'PGRST116') {
+    // Hra neexistuje nebo k ní uživatel už nemá přístup – zastaralou kopii smazat
+    removeCachedGame(gameId).catch(warnCacheError);
   }
+
+  throw error;
+}
+
+function fetchGame(gameId: string) {
+  return supabase
+    .from('games')
+    .select(`*, ${CREATOR_SELECT}, checkpoints(*)`)
+    .eq('id', gameId)
+    .order('order_index', { referencedTable: 'checkpoints', ascending: true })
+    .single();
 }
 
 export async function createGame(input: CreateGameInput) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
+  const userId = await getCurrentUserId();
+  if (!userId) throw new Error('Not authenticated');
 
   const { data, error } = await supabase
     .from('games')
     .insert({
-      creator_id: user.id,
+      creator_id: userId,
       title: input.title,
       description: input.description ?? null,
       is_public: input.is_public,
@@ -209,50 +252,55 @@ export async function updateGame(gameId: string, updates: UpdateGameInput) {
 }
 
 export async function deleteGame(gameId: string) {
-  const { error } = await supabase.from('games').delete().eq('id', gameId);
+  // RLS při chybějícím oprávnění nevrací chybu, jen smaže 0 řádků – proto kontrola výsledku
+  const { data, error } = await supabase.from('games').delete().eq('id', gameId).select('id');
 
   if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error('Hru se nepodařilo smazat. Nemáte k ní oprávnění, nebo už neexistuje.');
+  }
+  removeCachedGame(gameId).catch(warnCacheError);
 }
 
 // ============================================================================
 // CHECKPOINTS
 // ============================================================================
 
-export async function getCheckpointsByGameId(gameId: string) {
-  // Offline-first strategie: zkusit cache, pak online, fallback na cache
+export async function getCheckpointsByGameId(
+  gameId: string,
+  { offlineFallback = true }: FetchOptions = {}
+): Promise<Checkpoint[]> {
+  let data: unknown = null;
+  let error: unknown = null;
   try {
-    // 1. Zkusit načíst z Supabase (online)
-    const { data, error } = await supabase
-      .from('checkpoints')
-      .select('*')
-      .eq('game_id', gameId)
-      .order('order_index', { ascending: true });
-
-    if (!error && data) {
-      // Úspěch - uložit do cache pro offline použití
-      await cacheCheckpoints(gameId, data as unknown as Checkpoint[]);
-      return data as unknown as Checkpoint[];
-    }
-
-    // 2. Online selhalo - zkusit cache
-    console.warn('Online fetch failed, trying cache:', error);
-    const cachedCheckpoints = await getCachedCheckpoints(gameId);
-    if (cachedCheckpoints.length > 0) {
-      console.log('Using cached checkpoints data');
-      return cachedCheckpoints;
-    }
-
-    // 3. Cache není k dispozici - vyhodit chybu
-    throw error;
+    ({ data, error } = await fetchCheckpoints(gameId));
   } catch (err) {
-    // Poslední pokus - zkusit cache při jakékoli chybě
+    error = err;
+  }
+
+  if (!error && data) {
+    const checkpoints = data as Checkpoint[];
+    cacheCheckpoints(gameId, checkpoints).catch(warnCacheError);
+    return checkpoints;
+  }
+
+  if (offlineFallback && isNetworkError(error)) {
     const cachedCheckpoints = await getCachedCheckpoints(gameId);
     if (cachedCheckpoints.length > 0) {
-      console.log('Using cached checkpoints data (fallback)');
+      console.warn('Offline – používám checkpointy z cache');
       return cachedCheckpoints;
     }
-    throw err;
   }
+
+  throw error;
+}
+
+function fetchCheckpoints(gameId: string) {
+  return supabase
+    .from('checkpoints')
+    .select('*')
+    .eq('game_id', gameId)
+    .order('order_index', { ascending: true });
 }
 
 export async function createCheckpoint(input: CreateCheckpointInput) {
@@ -267,6 +315,7 @@ export async function createCheckpoint(input: CreateCheckpointInput) {
       type: input.type,
       content: input.content as unknown as Json,
       secret_solution: (input.secret_solution ?? null) as Json | null,
+      is_fake: input.is_fake ?? false,
     })
     .select()
     .single();
@@ -315,12 +364,10 @@ export async function deleteCheckpoint(checkpointId: string) {
 // ============================================================================
 
 export async function getActiveSession(gameId: string) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const userId = await getCurrentUserId();
 
   // Anonymní uživatel - použít localStorage (dokončená session se jako aktivní nevrací)
-  if (!user) {
+  if (!userId) {
     const session = getAnonymousSession(gameId);
     return session?.status === 'active' ? session : null;
   }
@@ -329,7 +376,7 @@ export async function getActiveSession(gameId: string) {
   const { data, error } = await supabase
     .from('game_sessions')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .eq('game_id', gameId)
     .eq('status', 'active')
     .maybeSingle();
@@ -339,18 +386,16 @@ export async function getActiveSession(gameId: string) {
 }
 
 export async function startGameSession(gameId: string) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const userId = await getCurrentUserId();
 
-  // Check if there's already an active session
+  // Existující aktivní session – pokračovat v rozehrané hře
   const existingSession = await getActiveSession(gameId);
   if (existingSession) {
     return existingSession;
   }
 
   // Anonymní uživatel - vytvořit localStorage session
-  if (!user) {
+  if (!userId) {
     return createAnonymousSession(gameId);
   }
 
@@ -358,7 +403,7 @@ export async function startGameSession(gameId: string) {
   const { data, error } = await supabase
     .from('game_sessions')
     .insert({
-      user_id: user.id,
+      user_id: userId,
       game_id: gameId,
       current_checkpoint_index: 0,
       status: 'active',
@@ -516,7 +561,10 @@ export async function updatePlayerLocation(
   longitude: number,
   accuracy: number | null,
   currentCheckpointIndex: number
-): Promise<PlayerLocation> {
+): Promise<PlayerLocation | null> {
+  // Anonymní session není v DB (sloupec session_id je UUID s FK) – nemá smysl posílat
+  if (isAnonymousSessionId(sessionId)) return null;
+
   const { data, error } = await supabase
     .from('player_locations')
     .upsert(
@@ -541,6 +589,8 @@ export async function updatePlayerLocation(
 
 // Smazat pozici hrace (pri ukonceni hry)
 export async function deletePlayerLocation(sessionId: string): Promise<void> {
+  if (isAnonymousSessionId(sessionId)) return;
+
   const { error } = await supabase.from('player_locations').delete().eq('session_id', sessionId);
 
   if (error) throw error;
@@ -571,14 +621,34 @@ export async function getActivePlayersCount(gameId: string): Promise<number> {
 // Subscripce na zmeny pozic hracu (pro real-time aktualizace)
 export function subscribeToPlayerLocations(
   gameId: string,
-  onUpdate: (players: ActivePlayer[]) => void
+  onUpdate: (players: ActivePlayer[]) => void,
+  onError?: (err: unknown) => void
 ) {
-  // Nejprve nacteme aktualni stav
-  getActivePlayersForGame(gameId).then(onUpdate);
+  let active = true;
+  // Pořadové číslo požadavku – pozdě doručená starší odpověď nesmí přepsat novější
+  let latestRequest = 0;
 
-  // Pak naslouchame zmenam v tabulce player_locations
+  const refresh = () => {
+    const requestId = ++latestRequest;
+    getActivePlayersForGame(gameId)
+      .then((players) => {
+        if (active && requestId === latestRequest) onUpdate(players);
+      })
+      .catch((err) => {
+        if (!active) return;
+        console.warn('Nepodařilo se načíst aktivní hráče:', err);
+        onError?.(err);
+      });
+  };
+
+  // Nejprve nacteme aktualni stav
+  refresh();
+
+  // Pak naslouchame zmenam v tabulce player_locations.
+  // Unikátní název kanálu: supabase.channel() vrací existující kanál se stejným jménem,
+  // a ten může být po rychlém zavření a znovuotevření ještě v odhlašování.
   const channel = supabase
-    .channel(`player_locations_${gameId}`)
+    .channel(`player_locations_${gameId}_${Date.now()}`)
     .on(
       'postgres_changes',
       {
@@ -586,16 +656,15 @@ export function subscribeToPlayerLocations(
         schema: 'public',
         table: 'player_locations',
       },
-      () => {
-        // Pri jakekoli zmene znovu nacteme vsechny aktivni hrace
-        // (jednodussi nez filtrovat podle game_id v realtime)
-        getActivePlayersForGame(gameId).then(onUpdate);
-      }
+      // Pri jakekoli zmene znovu nacteme vsechny aktivni hrace
+      // (player_locations nemá game_id, realtime filtr podle hry tu nejde)
+      refresh
     )
     .subscribe();
 
   // Vratit funkci pro odhlaseni
   return () => {
+    active = false;
     supabase.removeChannel(channel);
   };
 }

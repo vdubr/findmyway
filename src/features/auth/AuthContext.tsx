@@ -1,6 +1,7 @@
 import type { Session, User } from '@supabase/supabase-js';
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
+import { clearAllOfflineData } from '../../lib/offlineStorage';
 import { supabase } from '../../lib/supabase';
 import type { Profile } from '../../types';
 
@@ -104,6 +105,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(null);
     setProfile(null);
     setSession(null);
+    // Cache může obsahovat drafty odhlášeného uživatele včetně řešení úkolů (sdílené zařízení)
+    clearAllOfflineData().catch((err) => console.warn('Nepodařilo se smazat offline data:', err));
   };
 
   // Sledovat změny autentizace

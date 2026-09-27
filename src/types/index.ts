@@ -171,7 +171,7 @@ export interface CreateGameInput {
 
 export interface UpdateGameInput {
   title?: string;
-  description?: string;
+  description?: string | null; // null = smazat popis
   is_public?: boolean;
   difficulty?: 1 | 2 | 3 | 4 | 5;
   tags?: string[];
@@ -199,6 +199,7 @@ export interface UpdateCheckpointInput {
   type?: CheckpointType;
   content?: Partial<CheckpointContent>;
   secret_solution?: SecretSolution | null;
+  is_fake?: boolean;
 }
 
 export interface StartGameSessionInput {
@@ -228,6 +229,13 @@ export interface GameWithCreator extends Game {
 
 export interface GameWithCheckpoints extends Game {
   checkpoints: Checkpoint[];
+}
+
+// Checkpoint v seznamu her – jen poloha a pořadí, bez obsahu a řešení úkolů
+export type CheckpointSummary = Pick<Checkpoint, 'id' | 'order_index' | 'latitude' | 'longitude'>;
+
+export interface GameWithCheckpointSummary extends Game {
+  checkpoints: CheckpointSummary[];
 }
 
 export interface GameSessionWithDetails extends GameSession {

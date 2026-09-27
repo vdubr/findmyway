@@ -4,11 +4,11 @@
 import { Box, Grid } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import GameCard from '../../../components/GameCard';
-import type { Game, GameWithCheckpoints } from '../../../types';
+import type { GameWithCheckpointSummary } from '../../../types';
 import { calculateDistance } from '../../../utils/geo';
 
 interface GamesCardViewProps {
-  games: Game[];
+  games: GameWithCheckpointSummary[];
   // Mapa vzdalenosti her od uzivatele (game.id → metry)
   distances?: Record<string, number>;
   // ID prihlaşeného uzivatele – karty vlastnich her dostanou tlacitko editace
@@ -22,7 +22,7 @@ export default function GamesCardView({ games, distances, userId }: GamesCardVie
     <Box>
       <Grid container spacing={3}>
         {games.map((game) => {
-          const checkpoints = (game as GameWithCheckpoints).checkpoints;
+          const checkpoints = game.checkpoints;
           const sorted = checkpoints
             ? [...checkpoints].sort((a, b) => a.order_index - b.order_index)
             : [];

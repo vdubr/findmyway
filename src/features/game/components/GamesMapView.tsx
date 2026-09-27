@@ -31,18 +31,17 @@ import View from 'ol/View';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'ol/ol.css';
-import type { Checkpoint, Game, GeoLocation, GPSPosition } from '../../../types';
+import type { GameWithCheckpointSummary, GeoLocation, GPSPosition } from '../../../types';
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../../utils/constants';
 import { calculateCentroid } from '../../../utils/geo';
 
 // Hra s checkpointy a vypoctenym teziskem
-interface GameWithCentroid extends Game {
-  checkpoints: Checkpoint[];
+interface GameWithCentroid extends GameWithCheckpointSummary {
   centroid: GeoLocation | null;
 }
 
 interface GamesMapViewProps {
-  games: (Game & { checkpoints: Checkpoint[] })[];
+  games: GameWithCheckpointSummary[];
   userPosition?: GPSPosition | null;
   onRequestLocation?: () => void;
 }

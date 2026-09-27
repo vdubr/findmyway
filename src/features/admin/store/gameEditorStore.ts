@@ -142,11 +142,15 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
 
     try {
       set({ isLoading: true, loadError: null });
-      const gameData = await getGameById(gameId);
-      const checkpoints = await getCheckpointsByGameId(gameId);
+      // Editor pracuje jen s online daty – úprava zastaralé offline kopie by po uložení
+      // přepsala novější stav v DB
+      const [gameData, checkpoints] = await Promise.all([
+        getGameById(gameId, { offlineFallback: false }),
+        getCheckpointsByGameId(gameId, { offlineFallback: false }),
+      ]);
 
       set({
-        currentGame: gameData as Game,
+        currentGame: gameData,
         deletedCheckpointIds: [],
         tempCheckpoints: checkpoints.map((cp) => ({
           tempId: cp.id,

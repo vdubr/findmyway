@@ -170,7 +170,8 @@ export default function GameDetailPage() {
             <Box sx={{ borderRadius: 2, overflow: 'hidden' }}>
               <MapComponent center={mapCenter} zoom={13} markers={markers} height={320} />
             </Box>
-            {sortedCheckpoints.length > 1 && (
+            {/* Celou trasu vidí jen tvůrce – hráčům by prozradila polohu dalších bodů */}
+            {isCreator && sortedCheckpoints.length > 1 && (
               <FormControlLabel
                 control={
                   <Switch
