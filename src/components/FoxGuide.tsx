@@ -34,11 +34,11 @@ export default function FoxGuide({ state, inline = false }: FoxGuideProps) {
     // Auth stránka - liška sedí a čeká
     if (path === '/auth') return 'sitting';
 
-    // Admin stránky - liška luští křížovky (tvoření hry)
-    if (path.startsWith('/admin')) return 'puzzle';
+    // Editace hry (/games/:gameId/edit/:tab) - liška luští křížovky (tvoření hry)
+    if (/^\/games\/[^/]+\/edit(\/|$)/.test(path)) return 'puzzle';
 
-    // Player page - liška cestuje s batohem
-    if (path.startsWith('/player')) return 'traveling';
+    // Hraní hry (/games/:gameId/game) - liška cestuje s batohem
+    if (/^\/games\/[^/]+\/game\/?$/.test(path)) return 'traveling';
 
     // Victory/completion - liška našla poklad
     if (path.includes('victory') || path.includes('complete')) return 'treasure';
@@ -69,7 +69,12 @@ export default function FoxGuide({ state, inline = false }: FoxGuideProps) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Flag pro zamezení race condition - pokud se efekt cleanupne před načtením obrázku
+    let cancelled = false;
+
     const processImage = () => {
+      if (cancelled) return;
+
       // Nastavit velikost canvasu podle obrázku
       canvas.width = img.naturalWidth;
       canvas.height = img.naturalHeight;
@@ -110,11 +115,16 @@ export default function FoxGuide({ state, inline = false }: FoxGuideProps) {
       ctx.putImageData(imageData, 0, 0);
     };
 
-    if (img.complete) {
+    if (img.complete && img.naturalWidth > 0) {
       processImage();
     } else {
-      img.onload = processImage;
+      img.addEventListener('load', processImage);
     }
+
+    return () => {
+      cancelled = true;
+      img.removeEventListener('load', processImage);
+    };
   }, [foxState]);
 
   return (
