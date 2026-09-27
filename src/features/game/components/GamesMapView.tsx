@@ -58,6 +58,9 @@ export default function GamesMapView({
   const [selectedGame, setSelectedGame] = useState<GameWithCentroid | null>(null);
   const markersLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const validGamesRef = useRef<GameWithCentroid[]>([]);
+  // Množina her, na kterou byl naposledy proveden fit – GPS update mění jen pořadí her,
+  // takže fit se provede jen při skutečné změně seznamu (první načtení, filtr, hledání)
+  const lastFitKeyRef = useRef<string | null>(null);
 
   // Vycentrovat mapu na polohu uzivatele
   const handleCenterOnUser = () => {
@@ -121,6 +124,7 @@ export default function GamesMapView({
       view: new View({
         center: fromLonLat([initialCenter.longitude, initialCenter.latitude]),
         zoom: DEFAULT_MAP_ZOOM,
+        enableRotation: false,
       }),
     });
 
@@ -199,10 +203,15 @@ export default function GamesMapView({
       source.addFeature(feature);
     });
 
-    // Fit view na vsechny markery pokud jsou
-    if (validGames.length > 0 && map) {
+    // Fit view na vsechny markery jen pri zmene mnoziny her (ne pri GPS updatu)
+    const fitKey = validGames
+      .map((g) => g.id)
+      .sort()
+      .join(',');
+    if (validGames.length > 0 && map && fitKey !== lastFitKeyRef.current) {
       const extent = source.getExtent();
       if (extent && extent[0] !== Infinity) {
+        lastFitKeyRef.current = fitKey;
         map.getView().fit(extent, {
           padding: [50, 50, 50, 50],
           maxZoom: 14,
