@@ -69,6 +69,20 @@ V Supabase Dashboard:
    - Policies je potřeba nastavit přes Storage UI nebo Supabase CLI
    - Prozatím buckety fungují jako veřejné (public), ale chybí přístupová omezení
 
+#### Migration 005: Player Locations
+
+- Soubor: `supabase/migrations/005_player_locations.sql`
+- Tabulka `player_locations` pro živé sdílení polohy hráčů s tvůrcem hry, view `active_players_view`
+
+#### Migration 006: Security Fixes
+
+- Soubor: `supabase/migrations/006_security_fixes.sql`
+- `active_players_view` s `security_invoker` (bez něj view obchází RLS a polohy hráčů čte kdokoli)
+- tvůrce může založit session i pro vlastní draft
+- doplňuje sloupce `games.tags` a `checkpoints.is_fake`, které produkce už má
+- pevný `search_path` u SECURITY DEFINER funkcí
+- Před spuštěním porovnat s produkcí (`supabase db diff`), produkční schéma bylo měněno i mimo migrace
+
 ### Krok 4: Ověření
 
 Zkontroluj v Supabase Dashboard:
