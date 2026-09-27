@@ -14,24 +14,16 @@ export function compareDMSCoordinates(
   secret: CoordinateDMS,
   toleranceSeconds: number = 1
 ): boolean {
-  // Pokud se směr liší, souřadnice se neshodují
-  if (input.direction !== secret.direction) {
-    return false;
-  }
+  // Porovnání v celkových sekundách se znaménkem – tolerance tak platí i přes hranici
+  // minuty či stupně (50°4'59" vs 50°5'0" je rozdíl 1 s, ne jiná minuta)
+  const diff = Math.abs(toSignedSeconds(input) - toSignedSeconds(secret));
+  // Malá rezerva kvůli desetinným sekundám v uloženém řešení
+  return diff <= toleranceSeconds + 1e-9;
+}
 
-  // Porovnání stupňů - musí být přesné
-  if (input.degrees !== secret.degrees) {
-    return false;
-  }
-
-  // Porovnání minut - musí být přesné
-  if (input.minutes !== secret.minutes) {
-    return false;
-  }
-
-  // Porovnání sekund - s tolerancí
-  const secondsDiff = Math.abs(input.seconds - secret.seconds);
-  return secondsDiff <= toleranceSeconds;
+function toSignedSeconds(coord: CoordinateDMS): number {
+  const sign = coord.direction === 'S' || coord.direction === 'W' ? -1 : 1;
+  return sign * (coord.degrees * 3600 + coord.minutes * 60 + coord.seconds);
 }
 
 /**

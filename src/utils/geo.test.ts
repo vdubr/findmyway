@@ -53,6 +53,13 @@ describe('Geo Utils', () => {
       expect(result.direction).toBe('N');
     });
 
+    it('přenese zaokrouhlených 60 sekund do minut', () => {
+      // 50.0833333 = 50°4'59.99" → nesmí vyjít 50°4'60"
+      const result = decimalToDMS(50.0833333, true);
+
+      expect(result).toEqual({ degrees: 50, minutes: 5, seconds: 0, direction: 'N' });
+    });
+
     it('should convert negative decimal to DMS with correct direction', () => {
       const result = decimalToDMS(-14.4213, false);
 

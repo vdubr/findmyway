@@ -49,6 +49,20 @@ describe('compareDMSCoordinates', () => {
 
     expect(compareDMSCoordinates(coord1, coord2, 1)).toBe(false);
   });
+
+  it('toleruje rozdíl přes hranici minuty', () => {
+    const secret: CoordinateDMS = { degrees: 50, minutes: 4, seconds: 59, direction: 'N' };
+    const input: CoordinateDMS = { degrees: 50, minutes: 5, seconds: 0, direction: 'N' };
+
+    expect(compareDMSCoordinates(input, secret, 1)).toBe(true);
+  });
+
+  it('toleruje rozdíl přes hranici stupně', () => {
+    const secret: CoordinateDMS = { degrees: 49, minutes: 59, seconds: 59, direction: 'N' };
+    const input: CoordinateDMS = { degrees: 50, minutes: 0, seconds: 0, direction: 'N' };
+
+    expect(compareDMSCoordinates(input, secret, 1)).toBe(true);
+  });
 });
 
 describe('validateCoordinateInput', () => {

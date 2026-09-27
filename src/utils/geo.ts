@@ -86,10 +86,20 @@ export function decimalToDMS(
   direction: 'N' | 'S' | 'E' | 'W';
 } {
   const absolute = Math.abs(decimal);
-  const degrees = Math.floor(absolute);
+  let degrees = Math.floor(absolute);
   const minutesFloat = (absolute - degrees) * 60;
-  const minutes = Math.floor(minutesFloat);
-  const seconds = Math.round((minutesFloat - minutes) * 60);
+  let minutes = Math.floor(minutesFloat);
+  let seconds = Math.round((minutesFloat - minutes) * 60);
+
+  // Zaokrouhlení může dát 60 s (např. 50.0833333 → 50°4'60") – přenést do minut/stupňů
+  if (seconds === 60) {
+    seconds = 0;
+    minutes += 1;
+  }
+  if (minutes === 60) {
+    minutes = 0;
+    degrees += 1;
+  }
 
   let direction: 'N' | 'S' | 'E' | 'W';
   if (isLatitude) {
