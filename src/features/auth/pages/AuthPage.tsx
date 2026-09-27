@@ -7,6 +7,7 @@ import {
   CircularProgress,
   Container,
   Divider,
+  Snackbar,
   Stack,
   TextField,
   Typography,
@@ -20,6 +21,7 @@ export default function AuthPage() {
   const navigate = useNavigate();
   const { signInWithGoogle, signInWithEmail, signUpWithEmail, user } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -63,8 +65,8 @@ export default function AuthPage() {
 
       if (isSignUp) {
         await signUpWithEmail(email, password);
-        // Po registraci zobrazíme úspěšnou zprávu
-        alert('Registrace proběhla úspěšně! Nyní se můžete přihlásit.');
+        // Po registraci zobrazíme úspěšnou zprávu přes Snackbar
+        setSuccessMessage('Registrace proběhla úspěšně! Nyní se můžete přihlásit.');
         setIsSignUp(false);
         setPassword('');
       } else {
@@ -93,6 +95,9 @@ export default function AuthPage() {
       }
 
       setError(errorMessage);
+    } finally {
+      // Po registraci uživatel přihlášen není, formulář musí zůstat použitelný.
+      // Po přihlášení přesměruje useEffect výše.
       setLoading(false);
     }
   };
@@ -223,6 +228,17 @@ export default function AuthPage() {
           Vytvořením účtu souhlasíte s našimi podmínkami použití
         </Typography>
       </Box>
+
+      <Snackbar
+        open={successMessage !== null}
+        autoHideDuration={6000}
+        onClose={() => setSuccessMessage(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="success" variant="filled" onClose={() => setSuccessMessage(null)}>
+          {successMessage}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }
