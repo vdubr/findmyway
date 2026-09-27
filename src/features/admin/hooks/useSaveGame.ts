@@ -29,7 +29,7 @@ export function useSaveGame(): UseSaveGameReturn {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const { reset } = useGameEditorStore();
+  const reset = useGameEditorStore((state) => state.reset);
 
   const saveNewGame = async () => {
     const { currentGame, tempCheckpoints } = useGameEditorStore.getState();
@@ -61,6 +61,7 @@ export function useSaveGame(): UseSaveGameReturn {
             type: checkpoint.type,
             content: checkpoint.content,
             secret_solution: checkpoint.secret_solution || undefined,
+            is_fake: checkpoint.is_fake ?? false,
           });
         }
       } catch (checkpointErr) {
@@ -71,35 +72,42 @@ export function useSaveGame(): UseSaveGameReturn {
         throw checkpointErr;
       }
 
-      setSuccessMessage(`Hra "${createdGame.title}" byla uspesne vytvorena!`);
+      setSuccessMessage(`Hra "${createdGame.title}" byla úspěšně vytvořena!`);
       reset();
       navigate(`/games/${createdGame.id}/edit/base`);
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Chyba pri ukladani hry');
+      setErrorMessage(err instanceof Error ? err.message : 'Chyba při ukládání hry');
     } finally {
       setIsSaving(false);
     }
   };
 
   const updateExistingGame = async () => {
-    const { currentGame, tempCheckpoints, deletedCheckpointIds } = useGameEditorStore.getState();
+    const { currentGame, tempCheckpoints, deletedCheckpointIds, updateTempCheckpoint } =
+      useGameEditorStore.getState();
     if (!currentGame?.id) return;
 
     try {
       setIsSaving(true);
       setErrorMessage(null);
 
-      // 1. Update game details
+      // 1. Update game details (null = popis smazaný, undefined by sloupec nezměnil)
       await updateGame(currentGame.id, {
         title: currentGame.title,
-        description: currentGame.description || undefined,
+        description: currentGame.description || null,
         is_public: currentGame.is_public,
         difficulty: currentGame.difficulty,
         settings: currentGame.settings,
         tags: currentGame.tags,
       });
 
-      // 2. Handle checkpoints - update existing, create new
+      // 2. Nejdřív smazat odebrané checkpointy – jinak by jejich order_index kolidoval
+      // s přečíslovanými zbývajícími body (UNIQUE game_id + order_index)
+      for (const id of deletedCheckpointIds) {
+        await deleteCheckpoint(id);
+      }
+
+      // 3. Handle checkpoints - update existing, create new
       const existingCheckpoints = tempCheckpoints.filter((cp) => cp.id);
       const newCheckpoints = tempCheckpoints.filter((cp) => !cp.id);
 
@@ -119,12 +127,14 @@ export function useSaveGame(): UseSaveGameReturn {
           radius: checkpoint.radius,
           type: checkpoint.type,
           content: checkpoint.content,
-          secret_solution: checkpoint.secret_solution || undefined,
+          // null = řešení odebrané, undefined by sloupec nezměnil
+          secret_solution: checkpoint.secret_solution ?? null,
+          is_fake: checkpoint.is_fake ?? false,
         });
       }
 
       for (const checkpoint of newCheckpoints) {
-        await createCheckpoint({
+        const created = await createCheckpoint({
           game_id: currentGame.id,
           order_index: checkpoint.order_index,
           latitude: checkpoint.latitude,
@@ -133,19 +143,17 @@ export function useSaveGame(): UseSaveGameReturn {
           type: checkpoint.type,
           content: checkpoint.content,
           secret_solution: checkpoint.secret_solution || undefined,
+          is_fake: checkpoint.is_fake ?? false,
         });
+        // Zapsat ID zpět – při opakovaném uložení po chybě se bod nevytvoří podruhé
+        updateTempCheckpoint(checkpoint.tempId, { id: created.id });
       }
 
-      // 3. Smazat checkpointy odebrane behem editace
-      for (const id of deletedCheckpointIds) {
-        await deleteCheckpoint(id);
-      }
-
-      setSuccessMessage(`Hra "${currentGame.title}" byla uspesne aktualizovana!`);
+      setSuccessMessage(`Hra "${currentGame.title}" byla úspěšně aktualizována!`);
       reset();
       navigate(`/games/${currentGame.id}`);
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Chyba pri ukladani zmen');
+      setErrorMessage(err instanceof Error ? err.message : 'Chyba při ukládání změn');
     } finally {
       setIsSaving(false);
     }
