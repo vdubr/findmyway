@@ -15,7 +15,9 @@ import type {
 } from '../types';
 import {
   createAnonymousSession,
+  extractGameIdFromAnonymousSessionId,
   getAnonymousSession,
+  isAnonymousSessionId,
   updateAnonymousSession,
 } from './anonymousSessions';
 import type { Json } from './database.types';
@@ -378,8 +380,8 @@ export async function updateSessionProgress(
   metadata?: SessionMetadata
 ) {
   // Anonymní session - aktualizovat localStorage
-  if (sessionId.startsWith('anonymous_')) {
-    const gameId = sessionId.slice('anonymous_'.length);
+  if (isAnonymousSessionId(sessionId)) {
+    const gameId = extractGameIdFromAnonymousSessionId(sessionId);
     if (!gameId) throw new Error(`Invalid anonymous session ID: "${sessionId}"`);
     const session = getAnonymousSession(gameId);
     if (!session) {
@@ -410,8 +412,8 @@ export async function updateSessionProgress(
 
 export async function completeGameSession(sessionId: string, score: number) {
   // Anonymní session - dokončit v localStorage
-  if (sessionId.startsWith('anonymous_')) {
-    const gameId = sessionId.slice('anonymous_'.length);
+  if (isAnonymousSessionId(sessionId)) {
+    const gameId = extractGameIdFromAnonymousSessionId(sessionId);
     if (!gameId) throw new Error(`Invalid anonymous session ID: "${sessionId}"`);
     const session = getAnonymousSession(gameId);
     if (!session) {
