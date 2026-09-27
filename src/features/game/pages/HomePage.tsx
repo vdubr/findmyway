@@ -66,7 +66,7 @@ export default function HomePage() {
       setDraftGames(draftData as unknown as GameWithCheckpoints[]);
     } catch (err) {
       console.error('Error loading games:', err);
-      setError('Nepodarilo se nacist hry');
+      setError('Nepodařilo se načíst hry');
     } finally {
       setLoading(false);
     }
@@ -177,7 +177,7 @@ export default function HomePage() {
                 exclusive
                 onChange={handleViewModeChange}
                 size="small"
-                aria-label="rezim zobrazeni"
+                aria-label="režim zobrazení"
               >
                 <ToggleButton value="cards" aria-label="karty">
                   <CardsIcon sx={{ mr: 0.5 }} />
@@ -239,8 +239,8 @@ export default function HomePage() {
 
         {games.length === 0 ? (
           <Alert severity="info">
-            <Typography>Zatim nejsou k dispozici zadne verejne hry.</Typography>
-            {user && <Typography variant="body2">Budte prvni a vytvorte hru!</Typography>}
+            <Typography>Zatím nejsou k dispozici žádné veřejné hry.</Typography>
+            {user && <Typography variant="body2">Buďte první a vytvořte hru!</Typography>}
           </Alert>
         ) : filteredGames.length === 0 ? (
           <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>

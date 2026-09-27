@@ -373,7 +373,7 @@ export default function DemoPlayer({ game, tempCheckpoints, onExit }: DemoPlayer
               },
               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
             }}
-            aria-label={followGps ? 'Vypnout sledovani polohy' : 'Sledovat polohu na mape'}
+            aria-label={followGps ? 'Vypnout sledování polohy' : 'Sledovat polohu na mapě'}
           >
             {followGps ? <MyLocationIcon /> : <LocationDisabledIcon />}
           </Fab>

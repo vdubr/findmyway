@@ -289,13 +289,13 @@ export default function GamesMapView({
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
               <Chip
                 icon={<LocationIcon />}
-                label={`${selectedGame.checkpoints.length} checkpointu`}
+                label={`${selectedGame.checkpoints.length} checkpointů`}
                 size="small"
                 color="primary"
                 variant="outlined"
               />
               <Chip
-                label={`Obtiznost: ${'*'.repeat(selectedGame.difficulty)}`}
+                label={`Obtížnost: ${'*'.repeat(selectedGame.difficulty)}`}
                 size="small"
                 variant="outlined"
               />
@@ -329,7 +329,7 @@ export default function GamesMapView({
             textAlign: 'center',
           }}
         >
-          <Typography color="text.secondary">Zadna hra nema definovane checkpointy</Typography>
+          <Typography color="text.secondary">Žádná hra nemá definované checkpointy</Typography>
         </Box>
       )}
     </Box>

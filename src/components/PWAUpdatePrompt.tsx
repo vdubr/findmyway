@@ -76,13 +76,13 @@ export default function PWAUpdatePrompt() {
             >
               Aktualizovat
             </Button>
-            <IconButton size="small" aria-label="zavrit" color="inherit" onClick={handleDismiss}>
+            <IconButton size="small" aria-label="zavřít" color="inherit" onClick={handleDismiss}>
               <CloseIcon fontSize="small" />
             </IconButton>
           </Box>
         }
       >
-        Nova verze je dostupna!
+        Nová verze je dostupná!
       </Alert>
     </Snackbar>
   );

@@ -13,7 +13,7 @@ export default function LandingPage() {
           FindMyWay
         </Typography>
         <Typography variant="h6" color="text.secondary">
-          Pomoz lisce projit trasu a najit poklad.
+          Pomoz lišce projít trasu a najít poklad.
         </Typography>
       </Container>
 

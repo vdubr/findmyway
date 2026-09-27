@@ -51,7 +51,7 @@ export default function LivePlayersMap({ game, open, onClose }: LivePlayersMapPr
         }
       } catch (err) {
         if (!cancelled) {
-          console.error('Chyba pri nacitani checkpointu:', err);
+          console.error('Chyba při načítání checkpointů:', err);
         }
       }
     };
@@ -96,7 +96,7 @@ export default function LivePlayersMap({ game, open, onClose }: LivePlayersMapPr
         longitude: player.longitude,
       },
       type: 'player' as const,
-      tooltip: `${player.username || 'Hrac'} (${player.current_checkpoint_index + 1}/${checkpoints.length})`,
+      tooltip: `${player.username || 'Hráč'} (${player.current_checkpoint_index + 1}/${checkpoints.length})`,
     })),
   ];
 
@@ -111,7 +111,7 @@ export default function LivePlayersMap({ game, open, onClose }: LivePlayersMapPr
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <PeopleIcon color="primary" />
-          <Typography variant="h6">Aktivni hraci - {game.title}</Typography>
+          <Typography variant="h6">Aktivní hráči – {game.title}</Typography>
         </Box>
         <IconButton onClick={onClose} size="small">
           <CloseIcon />
@@ -134,7 +134,7 @@ export default function LivePlayersMap({ game, open, onClose }: LivePlayersMapPr
                   bgcolor: 'grey.100',
                 }}
               >
-                <Typography color="text.secondary">Nacitam mapu...</Typography>
+                <Typography color="text.secondary">Načítám mapu...</Typography>
               </Box>
             )}
           </Box>
@@ -158,7 +158,7 @@ export default function LivePlayersMap({ game, open, onClose }: LivePlayersMapPr
             {players.length === 0 ? (
               <Box sx={{ p: 2, textAlign: 'center' }}>
                 <Typography variant="body2" color="text.secondary">
-                  Zadni aktivni hraci
+                  Žádní aktivní hráči
                 </Typography>
               </Box>
             ) : (
@@ -166,7 +166,7 @@ export default function LivePlayersMap({ game, open, onClose }: LivePlayersMapPr
                 {players.map((player) => (
                   <ListItem key={player.id}>
                     <ListItemText
-                      primary={player.username || 'Neznamy hrac'}
+                      primary={player.username || 'Neznámý hráč'}
                       secondary={`Checkpoint ${player.current_checkpoint_index + 1}/${checkpoints.length}`}
                     />
                   </ListItem>
