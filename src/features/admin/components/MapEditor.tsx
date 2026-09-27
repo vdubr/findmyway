@@ -117,9 +117,10 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
     }));
   }, [tempCheckpoints, showRadii]);
 
+  // Mapu po přidání bodu nepřecentrovávat – posun a návrat na výchozí zoom by znemožnil
+  // přesné umisťování dalších bodů
   const handleMapClick = (location: GeoLocation) => {
     addTempCheckpoint(location.latitude, location.longitude);
-    setMapCenter(location);
   };
 
   const handleEditCheckpoint = (tempId: string) => {
@@ -318,7 +319,6 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
                       onDragOver={(e) => handleDragOver(e, index)}
                       onDrop={(e) => handleDrop(e, index)}
                       onDragEnd={handleDragEnd}
-                      onTouchStart={(e) => handleTouchStart(e, index)}
                       onTouchEnd={handleTouchEnd}
                       sx={{
                         border: 1,
@@ -374,8 +374,17 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
                         </Stack>
                       }
                     >
+                      {/* Touch drag jen z úchytu – tah po zbytku položky scrolluje stránku */}
                       <DragIcon
-                        sx={{ mr: 1, color: 'text.disabled', cursor: 'grab', flexShrink: 0 }}
+                        onTouchStart={(e) => handleTouchStart(e, index)}
+                        sx={{
+                          mr: 1,
+                          color: 'text.disabled',
+                          cursor: 'grab',
+                          flexShrink: 0,
+                          fontSize: 28,
+                          touchAction: 'none',
+                        }}
                       />
                       <ListItemText
                         primary={

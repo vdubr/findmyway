@@ -87,6 +87,12 @@ export function useSaveGame(): UseSaveGameReturn {
       useGameEditorStore.getState();
     if (!currentGame?.id) return;
 
+    // Formulář základního info se synchronizuje průběžně, validace ale běží jen při jeho odeslání
+    if (currentGame.title.trim().length < 3) {
+      setErrorMessage('Název hry musí mít alespoň 3 znaky (záložka Základní info).');
+      return;
+    }
+
     try {
       setIsSaving(true);
       setErrorMessage(null);
@@ -149,9 +155,10 @@ export function useSaveGame(): UseSaveGameReturn {
         updateTempCheckpoint(checkpoint.tempId, { id: created.id });
       }
 
-      setSuccessMessage(`Hra "${currentGame.title}" byla úspěšně aktualizována!`);
       reset();
-      navigate(`/games/${currentGame.id}`);
+      navigate(`/games/${currentGame.id}`, {
+        state: { successMessage: `Hra "${currentGame.title}" byla úspěšně aktualizována!` },
+      });
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Chyba při ukládání změn');
     } finally {

@@ -70,6 +70,9 @@ interface GameEditorState {
   reset: () => void;
 }
 
+// Pořadové číslo posledního načítání hry (viz loadGame)
+let loadRequestId = 0;
+
 export const useGameEditorStore = create<GameEditorState>((set, get) => ({
   currentGame: null,
   tempCheckpoints: [],
@@ -84,7 +87,7 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
   setCurrentGame: (game) => set({ currentGame: game }),
 
   initNewGame: (gameData) =>
-    set({
+    set((state) => ({
       currentGame: {
         id: '', // Will be set after save
         creator_id: '',
@@ -105,9 +108,10 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
-      tempCheckpoints: [],
+      // Návrat z mapy na základní info u rozpracované nové hry nesmí smazat rozmístěné body
+      tempCheckpoints: state.currentGame && !state.currentGame.id ? state.tempCheckpoints : [],
       isMapEditorOpen: true,
-    }),
+    })),
 
   initEditGame: (game, checkpoints) =>
     set({
@@ -131,14 +135,9 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
 
   // Načtení hry z API podle ID (pro URL routing)
   loadGame: async (gameId: string) => {
-    // Pokud už máme hru se stejným ID, nepřenačítáme
-    const current = get().currentGame;
-    if (current && current.id === gameId && get().tempCheckpoints.length > 0) {
-      return;
-    }
-
-    // Guard proti race condition – zabráníme dvojitému načtení
-    if (get().isLoading) return;
+    // Odpověď pro hru, kterou mezitím nahradila jiná (nebo editor zavřel), se zahodí –
+    // jinak by pod URL hry B skončila data hry A
+    const requestId = ++loadRequestId;
 
     try {
       set({ isLoading: true, loadError: null });
@@ -148,6 +147,7 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
         getGameById(gameId, { offlineFallback: false }),
         getCheckpointsByGameId(gameId, { offlineFallback: false }),
       ]);
+      if (requestId !== loadRequestId) return;
 
       set({
         currentGame: gameData,
@@ -169,6 +169,7 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
         isLoading: false,
       });
     } catch (err) {
+      if (requestId !== loadRequestId) return;
       set({
         isLoading: false,
         loadError: err instanceof Error ? err.message : 'Chyba pri nacitani hry',
@@ -280,7 +281,8 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
   toggleCheckpointEditor: () =>
     set((state) => ({ isCheckpointEditorOpen: !state.isCheckpointEditorOpen })),
 
-  reset: () =>
+  reset: () => {
+    loadRequestId++;
     set({
       currentGame: null,
       tempCheckpoints: [],
@@ -291,5 +293,6 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
       isSaving: false,
       isLoading: false,
       loadError: null,
-    }),
+    });
+  },
 }));

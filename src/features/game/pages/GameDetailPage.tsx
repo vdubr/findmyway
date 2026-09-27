@@ -2,18 +2,20 @@
 
 import { Edit as EditIcon, Flag as FlagIcon, PlayArrow as PlayIcon } from '@mui/icons-material';
 import {
+  Alert,
   Box,
   Button,
   Chip,
   Container,
   Divider,
   FormControlLabel,
+  Snackbar,
   Stack,
   Switch,
   Typography,
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import DifficultyIcon from '../../../components/DifficultyIcon';
 import ErrorDisplay from '../../../components/ErrorDisplay';
 import LoadingSpinner from '../../../components/LoadingSpinner';
@@ -31,6 +33,10 @@ type GameFull = GameWithCreator & { checkpoints: Checkpoint[] };
 export default function GameDetailPage() {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Hláška z editoru po uložení (editor se po uložení odmountuje, jeho Snackbar by zmizel)
+  const successMessage = (location.state as { successMessage?: string } | null)?.successMessage;
+  const clearSuccessMessage = () => navigate(location.pathname, { replace: true, state: null });
   const { user } = useAuth();
   const setDetailGame = useGameDetailStore((s) => s.setGame);
 
@@ -191,6 +197,12 @@ export default function GameDetailPage() {
           Vytvořil: {game.creator?.username ?? 'Neznámý'}
         </Typography>
       </Stack>
+
+      <Snackbar open={!!successMessage} autoHideDuration={6000} onClose={clearSuccessMessage}>
+        <Alert severity="success" onClose={clearSuccessMessage}>
+          {successMessage}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

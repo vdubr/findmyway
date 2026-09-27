@@ -17,11 +17,12 @@ import {
   Tabs,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import ErrorDisplay from '../../../components/ErrorDisplay';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 import { deleteGame, updateGame } from '../../../lib/api';
 import type { CreateGameInput } from '../../../types';
+import { useAuth } from '../../auth/AuthContext';
 import CheckpointEditor from '../components/CheckpointEditor';
 import DemoPlayer from '../components/DemoPlayer';
 import GameCreatorForm from '../components/GameCreatorForm';
@@ -68,14 +69,27 @@ export default function AdminEditPage() {
   // Je to nova hra?
   const isNewGame = gameId === 'new';
 
-  // Nacist hru z API pri mountu (jen pro existujici hry); nova hra = reset storu
+  const { user } = useAuth();
+
+  // Nacist hru z API pri mountu (jen pro existujici hry); nova hra = reset storu.
+  // Při odchodu z editoru store vyčistit – jinak by se po návratu ukázal starý
+  // neuložený stav místo aktuálních dat z DB.
   useEffect(() => {
     if (isNewGame) {
       reset();
     } else if (gameId) {
       loadGame(gameId);
     }
+    return () => reset();
   }, [gameId, isNewGame, loadGame, reset]);
+
+  // Nová hra bez vyplněného základního info (např. reload na /games/new/edit/checkpoints)
+  // by nešla uložit – vrátit na první krok
+  useEffect(() => {
+    if (isNewGame && currentTab !== 'base' && !currentGame) {
+      navigate('/games/new/edit/base', { replace: true });
+    }
+  }, [isNewGame, currentTab, currentGame, navigate]);
 
   // Redirect na /base pokud je nevalidni tab
   useEffect(() => {
@@ -105,13 +119,16 @@ export default function AdminEditPage() {
 
   // Smazat hru
   const handleDeleteConfirm = async () => {
-    if (!currentGame?.id) return;
+    if (!currentGame?.id) {
+      setDeleteDialogOpen(false);
+      return;
+    }
     try {
       await deleteGame(currentGame.id);
       reset();
       navigate('/games');
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Chyba pri mazani hry');
+      setActionError(err instanceof Error ? err.message : 'Chyba při mazání hry');
     } finally {
       setDeleteDialogOpen(false);
     }
@@ -126,7 +143,7 @@ export default function AdminEditPage() {
       await updateGame(currentGame.id, { status: newStatus });
       setCurrentGame({ ...currentGame, status: newStatus });
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Chyba pri zmene stavu hry');
+      setActionError(err instanceof Error ? err.message : 'Chyba při změně stavu hry');
     } finally {
       setIsPublishing(false);
     }
@@ -154,6 +171,12 @@ export default function AdminEditPage() {
     );
   }
 
+  // Editovat smí jen tvůrce hry (zápis by stejně zablokovalo RLS, ale editor by
+  // ukázal cizí hru včetně řešení a mazání by vypadalo jako úspěšné)
+  if (!isNewGame && currentGame && user && currentGame.creator_id !== user.id) {
+    return <Navigate to={`/games/${gameId}`} replace />;
+  }
+
   // Rozhodnout jestli jde o save nove hry nebo update existujici
   const handleSave = isNewGame ? saveNewGame : updateExistingGame;
   const handleFormSubmit = isNewGame ? handleNewGameFormSubmit : handleEditFormSubmit;
@@ -164,14 +187,13 @@ export default function AdminEditPage() {
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        // Pro checkpoints tab - zabrat celou dostupnou vysku, nescrollovat
+        // Pro checkpoints tab na desktopu (mapa a seznam vedle sebe) zabrat celou dostupnou
+        // výšku a nescrollovat. Na mobilu jsou pod sebou – stránka musí scrollovat, jinak by
+        // spodek seznamu a tlačítko Uložit hru nebyly dosažitelné.
         ...(currentTab === 'checkpoints' && {
-          height: {
-            xs: 'calc(100dvh - 56px - env(safe-area-inset-top))',
-            sm: 'calc(100dvh - 64px - env(safe-area-inset-top))',
-          },
-          minHeight: 0,
-          overflow: 'hidden',
+          height: { md: 'calc(100dvh - 64px - env(safe-area-inset-top))' },
+          minHeight: { md: 0 },
+          overflow: { md: 'hidden' },
         }),
       }}
     >
@@ -210,13 +232,13 @@ export default function AdminEditPage() {
         {isNewGame ? (
           // Nova hra - jednosmerne taby (form -> checkpoints)
           <Tabs value={currentTab} onChange={handleTabChange}>
-            <Tab label="1. Zakladni info" value="base" disabled={currentTab === 'checkpoints'} />
+            <Tab label="1. Základní info" value="base" disabled={currentTab === 'checkpoints'} />
             <Tab label="2. Checkpointy" value="checkpoints" disabled={currentTab === 'base'} />
           </Tabs>
         ) : (
           // Existujici hra - volne prepinatelne taby
           <Tabs value={currentTab} onChange={handleTabChange}>
-            <Tab label="1. Zakladni info" value="base" />
+            <Tab label="1. Základní info" value="base" />
             <Tab label="2. Checkpointy" value="checkpoints" />
             <Tab label="3. Demo" value="demo" disabled={tempCheckpoints.length === 0} />
           </Tabs>
@@ -227,7 +249,7 @@ export default function AdminEditPage() {
       {currentTab === 'base' && (
         <Box sx={{ py: 3 }}>
           {isNewGame && !currentGame ? (
-            <GameCreatorForm onSubmit={handleFormSubmit} />
+            <GameCreatorForm onSubmit={handleFormSubmit} isLoading={isSaving} />
           ) : (
             currentGame && (
               <>
@@ -241,11 +263,14 @@ export default function AdminEditPage() {
                     settings: currentGame.settings,
                   }}
                   onSubmit={handleFormSubmit}
+                  // Změny průběžně do storu – jinak by se po přepnutí na mapu a uložení ztratily
+                  onChange={isNewGame ? undefined : updateCurrentGame}
+                  isLoading={isSaving}
                   isEditMode={!isNewGame}
                   isPublished={currentGame.status === 'published'}
                   isPublishing={isPublishing}
                   onTogglePublish={handleTogglePublish}
-                  onDelete={() => setDeleteDialogOpen(true)}
+                  onDelete={isNewGame ? undefined : () => setDeleteDialogOpen(true)}
                 />
               </>
             )
@@ -306,12 +331,12 @@ export default function AdminEditPage() {
         <DialogTitle>Smazat hru?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Opravdu chcete smazat hru "{currentGame?.title}"? Tato akce je nevratna a smaze i
-            vsechny checkpointy.
+            Opravdu chcete smazat hru "{currentGame?.title}"? Tato akce je nevratná a smaže i
+            všechny checkpointy.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Zrusit</Button>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Zrušit</Button>
           <Button onClick={handleDeleteConfirm} color="error" variant="contained">
             Smazat
           </Button>

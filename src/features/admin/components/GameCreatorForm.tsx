@@ -14,13 +14,15 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CreateGameInput } from '../../../types';
 import { GAME_TAGS } from '../../../utils/constants';
 
 interface GameCreatorFormProps {
   initialValues?: Partial<CreateGameInput>;
   onSubmit: (gameData: CreateGameInput) => void;
+  // Volá se při každé změně formuláře (průběžná synchronizace se storem editoru)
+  onChange?: (gameData: CreateGameInput) => void;
   isLoading?: boolean;
   isEditMode?: boolean; // True pokud editujeme existujici hru
   // Stav publikace (jen v editacnim rezimu)
@@ -50,6 +52,7 @@ const DEFAULT_VALUES: CreateGameInput = {
 export default function GameCreatorForm({
   initialValues,
   onSubmit,
+  onChange,
   isLoading = false,
   isEditMode = false,
   isPublished = false,
@@ -67,6 +70,13 @@ export default function GameCreatorForm({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Ref, aby se efekt nespouštěl při každé nové referenci callbacku od rodiče
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  useEffect(() => {
+    onChangeRef.current?.(formData);
+  }, [formData]);
 
   const handleChange = (field: keyof CreateGameInput, value: unknown) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -255,7 +265,7 @@ export default function GameCreatorForm({
                   disabled={isLoading}
                 />
               }
-              label="Vyzadovat sdileni polohy hracu (admin vidi pozice v realnem case)"
+              label="Vyžadovat sdílení polohy hráčů (admin vidí pozice v reálném čase)"
             />
 
             {/* Max hráči */}

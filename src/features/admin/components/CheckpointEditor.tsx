@@ -27,7 +27,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
-import { deleteCheckpointImage, uploadCheckpointImage } from '../../../lib/api';
+import { uploadCheckpointImage } from '../../../lib/api';
 import type { CheckpointType, CoordinateDMS } from '../../../types';
 import MiniMapPicker from '../../map/components/MiniMapPicker';
 import { type TempCheckpoint, useGameEditorStore } from '../store/gameEditorStore';
@@ -103,8 +103,11 @@ export default function CheckpointEditor({ open, onClose }: CheckpointEditorProp
   const handleSave = async () => {
     if (!formData || !selectedCheckpointId) return;
 
-    // Nejdřív nahrajeme obrázek, pokud existuje
-    const imageUrl = await handleImageUpload();
+    // Nejdřív nahrajeme obrázek, pokud existuje. Při selhání drawer nezavírat –
+    // jinak by se chyba nezobrazila a přepsal by se i odkaz na původní obrázek.
+    const upload = await handleImageUpload();
+    if (!upload.ok) return;
+    const imageUrl = upload.url;
 
     // Aktualizujeme formData s URL obrázku
     const finalFormData = {
@@ -161,23 +164,16 @@ export default function CheckpointEditor({ open, onClose }: CheckpointEditorProp
     reader.readAsDataURL(file);
   };
 
-  const handleImageDelete = async () => {
-    // Pokud má obrázek URL, smažeme ho ze storage
-    if (formData.content?.image_url) {
-      try {
-        await deleteCheckpointImage(formData.content.image_url);
-      } catch (err) {
-        console.error('Failed to delete image:', err);
-      }
-    }
-
+  const handleImageDelete = () => {
+    // Ze storage se nemaže hned: po Zrušit nebo neuložené hře by v DB zůstal odkaz
+    // na smazaný soubor a hráči by viděli rozbitý obrázek
     setImageFile(null);
     setImagePreview(null);
     handleContentChange('image_url', null);
   };
 
-  const handleImageUpload = async (): Promise<string | null> => {
-    if (!imageFile) return formData.content?.image_url || null;
+  const handleImageUpload = async (): Promise<{ ok: true; url: string | null } | { ok: false }> => {
+    if (!imageFile) return { ok: true, url: formData.content?.image_url || null };
 
     setUploadingImage(true);
     setImageError(null);
@@ -190,12 +186,12 @@ export default function CheckpointEditor({ open, onClose }: CheckpointEditorProp
 
       const imageUrl = await uploadCheckpointImage(gameId, checkpointId, imageFile);
       setUploadingImage(false);
-      return imageUrl;
+      return { ok: true, url: imageUrl };
     } catch (err) {
       console.error('Image upload failed:', err);
       setImageError('Nahrání obrázku selhalo. Zkuste to znovu.');
       setUploadingImage(false);
-      return null;
+      return { ok: false };
     }
   };
 
