@@ -20,7 +20,9 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt': o přenačtení rozhoduje uživatel přes PWAUpdatePrompt. 'autoUpdate' stránku
+      // přenačetl sám, i uprostřed editace hry, a neuložené změny zmizely.
+      registerType: 'prompt',
       includeAssets: ['vite.svg', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'GeoQuest - GPS Treasure Hunt',
@@ -46,9 +48,8 @@ export default defineConfig({
         ],
       },
       workbox: {
-        skipWaiting: true,
-        clientsClaim: true,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        // mp4 = video lišky v dialogu checkpointu, bez něj by offline zůstalo černé okno
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,mp4}'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -79,13 +80,28 @@ export default defineConfig({
             },
           },
           {
-            // OpenLayers tile cache
-            urlPattern: /^https:\/\/.*\.tile\.openstreetmap\.org\/.*/i,
+            // OpenLayers tile cache – OL 10 používá https://tile.openstreetmap.org (bez subdomény)
+            urlPattern: /^https:\/\/([a-c]\.)?tile\.openstreetmap\.org\/.*/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'openstreetmap-tiles',
               expiration: {
                 maxEntries: 500,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 dní
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          {
+            // Obrázky checkpointů ze Supabase Storage (veřejný bucket) – pro hraní offline
+            urlPattern: /^https:\/\/[^/]+\.supabase\.co\/storage\/v1\/object\/public\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'checkpoint-images',
+              expiration: {
+                maxEntries: 200,
                 maxAgeSeconds: 60 * 60 * 24 * 30, // 30 dní
               },
               cacheableResponse: {
