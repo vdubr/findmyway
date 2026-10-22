@@ -9,6 +9,8 @@ interface DistanceIndicatorProps {
   checkpointReached: boolean;
   currentIndex: number;
   totalCheckpoints: number;
+  bearing?: number | null; // azimut k checkpointu (0-360 od severu)
+  heading?: number | null; // kam míří telefon podle kompasu
   onNavigationClick?: () => void; // callback pro klik na navigacni polokouli
 }
 
@@ -18,6 +20,8 @@ export default function DistanceIndicator({
   checkpointReached,
   currentIndex,
   totalCheckpoints,
+  bearing,
+  heading,
   onNavigationClick,
 }: DistanceIndicatorProps) {
   const progress = ((currentIndex + 1) / totalCheckpoints) * 100;
@@ -29,6 +33,8 @@ export default function DistanceIndicator({
         distance={distance}
         isInRadius={isInRadius}
         checkpointReached={checkpointReached}
+        bearing={bearing}
+        heading={heading}
         onClick={onNavigationClick}
       />
 

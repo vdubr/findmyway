@@ -37,6 +37,7 @@ import {
 } from '../../../lib/api';
 import { toUserMessage } from '../../../lib/errors';
 import { LOCATION_UPDATE_INTERVAL } from '../../../utils/constants';
+import { calculateBearing } from '../../../utils/geo';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
 import type { MapZoomRef } from '../../map/hooks/useMapZoom';
 import CheckpointContentDialog from '../components/CheckpointContentDialog';
@@ -315,6 +316,12 @@ export default function PlayerPage() {
     [userLocation, targetLocation]
   );
 
+  // Azimut k aktuálnímu checkpointu pro šipku v navigační polokouli
+  const bearingToCheckpoint = useMemo(
+    () => (userLocation && targetLocation ? calculateBearing(userLocation, targetLocation) : null),
+    [userLocation, targetLocation]
+  );
+
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorDisplay message={error} onRetry={() => loadGameData()} />;
   if (!game || !currentCheckpoint) return null;
@@ -553,6 +560,8 @@ export default function PlayerPage() {
               checkpointReached={checkpointReached}
               currentIndex={currentCheckpointIndex}
               totalCheckpoints={checkpoints.length}
+              bearing={bearingToCheckpoint}
+              heading={heading}
               onNavigationClick={handleNavigationClick}
             />
 

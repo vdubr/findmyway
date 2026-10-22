@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { calculateDistance, decimalToDMS, dmsToDecimal, isWithinRadius } from './geo';
+import {
+  arrowAngle,
+  calculateBearing,
+  calculateDistance,
+  continuousAngle,
+  decimalToDMS,
+  dmsToDecimal,
+  isWithinRadius,
+  relativeBearing,
+} from './geo';
 
 describe('Geo Utils', () => {
   describe('calculateDistance', () => {
@@ -39,6 +48,70 @@ describe('Geo Utils', () => {
       const radius = 10; // 10 metrů
 
       expect(isWithinRadius(user, checkpoint, radius)).toBe(false);
+    });
+  });
+
+  describe('calculateBearing', () => {
+    const origin = { latitude: 50, longitude: 14 };
+
+    it('vrací azimut ke světovým stranám', () => {
+      expect(calculateBearing(origin, { latitude: 50.01, longitude: 14 })).toBeCloseTo(0, 1);
+      expect(calculateBearing(origin, { latitude: 50, longitude: 14.01 })).toBeCloseTo(90, 0);
+      expect(calculateBearing(origin, { latitude: 49.99, longitude: 14 })).toBeCloseTo(180, 1);
+      expect(calculateBearing(origin, { latitude: 50, longitude: 13.99 })).toBeCloseTo(270, 0);
+    });
+
+    it('vrací hodnotu v rozsahu 0-360', () => {
+      const bearing = calculateBearing(origin, { latitude: 50.01, longitude: 13.999 });
+      expect(bearing).toBeGreaterThanOrEqual(0);
+      expect(bearing).toBeLessThan(360);
+      expect(bearing).toBeGreaterThan(270);
+    });
+  });
+
+  describe('relativeBearing', () => {
+    it('0 = cíl přímo vpředu', () => {
+      expect(relativeBearing(90, 90)).toBe(0);
+    });
+
+    it('cíl vpravo a vlevo', () => {
+      expect(relativeBearing(90, 0)).toBe(90);
+      expect(relativeBearing(0, 90)).toBe(270);
+    });
+
+    it('správně přechází přes sever', () => {
+      expect(relativeBearing(10, 350)).toBe(20);
+      expect(relativeBearing(350, 10)).toBe(340);
+    });
+  });
+
+  describe('arrowAngle', () => {
+    it('s kompasem směr vzhledem k natočení telefonu', () => {
+      expect(arrowAngle(90, 30)).toBe(60);
+    });
+
+    it('bez kompasu azimut vůči severu', () => {
+      expect(arrowAngle(135, null)).toBe(135);
+    });
+
+    it('bez polohy null', () => {
+      expect(arrowAngle(null, 10)).toBeNull();
+    });
+  });
+
+  describe('continuousAngle', () => {
+    it('první hodnotu vrací beze změny', () => {
+      expect(continuousAngle(null, 350)).toBe(350);
+    });
+
+    it('přes sever pokračuje nejkratší cestou', () => {
+      expect(continuousAngle(350, 10)).toBe(370);
+      expect(continuousAngle(10, 350)).toBe(-10);
+    });
+
+    it('navazuje i na úhel mimo 0-360', () => {
+      expect(continuousAngle(370, 30)).toBe(390);
+      expect(continuousAngle(-10, 180)).toBe(-180);
     });
   });
 

@@ -14,7 +14,7 @@ import { useDeviceOrientation } from '../../../hooks/useDeviceOrientation';
 import { useGeolocation } from '../../../hooks/useGeolocation';
 import type { Checkpoint, Game } from '../../../types';
 import { hashDms, hashPuzzleAnswer } from '../../../utils/answerCheck';
-import { calculateDistance } from '../../../utils/geo';
+import { calculateBearing, calculateDistance } from '../../../utils/geo';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
 import type { MapZoomRef } from '../../map/hooks/useMapZoom';
 import CheckpointContentDialog from '../../player/components/CheckpointContentDialog';
@@ -99,6 +99,15 @@ export default function DemoPlayer({ game, tempCheckpoints, onExit }: DemoPlayer
   const distanceToCheckpoint =
     position && currentCheckpoint
       ? calculateDistance(
+          { latitude: position.latitude, longitude: position.longitude },
+          { latitude: currentCheckpoint.latitude, longitude: currentCheckpoint.longitude }
+        )
+      : null;
+
+  // Azimut k aktuálnímu checkpointu pro šipku v navigační polokouli
+  const bearingToCheckpoint =
+    position && currentCheckpoint
+      ? calculateBearing(
           { latitude: position.latitude, longitude: position.longitude },
           { latitude: currentCheckpoint.latitude, longitude: currentCheckpoint.longitude }
         )
@@ -406,6 +415,8 @@ export default function DemoPlayer({ game, tempCheckpoints, onExit }: DemoPlayer
           checkpointReached={checkpointReached}
           currentIndex={currentCheckpointIndex}
           totalCheckpoints={checkpoints.length}
+          bearing={bearingToCheckpoint}
+          heading={heading}
           onNavigationClick={handleNavigationClick}
         />
 
