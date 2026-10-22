@@ -39,6 +39,18 @@ export function isWithinRadius(
 }
 
 /**
+ * Délka trasy přes body v daném pořadí
+ * @param points Body seřazené podle pořadí na trase
+ * @returns Součet vzdáleností mezi sousedními body v metrech, pod 2 body undefined
+ */
+export function routeLength(points: GeoLocation[]): number | undefined {
+  if (points.length < 2) return undefined;
+  let total = 0;
+  for (let i = 1; i < points.length; i++) total += calculateDistance(points[i - 1], points[i]);
+  return total;
+}
+
+/**
  * Formátování vzdálenosti pro zobrazení
  * @param meters Vzdálenost v metrech
  * @returns Formátovaný string (např. "15 m" nebo "1.2 km")

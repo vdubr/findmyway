@@ -11,3 +11,15 @@ export function pluralCs(count: number, one: string, few: string, many: string):
   if (abs >= 2 && abs <= 4) return few;
   return many;
 }
+
+/**
+ * Délka hry pro člověka (48 min, 1 h 12 min)
+ * @param ms Doba v milisekundách
+ */
+export function formatDuration(ms: number): string {
+  const totalMinutes = Math.max(1, Math.round(ms / 60000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours === 0) return `${minutes} min`;
+  return minutes === 0 ? `${hours} h` : `${hours} h ${minutes} min`;
+}

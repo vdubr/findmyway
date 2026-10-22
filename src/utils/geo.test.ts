@@ -9,6 +9,7 @@ import {
   formatDistance,
   isWithinRadius,
   relativeBearing,
+  routeLength,
 } from './geo';
 
 describe('Geo Utils', () => {
@@ -49,6 +50,20 @@ describe('Geo Utils', () => {
       const radius = 10; // 10 metrů
 
       expect(isWithinRadius(user, checkpoint, radius)).toBe(false);
+    });
+  });
+
+  describe('routeLength', () => {
+    it('pod dva body není trasa', () => {
+      expect(routeLength([])).toBeUndefined();
+      expect(routeLength([{ latitude: 50, longitude: 14 }])).toBeUndefined();
+    });
+
+    it('sčítá úseky mezi sousedními body', () => {
+      const a = { latitude: 50, longitude: 14 };
+      const b = { latitude: 50.01, longitude: 14 };
+      const c = { latitude: 50.02, longitude: 14 };
+      expect(routeLength([a, b, c])).toBeCloseTo(calculateDistance(a, b) + calculateDistance(b, c));
     });
   });
 
