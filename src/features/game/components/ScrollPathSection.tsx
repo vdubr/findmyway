@@ -1,5 +1,6 @@
 import { Box } from '@mui/material';
 import { useEffect, useRef } from 'react';
+import { brandColors } from '../../../theme';
 
 // Serpentinova cesta — zleva doprava a zpet
 const RIBBON_PATH = [
@@ -98,7 +99,7 @@ export default function ScrollPathSection() {
             ref={pathRef}
             d={RIBBON_PATH}
             fill="none"
-            stroke="#B7E4C7"
+            stroke="#CFE6D5"
             strokeWidth={22}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -109,7 +110,7 @@ export default function ScrollPathSection() {
             ref={trailRef}
             d={RIBBON_PATH}
             fill="none"
-            stroke="#2D6A4F"
+            stroke={brandColors.forest}
             strokeWidth={22}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -124,8 +125,8 @@ export default function ScrollPathSection() {
             cx={50}
             cy={50}
             r={16}
-            fill="#E9C46A"
-            stroke="#1B4332"
+            fill={brandColors.sun}
+            stroke={brandColors.forestDark}
             strokeWidth={3}
             style={{ willChange: 'transform' }}
           />

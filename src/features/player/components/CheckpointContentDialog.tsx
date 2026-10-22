@@ -2,7 +2,11 @@
 // Fáze 1: přehrání odměnového videa lišky
 // Fáze 2: obsah checkpointu (info/puzzle/input) + tlačítko Pokračovat
 
-import { CheckCircle as CheckIcon, Close as CloseIcon } from '@mui/icons-material';
+import {
+  CheckCircle as CheckIcon,
+  Close as CloseIcon,
+  LightbulbOutlined as HintIcon,
+} from '@mui/icons-material';
 import {
   Alert,
   Button,
@@ -228,12 +232,18 @@ export default function CheckpointContentDialog({
 
               {/* Clue */}
               {checkpoint.content.clue && (
-                <Card variant="outlined" sx={{ bgcolor: 'info.light' }}>
+                <Card variant="outlined" sx={{ bgcolor: 'warning.light', border: 0 }}>
                   <CardContent>
-                    <Typography variant="subtitle2" color="info.dark" gutterBottom>
-                      Nápověda:
+                    <Typography
+                      variant="subtitle2"
+                      color="warning.dark"
+                      gutterBottom
+                      sx={{ display: 'flex', alignItems: 'center', gap: 0.75, fontWeight: 700 }}
+                    >
+                      <HintIcon fontSize="small" aria-hidden />
+                      Nápověda
                     </Typography>
-                    <Typography variant="body2" color="info.dark">
+                    <Typography variant="body2" sx={{ color: '#5C3A00' }}>
                       {checkpoint.content.clue}
                     </Typography>
                   </CardContent>

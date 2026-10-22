@@ -31,6 +31,7 @@ import View from 'ol/View';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'ol/ol.css';
+import { brandColors } from '../../../theme';
 import type { GameWithCheckpointSummary, GeoLocation, GPSPosition } from '../../../types';
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../../utils/constants';
 import { calculateCentroid } from '../../../utils/geo';
@@ -185,7 +186,7 @@ export default function GamesMapView({
         new Style({
           image: new Circle({
             radius: 16,
-            fill: new Fill({ color: '#2D6A4F' }),
+            fill: new Fill({ color: brandColors.forest }),
             stroke: new Stroke({
               color: '#fff',
               width: 3,

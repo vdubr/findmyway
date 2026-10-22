@@ -132,7 +132,7 @@ export default function CoordinatePicker({
 
       {/* Longitude Section */}
       <Paper elevation={2} sx={{ p: 2 }}>
-        <Typography variant="h6" gutterBottom align="center" color="secondary">
+        <Typography variant="h6" gutterBottom align="center" color="secondary.dark">
           Zeměpisná délka (Longitude)
         </Typography>
 

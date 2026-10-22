@@ -44,6 +44,9 @@ import CheckpointContentDialog from '../components/CheckpointContentDialog';
 import DistanceIndicator from '../components/DistanceIndicator';
 import { useGamePlayStore } from '../store/gamePlayStore';
 
+// Jak dlouho zůstane viditelné upozornění na nedostupný kompas (ms)
+const COMPASS_ALERT_DURATION = 6000;
+
 export default function PlayerPage() {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
@@ -247,6 +250,15 @@ export default function PlayerPage() {
   const dismissAlert = (alertId: string) => {
     setDismissedAlerts((prev) => new Set(prev).add(alertId));
   };
+
+  // Nedostupný kompas není kritický – upozornění samo zmizí, ať trvale nezakrývá mapu
+  useEffect(() => {
+    if (!orientationError) return;
+    const timer = setTimeout(() => {
+      setDismissedAlerts((prev) => new Set(prev).add('orientation-error'));
+    }, COMPASS_ALERT_DURATION);
+    return () => clearTimeout(timer);
+  }, [orientationError]);
 
   // Zapnout/vypnout sledovani GPS pozice na mape (centrování řeší efekt níže)
   const handleToggleFollowGps = useCallback(() => {

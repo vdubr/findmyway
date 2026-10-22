@@ -23,6 +23,7 @@ import ErrorDisplay from '../../../components/ErrorDisplay';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 import { useGeolocation } from '../../../hooks/useGeolocation';
 import { getMyDraftGamesWithCheckpoints, getPublicGamesWithCheckpoints } from '../../../lib/api';
+import { brandColors } from '../../../theme';
 import type { GameWithCheckpointSummary } from '../../../types';
 import { GAME_TAGS } from '../../../utils/constants';
 import { calculateDistance } from '../../../utils/geo';
@@ -176,7 +177,7 @@ export default function HomePage() {
             position: 'sticky',
             top: { xs: 56, sm: 64 },
             zIndex: 1100,
-            bgcolor: '#F1FAEE',
+            bgcolor: brandColors.appBackground,
             borderBottom: '1px solid',
             borderColor: 'divider',
             px: 2,
