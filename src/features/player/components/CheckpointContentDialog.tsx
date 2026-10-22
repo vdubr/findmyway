@@ -9,10 +9,12 @@ import {
 } from '@mui/icons-material';
 import {
   Alert,
+  Box,
   Button,
   Card,
   CardContent,
   CardMedia,
+  Chip,
   Dialog,
   DialogContent,
   DialogTitle,
@@ -20,9 +22,11 @@ import {
   Stack,
   TextField,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 import foxWaypointVideo from '../../../assets/fox/liska_waypoint.mp4';
+import Confetti from '../../../components/Confetti';
 import type { Checkpoint, CoordinateDMS } from '../../../types';
 import { verifyCoordinates, verifyPuzzleAnswer } from '../../../utils/answerCheck';
 import { CHECKPOINT_COMPLETE_DELAY } from '../../../utils/constants';
@@ -41,6 +45,49 @@ interface CheckpointContentDialogProps {
 
 type Phase = 'video' | 'content';
 
+interface ValidationResult {
+  isValid: boolean;
+  message: string;
+}
+
+// Výsledek odpovědi: úspěch jako oslava s konfetami, chyba jako povzbuzení
+function AnswerFeedback({ result }: { result: ValidationResult }) {
+  useEffect(() => {
+    if (result.isValid) navigator.vibrate?.([80, 60, 80]);
+  }, [result.isValid]);
+
+  if (!result.isValid) {
+    return (
+      <Alert severity="error" sx={{ fontWeight: 600 }}>
+        {result.message}
+      </Alert>
+    );
+  }
+
+  return (
+    <Box
+      role="status"
+      sx={{
+        position: 'relative',
+        overflow: 'hidden',
+        bgcolor: 'success.light',
+        border: 3,
+        borderColor: 'success.main',
+        borderRadius: '20px',
+        px: 2,
+        py: 2.5,
+        textAlign: 'center',
+      }}
+    >
+      <Confetti />
+      <CheckIcon sx={{ fontSize: 48, color: 'success.main' }} />
+      <Typography variant="h4" component="p">
+        {result.message}
+      </Typography>
+    </Box>
+  );
+}
+
 export default function CheckpointContentDialog({
   open,
   checkpoint: checkpointProp,
@@ -51,7 +98,10 @@ export default function CheckpointContentDialog({
   canSkip = false,
   onSkip,
 }: CheckpointContentDialogProps) {
-  const [phase, setPhase] = useState<Phase>('video');
+  // Kdo má v systému omezené animace, video přeskočí rovnou
+  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+  const initialPhase: Phase = reducedMotion ? 'content' : 'video';
+  const [phase, setPhase] = useState<Phase>(initialPhase);
 
   // Během zavírací animace držet obsah původního checkpointu – rodič už mezitím
   // přepnul na další bod a ten se nesmí na chvíli ukázat (spoiler)
@@ -92,10 +142,7 @@ export default function CheckpointContentDialog({
     direction: 'E',
   });
 
-  const [validationResult, setValidationResult] = useState<{
-    isValid: boolean;
-    message: string;
-  } | null>(null);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [puzzleAnswer, setPuzzleAnswer] = useState('');
@@ -106,7 +153,7 @@ export default function CheckpointContentDialog({
   // biome-ignore lint/correctness/useExhaustiveDependencies: checkpointId je záměrná závislost - reset stavu při změně checkpointu
   useEffect(() => {
     if (open) {
-      setPhase('video');
+      setPhase(initialPhase);
       setValidationResult(null);
       setPuzzleAnswer('');
       setMissingConfigError(false);
@@ -130,9 +177,7 @@ export default function CheckpointContentDialog({
 
     setValidationResult({
       isValid: isCorrect,
-      message: isCorrect
-        ? 'Správně! Vyřešili jste hádanku.'
-        : 'Nesprávná odpověď. Zkuste to znovu.',
+      message: isCorrect ? 'Přesně tak! Hádanka je za tebou.' : 'Skoro! Zkus to ještě jednou.',
     });
 
     setIsSubmitting(false);
@@ -173,14 +218,25 @@ export default function CheckpointContentDialog({
       maxWidth="sm"
       fullWidth
       scroll="paper"
-      sx={{ zIndex: 1400 }}
+      sx={{
+        zIndex: 1400,
+        // Na mobilu jako bottom sheet – ovládání v dosahu palce
+        '& .MuiDialog-container': { alignItems: { xs: 'flex-end', sm: 'center' } },
+        '& .MuiDialog-paper': {
+          m: { xs: 0, sm: 4 },
+          width: { xs: '100%', sm: undefined },
+          maxWidth: { xs: '100%', sm: 600 },
+          maxHeight: { xs: '92dvh', sm: 'calc(100% - 64px)' },
+          borderRadius: { xs: '24px 24px 0 0', sm: '24px' },
+        },
+      }}
       PaperProps={{
         sx: phase === 'video' ? { bgcolor: 'black', overflow: 'hidden' } : {},
       }}
     >
       {/* Fáze 1: Odměnové video */}
       {phase === 'video' && (
-        <DialogContent sx={{ p: 0 }}>
+        <DialogContent sx={{ p: 0, position: 'relative' }}>
           <video
             src={foxWaypointVideo}
             autoPlay
@@ -189,6 +245,15 @@ export default function CheckpointContentDialog({
             onClick={handleVideoEnd}
             style={{ width: '100%', display: 'block', cursor: 'pointer' }}
           />
+          <Button
+            variant="contained"
+            color="secondary"
+            size="small"
+            onClick={handleVideoEnd}
+            sx={{ position: 'absolute', right: 12, bottom: 16 }}
+          >
+            Přeskočit video
+          </Button>
         </DialogContent>
       )}
 
@@ -197,17 +262,19 @@ export default function CheckpointContentDialog({
         <>
           <DialogTitle>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Stack>
+              <Stack spacing={0.5} alignItems="flex-start">
                 {checkpointIndex !== undefined && totalCheckpoints !== undefined && (
-                  <Typography variant="caption" color="text.secondary">
-                    Checkpoint {checkpointIndex + 1} / {totalCheckpoints}
-                  </Typography>
+                  <Chip
+                    label={`Bod ${checkpointIndex + 1} z ${totalCheckpoints}`}
+                    size="small"
+                    sx={{ bgcolor: '#E4F3E8', color: 'text.primary' }}
+                  />
                 )}
-                <Typography variant="h5" color="primary">
-                  {checkpoint.content.title || `Checkpoint ${(checkpointIndex ?? 0) + 1}`}
+                <Typography variant="h4" component="h2">
+                  {checkpoint.content.title || `Bod ${(checkpointIndex ?? 0) + 1}`}
                 </Typography>
               </Stack>
-              <IconButton onClick={onClose}>
+              <IconButton onClick={onClose} aria-label="Zavřít">
                 <CloseIcon />
               </IconButton>
             </Stack>
@@ -253,7 +320,7 @@ export default function CheckpointContentDialog({
               {/* Info typ */}
               {checkpoint.type === 'info' && (
                 <Typography variant="body2" color="text.secondary">
-                  Klikněte na "Pokračovat" pro přechod na další checkpoint.
+                  Klepni na „Pokračovat“ a vyraz k dalšímu bodu.
                 </Typography>
               )}
 
@@ -263,36 +330,23 @@ export default function CheckpointContentDialog({
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="body2" color="text.secondary" gutterBottom>
-                        Vyřešte hádanku a zadejte odpověď.
+                        Vyřeš hádanku a napiš odpověď.
                       </Typography>
                     </CardContent>
                   </Card>
 
                   <TextField
                     fullWidth
-                    label="Vaše odpověď"
+                    label="Tvoje odpověď"
                     value={puzzleAnswer}
                     onChange={(e) => setPuzzleAnswer(e.target.value)}
-                    placeholder="Zadejte odpověď..."
+                    placeholder="Napiš, co si myslíš"
                     variant="outlined"
                     autoComplete="off"
                     disabled={isSubmitting || (validationResult?.isValid ?? false)}
                   />
 
-                  {validationResult && (
-                    <Alert
-                      severity={validationResult.isValid ? 'success' : 'error'}
-                      sx={{
-                        animation: 'fadeIn 0.3s ease-in',
-                        '@keyframes fadeIn': {
-                          from: { opacity: 0, transform: 'translateY(-10px)' },
-                          to: { opacity: 1, transform: 'translateY(0)' },
-                        },
-                      }}
-                    >
-                      {validationResult.message}
-                    </Alert>
-                  )}
+                  {validationResult && <AnswerFeedback result={validationResult} />}
                 </>
               )}
 
@@ -302,11 +356,10 @@ export default function CheckpointContentDialog({
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="body2" color="text.secondary" gutterBottom>
-                        Zadejte GPS souřadnice dalšího checkpointu ve formátu DMS (stupně, minuty,
-                        sekundy).
+                        Zadej GPS souřadnice dalšího bodu ve formátu DMS (stupně, minuty, sekundy).
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Tip: Použijte posuvníky níže pro nastavení každé hodnoty.
+                        Tip: každou hodnotu nastavíš posuvníkem níže.
                       </Typography>
                     </CardContent>
                   </Card>
@@ -318,35 +371,26 @@ export default function CheckpointContentDialog({
                     onLongitudeChange={setInputLongitude}
                   />
 
-                  {validationResult && (
-                    <Alert
-                      severity={validationResult.isValid ? 'success' : 'error'}
-                      sx={{
-                        animation: 'fadeIn 0.3s ease-in',
-                        '@keyframes fadeIn': {
-                          from: { opacity: 0, transform: 'translateY(-10px)' },
-                          to: { opacity: 1, transform: 'translateY(0)' },
-                        },
-                      }}
-                    >
-                      {validationResult.message}
-                    </Alert>
-                  )}
+                  {validationResult && <AnswerFeedback result={validationResult} />}
                 </>
               )}
 
               {/* Chybí konfigurace */}
               {missingConfigError && (
                 <Alert severity="error">
-                  Tento checkpoint není správně nakonfigurován. Kontaktujte organizátora hry.
+                  Tenhle bod ještě není úplně hotový. Napiš o tom tvůrci hry.
                 </Alert>
               )}
 
               {/* Action buttons */}
-              <Stack direction="row" spacing={2}>
+              <Stack direction="row" spacing={1} alignItems="center">
                 {canSkip && onSkip && (
-                  <Button variant="outlined" onClick={() => onSkip(checkpoint.id)} fullWidth>
-                    Přeskočit
+                  <Button
+                    variant="text"
+                    onClick={() => onSkip(checkpoint.id)}
+                    sx={{ flexShrink: 0, px: 1.5 }}
+                  >
+                    Přeskočit úkol
                   </Button>
                 )}
                 <Button

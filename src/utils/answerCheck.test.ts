@@ -115,7 +115,7 @@ describe('verifyCoordinates', () => {
     const lngHash = await hashDms(lng);
     const ok = await verifyCoordinates(LAT_50_4_59, lng, SHA_180299, lngHash);
     expect(ok.isValid).toBe(true);
-    expect(ok.message).toContain('Správně');
+    expect(ok.message).toContain('Přesně tak');
 
     const wrongLng = await verifyCoordinates(
       LAT_50_4_59,

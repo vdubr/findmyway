@@ -1,12 +1,10 @@
-// Komponenta pro zobrazení navigačních informací (vzdálenost a směr)
+// Navigační kapsle: liška se šipkou ke checkpointu, vzdálenost a stav (blízko / v dosahu)
 
-import {
-  CheckCircle as CheckIcon,
-  LocationOn as LocationIcon,
-  Navigation as NavigationIcon,
-} from '@mui/icons-material';
+import { LocationOn as LocationIcon, Navigation as NavigationIcon } from '@mui/icons-material';
 import { Box, Chip, Stack, Typography } from '@mui/material';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
+import foxWaving from '../../../assets/fox/liska_mava.webp';
+import foxTraveling from '../../../assets/fox/liska_na_cestach_sbatohem_a_buzolou.webp';
 import { continuousAngle, formatDistance, arrowAngle as getArrowAngle } from '../../../utils/geo';
 
 interface NavigationInfoProps {
@@ -15,7 +13,9 @@ interface NavigationInfoProps {
   checkpointReached: boolean;
   bearing?: number | null; // azimut k checkpointu (0-360 od severu)
   heading?: number | null; // kam míří telefon podle kompasu (0-360 od severu)
-  onClick?: () => void; // callback pro klik na polokouli
+  currentIndex?: number; // pořadí aktuálního bodu (od 0)
+  totalCheckpoints?: number;
+  onClick?: () => void; // callback pro klik na kapsli (přiblížení mapy na checkpoint)
 }
 
 // Úhel šipky měněný po nejkratší cestě (viz continuousAngle); bez polohy se šipka neotáčí
@@ -26,12 +26,37 @@ function useContinuousAngle(angle: number | null): number | null {
   return lastRef.current;
 }
 
+// Při vstupu do dosahu krátce zavibrovat (kde to prohlížeč umí)
+function useVibrateOnEnter(active: boolean) {
+  const wasActive = useRef(active);
+  useEffect(() => {
+    if (active && !wasActive.current) navigator.vibrate?.(200);
+    wasActive.current = active;
+  }, [active]);
+}
+
+const capsuleSx = {
+  borderRadius: '28px',
+  px: 2,
+  py: 1.5,
+  boxShadow: '0 8px 24px rgba(14, 42, 28, 0.25)',
+  transition: 'transform 0.15s ease-in-out',
+  '@keyframes capsulePulse': {
+    '0%': { transform: 'scale(1)' },
+    '40%': { transform: 'scale(1.06)' },
+    '100%': { transform: 'scale(1)' },
+  },
+  '@media (prefers-reduced-motion: reduce)': { animation: 'none !important' },
+} as const;
+
 export default function NavigationInfo({
   distance,
   isInRadius,
   checkpointReached,
   bearing = null,
   heading = null,
+  currentIndex,
+  totalCheckpoints,
   onClick,
 }: NavigationInfoProps) {
   // S kompasem šipka ukazuje směr k cíli vzhledem k tomu, kam míří telefon.
@@ -39,41 +64,50 @@ export default function NavigationInfo({
   const hasCompass = heading !== null;
   const targetAngle = getArrowAngle(bearing, heading);
   const arrowAngle = useContinuousAngle(targetAngle);
+  useVibrateOnEnter(isInRadius || checkpointReached);
 
-  // Stav se ukazuje plným štítkem s tmavým/bílým textem, ne barvou textu vzdálenosti –
+  // Stav se ukazuje plným štítkem, ne barvou textu vzdálenosti –
   // syté stavové barvy jako text na světlém pozadí nesplňují kontrast a na slunci mizí
   const isNear = !isInRadius && distance !== null && distance < 100;
+  const hasOrder = currentIndex !== undefined && totalCheckpoints !== undefined;
+  const pointOrder = hasOrder ? `${currentIndex + 1} z ${totalCheckpoints}` : '';
+  const towardsLabel = hasOrder ? `k bodu ${pointOrder}` : 'k checkpointu';
+  const reachedLabel = hasOrder ? `Bod ${pointOrder} je tvůj` : 'Checkpoint je tvůj';
+
+  const interactiveSx = onClick
+    ? { cursor: 'pointer', '&:active': { transform: 'scale(0.98)' } }
+    : {};
 
   if (checkpointReached) {
     return (
       <Box
         onClick={onClick}
+        role="status"
         sx={{
-          position: 'absolute',
-          bottom: '100%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: 300,
+          ...capsuleSx,
+          ...interactiveSx,
           bgcolor: 'success.light',
-          borderRadius: '50% 50% 0 0 / 100% 100% 0 0',
-          px: 3,
-          pt: 3,
-          pb: 2,
-          boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.15)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 10,
-          cursor: onClick ? 'pointer' : 'default',
-          transition: 'transform 0.15s ease-in-out',
-          '&:active': onClick ? { transform: 'translateX(-50%) scale(0.98)' } : {},
+          border: 3,
+          borderColor: 'success.main',
+          animation: 'capsulePulse 0.45s ease-out',
         }}
       >
-        <Stack direction="row" spacing={1} alignItems="center">
-          <CheckIcon sx={{ color: 'success.dark' }} />
-          <Typography variant="body2" color="success.dark" fontWeight="bold">
-            Checkpoint dosažen!
-          </Typography>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Box
+            component="img"
+            src={foxWaving}
+            alt=""
+            sx={{ width: 56, height: 56, objectFit: 'contain', flexShrink: 0 }}
+          />
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="h3" component="p" lineHeight={1}>
+              Jsi tady!
+            </Typography>
+            <Typography variant="body2" fontWeight={600}>
+              {reachedLabel}
+            </Typography>
+          </Box>
+          <Chip icon={<LocationIcon />} label="V dosahu" color="success" size="small" />
         </Stack>
       </Box>
     );
@@ -83,56 +117,76 @@ export default function NavigationInfo({
     <Box
       onClick={onClick}
       sx={{
-        position: 'absolute',
-        bottom: '100%',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 300,
+        ...capsuleSx,
+        ...interactiveSx,
         bgcolor: 'background.paper',
-        borderRadius: '50% 50% 0 0 / 100% 100% 0 0',
-        px: 3,
-        pt: 3,
-        pb: 2,
-        boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.15)',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 10,
-        cursor: onClick ? 'pointer' : 'default',
-        transition: 'transform 0.15s ease-in-out',
-        '&:active': onClick ? { transform: 'translateX(-50%) scale(0.98)' } : {},
+        animation: isInRadius ? 'capsulePulse 0.45s ease-out' : 'none',
       }}
     >
-      <Stack direction="row" spacing={1} alignItems="center">
-        <NavigationIcon
-          aria-hidden
+      <Stack direction="row" spacing={1.5} alignItems="center">
+        {/* Liška se šipkou ke checkpointu */}
+        <Box
           sx={{
-            fontSize: 32,
-            color: 'primary.main',
-            transform: arrowAngle !== null ? `rotate(${arrowAngle}deg)` : 'none',
-            transition: 'transform 0.3s ease-out',
+            position: 'relative',
+            width: 56,
+            height: 56,
+            flexShrink: 0,
+            borderRadius: '50%',
+            bgcolor: '#FFE3D3',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
-        />
-        <Box>
-          <Typography variant="h4" color="text.primary" lineHeight={1}>
+        >
+          <Box
+            component="img"
+            src={foxTraveling}
+            alt=""
+            sx={{ width: 46, height: 46, objectFit: 'contain' }}
+          />
+          <Box
+            sx={{
+              position: 'absolute',
+              top: -6,
+              right: -6,
+              width: 28,
+              height: 28,
+              borderRadius: '50%',
+              bgcolor: 'secondary.main',
+              border: '3px solid #fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxSizing: 'border-box',
+            }}
+          >
+            <NavigationIcon
+              aria-hidden
+              sx={{
+                fontSize: 16,
+                color: 'secondary.contrastText',
+                transform: arrowAngle !== null ? `rotate(${arrowAngle}deg)` : 'none',
+                transition: 'transform 0.3s ease-out',
+              }}
+            />
+          </Box>
+        </Box>
+
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="h2" component="p" color="text.primary" lineHeight={1}>
             {distance !== null ? formatDistance(distance) : '---'}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" fontWeight={600}>
             {targetAngle !== null && !hasCompass
-              ? 'k checkpointu, šipka vůči severu'
-              : 'k checkpointu'}
+              ? `${towardsLabel}, šipka vůči severu`
+              : towardsLabel}
           </Typography>
         </Box>
+
         {isInRadius && (
-          <Chip
-            icon={<LocationIcon />}
-            label="V dosahu"
-            color="success"
-            size="small"
-            sx={{ ml: 1 }}
-          />
+          <Chip icon={<LocationIcon />} label="V dosahu" color="success" size="small" />
         )}
-        {isNear && <Chip label="Blízko" color="warning" size="small" sx={{ ml: 1 }} />}
+        {isNear && <Chip label="Blízko" color="warning" size="small" />}
       </Stack>
     </Box>
   );

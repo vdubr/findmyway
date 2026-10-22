@@ -30,7 +30,7 @@ import { toUserMessage } from '../../../lib/errors';
 import type { GameDetail } from '../../../types';
 import { GAME_TAGS } from '../../../utils/constants';
 import { pluralCs } from '../../../utils/format';
-import { calculateDistance, formatDistance } from '../../../utils/geo';
+import { formatDistance, routeLength } from '../../../utils/geo';
 import { useAuth } from '../../auth/AuthContext';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
 import { useGameDetailStore } from '../store/gameDetailStore';
@@ -82,13 +82,7 @@ export default function GameDetailPage() {
   }, [game]);
 
   // Celková délka trasy
-  const routeDistance = useMemo(() => {
-    if (sortedCheckpoints.length < 2) return undefined;
-    return sortedCheckpoints.reduce(
-      (sum, cp, i) => (i === 0 ? 0 : sum + calculateDistance(sortedCheckpoints[i - 1], cp)),
-      0
-    );
-  }, [sortedCheckpoints]);
+  const routeDistance = useMemo(() => routeLength(sortedCheckpoints), [sortedCheckpoints]);
 
   // Markery checkpointů pro mapu – defaultně jen první
   const markers = useMemo<MapMarker[]>(() => {

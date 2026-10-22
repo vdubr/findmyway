@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pluralCs } from './format';
+import { formatDuration, pluralCs } from './format';
 
 describe('pluralCs', () => {
   const bod = (n: number) => pluralCs(n, 'bod', 'body', 'bodů');
@@ -17,5 +17,17 @@ describe('pluralCs', () => {
     expect(bod(0)).toBe('bodů');
     expect(bod(5)).toBe('bodů');
     expect(bod(12)).toBe('bodů');
+  });
+});
+
+describe('formatDuration', () => {
+  it('minuty, nejméně 1', () => {
+    expect(formatDuration(10_000)).toBe('1 min');
+    expect(formatDuration(48 * 60_000)).toBe('48 min');
+  });
+
+  it('hodiny a minuty', () => {
+    expect(formatDuration(72 * 60_000)).toBe('1 h 12 min');
+    expect(formatDuration(120 * 60_000)).toBe('2 h');
   });
 });

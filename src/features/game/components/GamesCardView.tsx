@@ -5,7 +5,7 @@ import { Box, Grid } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import GameCard from '../../../components/GameCard';
 import type { GameWithCheckpointSummary } from '../../../types';
-import { calculateDistance } from '../../../utils/geo';
+import { routeLength } from '../../../utils/geo';
 
 interface GamesCardViewProps {
   games: GameWithCheckpointSummary[];
@@ -26,13 +26,7 @@ export default function GamesCardView({ games, distances, userId }: GamesCardVie
           const sorted = checkpoints
             ? [...checkpoints].sort((a, b) => a.order_index - b.order_index)
             : [];
-          const routeDistance =
-            sorted.length >= 2
-              ? sorted.reduce(
-                  (sum, cp, i) => (i === 0 ? 0 : sum + calculateDistance(sorted[i - 1], cp)),
-                  0
-                )
-              : undefined;
+          const routeDistance = routeLength(sorted);
           return (
             <Grid key={game.id} size={{ xs: 12, sm: 6, md: 4 }}>
               <GameCard

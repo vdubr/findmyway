@@ -83,13 +83,13 @@ export async function verifyCoordinates(
 
   let message: string;
   if (isValid) {
-    message = 'Správně! Souřadnice jsou správné.';
+    message = 'Přesně tak! Souřadnice sedí.';
   } else if (!latitudeCorrect && !longitudeCorrect) {
-    message = 'Obě souřadnice jsou nesprávné. Zkuste to znovu.';
+    message = 'Skoro! Obě souřadnice jsou ještě vedle.';
   } else if (!latitudeCorrect) {
-    message = 'Zeměpisná šířka je nesprávná. Délka je správně.';
+    message = 'Skoro! Zeměpisná šířka nesedí, délka je správně.';
   } else {
-    message = 'Zeměpisná délka je nesprávná. Šířka je správně.';
+    message = 'Skoro! Zeměpisná délka nesedí, šířka je správně.';
   }
 
   return { isValid, latitudeCorrect, longitudeCorrect, message };

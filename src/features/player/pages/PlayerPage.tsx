@@ -23,8 +23,8 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ErrorDisplay from '../../../components/ErrorDisplay';
-import FoxGuide from '../../../components/FoxGuide';
 import LoadingSpinner from '../../../components/LoadingSpinner';
+import VictoryScreen from '../../../components/VictoryScreen';
 import { useDeviceOrientation } from '../../../hooks/useDeviceOrientation';
 import { useGeolocation } from '../../../hooks/useGeolocation';
 import { isAnonymousSessionId } from '../../../lib/anonymousSessions';
@@ -37,7 +37,7 @@ import {
 } from '../../../lib/api';
 import { toUserMessage } from '../../../lib/errors';
 import { LOCATION_UPDATE_INTERVAL } from '../../../utils/constants';
-import { calculateBearing } from '../../../utils/geo';
+import { calculateBearing, routeLength } from '../../../utils/geo';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
 import type { MapZoomRef } from '../../map/hooks/useMapZoom';
 import CheckpointContentDialog from '../components/CheckpointContentDialog';
@@ -86,6 +86,7 @@ export default function PlayerPage() {
     checkpointReached,
     showCheckpointContent,
     showVictory,
+    session,
     initGame,
     updateUserPosition,
     completeCurrentCheckpoint,
@@ -333,6 +334,15 @@ export default function PlayerPage() {
     () => (userLocation && targetLocation ? calculateBearing(userLocation, targetLocation) : null),
     [userLocation, targetLocation]
   );
+
+  // Statistiky pro vítěznou obrazovku
+  const routeDistance = useMemo(() => routeLength(checkpoints), [checkpoints]);
+  const sessionStart = session?.start_time;
+  const victoryDurationMs = useMemo(() => {
+    if (!showVictory || !sessionStart) return null;
+    const started = Date.parse(sessionStart);
+    return Number.isNaN(started) ? null : Date.now() - started;
+  }, [showVictory, sessionStart]);
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorDisplay message={error} onRetry={() => loadGameData()} />;
@@ -587,7 +597,7 @@ export default function PlayerPage() {
                 fullWidth
                 sx={{ mt: 1 }}
               >
-                Zobrazit checkpoint
+                Podívej se, co tu je
               </Button>
             )}
 
@@ -601,7 +611,7 @@ export default function PlayerPage() {
                 fullWidth
                 sx={{ mt: 1, bgcolor: 'background.paper' }}
               >
-                Přeskočit waypoint
+                Přeskočit bod
               </Button>
             )}
           </Box>
@@ -622,26 +632,20 @@ export default function PlayerPage() {
         />
       )}
 
-      {/* Victory dialog */}
-      <Dialog open={showVictory} maxWidth="sm" fullWidth>
-        <DialogContent>
-          <Stack spacing={3} alignItems="center" py={4}>
-            {/* Liška našla poklad */}
-            <Box sx={{ width: 200, height: 200, mb: 2 }}>
-              <FoxGuide state="treasure" inline />
-            </Box>
-            <Typography variant="h3" color="primary" textAlign="center">
-              Gratulujeme!
-            </Typography>
-            <Typography variant="h6" textAlign="center">
-              Dokončili jste hru "{game.title}"
-            </Typography>
-            <Button variant="contained" size="large" onClick={handleBackToHome} fullWidth>
-              Zpět na hlavní stránku
-            </Button>
-          </Stack>
-        </DialogContent>
-      </Dialog>
+      {/* Vítězná obrazovka */}
+      <VictoryScreen
+        open={showVictory}
+        gameTitle={game.title}
+        completed={session?.metadata.checkpoints_completed.length ?? checkpoints.length}
+        total={checkpoints.length}
+        routeDistance={routeDistance}
+        durationMs={victoryDurationMs}
+        shareUrl={`${window.location.origin}/games/${game.id}`}
+        primaryLabel="Zahrát další hru"
+        onPrimary={() => navigate('/games')}
+        secondaryLabel="Zpět na detail hry"
+        onSecondary={handleBackToHome}
+      />
     </Box>
   );
 }

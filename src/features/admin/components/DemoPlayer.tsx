@@ -7,14 +7,14 @@ import {
   PlayArrow as PlayIcon,
   SkipNext as SkipNextIcon,
 } from '@mui/icons-material';
-import { Alert, Box, Button, Dialog, DialogContent, Fab, Stack, Typography } from '@mui/material';
+import { Alert, Box, Button, Fab, Stack, Typography } from '@mui/material';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import FoxGuide from '../../../components/FoxGuide';
+import VictoryScreen from '../../../components/VictoryScreen';
 import { useDeviceOrientation } from '../../../hooks/useDeviceOrientation';
 import { useGeolocation } from '../../../hooks/useGeolocation';
 import type { Checkpoint, Game } from '../../../types';
 import { hashDms, hashPuzzleAnswer } from '../../../utils/answerCheck';
-import { calculateBearing, calculateDistance } from '../../../utils/geo';
+import { calculateBearing, calculateDistance, routeLength } from '../../../utils/geo';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
 import type { MapZoomRef } from '../../map/hooks/useMapZoom';
 import CheckpointContentDialog from '../../player/components/CheckpointContentDialog';
@@ -463,28 +463,17 @@ export default function DemoPlayer({ game, tempCheckpoints, onExit }: DemoPlayer
         />
       )}
 
-      {/* Victory dialog */}
-      <Dialog open={showVictory} maxWidth="sm" fullWidth>
-        <DialogContent>
-          <Stack spacing={3} alignItems="center" py={4}>
-            <Box sx={{ width: 200, height: 200, mb: 2 }}>
-              <FoxGuide state="treasure" inline />
-            </Box>
-            <Typography variant="h3" color="primary" textAlign="center">
-              Gratulujeme!
-            </Typography>
-            <Typography variant="h6" textAlign="center">
-              Dokoncili jste demo hry "{game.title}"
-            </Typography>
-            <Typography variant="body2" color="text.secondary" textAlign="center">
-              Toto je nahled toho, co uvidi hrac po dokonceni vsech checkpointu.
-            </Typography>
-            <Button variant="contained" size="large" onClick={onExit} fullWidth>
-              Zpet do editace
-            </Button>
-          </Stack>
-        </DialogContent>
-      </Dialog>
+      {/* Vítězná obrazovka – náhled toho, co uvidí hráč */}
+      <VictoryScreen
+        open={showVictory}
+        gameTitle={game.title}
+        completed={checkpoints.length}
+        total={checkpoints.length}
+        routeDistance={routeLength(checkpoints)}
+        note="Takhle dokončení hry uvidí hráč."
+        primaryLabel="Zpět do editace"
+        onPrimary={onExit}
+      />
     </Box>
   );
 }
