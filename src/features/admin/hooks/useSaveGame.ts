@@ -22,8 +22,6 @@ export function useSaveGame(): UseSaveGameReturn {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const reset = useGameEditorStore((state) => state.reset);
-
   const saveNewGame = async () => {
     const { currentGame, tempCheckpoints } = useGameEditorStore.getState();
     if (!currentGame) return;
@@ -53,7 +51,12 @@ export function useSaveGame(): UseSaveGameReturn {
       }
 
       setSuccessMessage(`Hra "${createdGame.title}" byla úspěšně vytvořena!`);
-      reset();
+      // Store neresetovat, ale předat mu uloženou hru: prázdný store na
+      // /games/new/edit/checkpoints spustí v AdminEditPage návrat na prázdný formulář
+      // nové hry, který by přebil tuto navigaci, a uživatel by o hru zdánlivě přišel.
+      // Rozpracovaná hra bez creator_id by zase neprošla kontrolou tvůrce. Checkpointy
+      // z DB načte AdminEditPage při změně gameId.
+      useGameEditorStore.getState().setCurrentGame(createdGame);
       navigate(`/games/${createdGame.id}/edit/base`);
     } catch (err) {
       setErrorMessage(toUserMessage(err, 'Chyba při ukládání hry'));
@@ -89,7 +92,7 @@ export function useSaveGame(): UseSaveGameReturn {
       // 2. Všechny checkpointy jedním RPC v jedné transakci: update, insert, delete i řešení úkolů
       await saveGameCheckpoints(currentGame.id, tempCheckpoints.map(toSaveCheckpointInput));
 
-      reset();
+      // Store vyčistí AdminEditPage při odchodu z editoru
       navigate(`/games/${currentGame.id}`, {
         state: { successMessage: `Hra "${currentGame.title}" byla úspěšně aktualizována!` },
       });

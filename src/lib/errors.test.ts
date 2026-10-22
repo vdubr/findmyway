@@ -15,7 +15,9 @@ describe('toUserMessage', () => {
   });
 
   it('český text z RPC ponechá', () => {
-    expect(toUserMessage({ message: 'Hru nemůžete upravovat' }, 'x')).toBe('Hru nemůžete upravovat');
+    expect(toUserMessage({ message: 'Hru nemůžete upravovat' }, 'x')).toBe(
+      'Hru nemůžete upravovat'
+    );
   });
 
   it('neznámou anglickou chybu nahradí fallbackem', () => {
