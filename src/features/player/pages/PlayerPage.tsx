@@ -1,27 +1,21 @@
 // Hlavní herní stránka pro hráče
 
 import {
+  Flag as FlagIcon,
   LocationDisabled as LocationDisabledIcon,
   LocationOn as LocationIcon,
   MyLocation as MyLocationIcon,
-  PlayArrow as PlayIcon,
+  Route as RouteIcon,
   SkipNext as SkipNextIcon,
+  Star as StarIcon,
+  Timer as TimerIcon,
 } from '@mui/icons-material';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  Fab,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Alert, Box, Button, Dialog, DialogContent, Fab, Stack, Typography } from '@mui/material';
+import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import foxTraveling from '../../../assets/fox/liska_na_cestach_sbatohem_a_buzolou.webp';
+import { bottomSheetDialogSx } from '../../../components/bottomSheetSx';
 import ErrorDisplay from '../../../components/ErrorDisplay';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 import VictoryScreen from '../../../components/VictoryScreen';
@@ -37,12 +31,49 @@ import {
 } from '../../../lib/api';
 import { toUserMessage } from '../../../lib/errors';
 import { LOCATION_UPDATE_INTERVAL } from '../../../utils/constants';
-import { calculateBearing, routeLength } from '../../../utils/geo';
+import { pluralCs } from '../../../utils/format';
+import { calculateBearing, formatDistance, routeLength } from '../../../utils/geo';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
 import type { MapZoomRef } from '../../map/hooks/useMapZoom';
 import CheckpointContentDialog from '../components/CheckpointContentDialog';
 import DistanceIndicator from '../components/DistanceIndicator';
 import { useGamePlayStore } from '../store/gamePlayStore';
+
+// Dlaždice s údajem o hře v úvodním dialogu
+function StartStat({
+  icon,
+  value,
+  label,
+  bg,
+}: {
+  icon: ReactNode;
+  value: string;
+  label: string;
+  bg: string;
+}) {
+  return (
+    <Box
+      sx={{
+        flex: 1,
+        bgcolor: bg,
+        borderRadius: '16px',
+        py: 1.25,
+        px: 0.5,
+        textAlign: 'center',
+        color: 'text.primary',
+        '& svg': { color: 'primary.main' },
+      }}
+    >
+      {icon}
+      <Typography variant="h4" component="p" lineHeight={1.1}>
+        {value}
+      </Typography>
+      <Typography variant="body2" color="text.secondary">
+        {label}
+      </Typography>
+    </Box>
+  );
+}
 
 // Jak dlouho zůstane viditelné upozornění na nedostupný kompas (ms)
 const COMPASS_ALERT_DURATION = 6000;
@@ -360,79 +391,138 @@ export default function PlayerPage() {
         flexDirection: 'column',
       }}
     >
-      {/* Game not started - show intro */}
+      {/* Úvod před startem hry – na mobilu bottom sheet */}
       {!gameStarted && (
-        <Dialog open={!gameStarted} maxWidth="sm" fullWidth>
-          <DialogTitle
-            sx={{
-              typography: 'h4',
-              color: 'primary.main',
-              textAlign: 'center',
-            }}
-          >
-            {game.title}
-          </DialogTitle>
-          <DialogContent>
-            <Stack spacing={3} py={2}>
-              {game.description && (
-                <Typography variant="body1" textAlign="center">
-                  {game.description}
+        <Dialog
+          open={!gameStarted}
+          maxWidth="sm"
+          fullWidth
+          sx={bottomSheetDialogSx}
+          aria-labelledby="start-title"
+        >
+          <DialogContent sx={{ pt: 1.5, pb: 'calc(20px + env(safe-area-inset-bottom))' }}>
+            <Stack spacing={2} alignItems="center">
+              <Box
+                aria-hidden
+                sx={{ width: 44, height: 5, borderRadius: 999, bgcolor: '#CFE6D5' }}
+              />
+              <Box
+                component="img"
+                src={foxTraveling}
+                alt="Liška s batohem a buzolou je připravená vyrazit"
+                sx={{ width: 120, height: 120, objectFit: 'contain' }}
+              />
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography
+                  variant="overline"
+                  sx={{ color: 'secondary.dark', fontWeight: 800, letterSpacing: '0.08em' }}
+                >
+                  Připraven/a?
                 </Typography>
+                <Typography id="start-title" variant="h2" component="h2">
+                  {game.title}
+                </Typography>
+                {game.description && (
+                  <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
+                    {game.description}
+                  </Typography>
+                )}
+              </Box>
+
+              <Stack direction="row" spacing={1} sx={{ width: '100%' }}>
+                <StartStat
+                  icon={<FlagIcon />}
+                  value={String(checkpoints.length)}
+                  label={pluralCs(checkpoints.length, 'bod', 'body', 'bodů')}
+                  bg="#E4F3E8"
+                />
+                <StartStat
+                  icon={<StarIcon />}
+                  value={`${game.difficulty}/5`}
+                  label="obtížnost"
+                  bg="#FFF4D1"
+                />
+                {routeDistance !== undefined && (
+                  <StartStat
+                    icon={<RouteIcon />}
+                    value={formatDistance(routeDistance)}
+                    label="trasa"
+                    bg="#E4F3E8"
+                  />
+                )}
+              </Stack>
+
+              {game.settings.time_limit && (
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ width: '100%' }}>
+                  <TimerIcon color="primary" />
+                  <Typography variant="body2" fontWeight={600}>
+                    Časový limit: {game.settings.time_limit} min
+                  </Typography>
+                </Stack>
               )}
 
-              <Card variant="outlined">
-                <CardContent>
-                  <Stack spacing={2}>
-                    <Typography variant="subtitle2" color="primary">
-                      Informace o hře:
-                    </Typography>
-                    <Typography variant="body2">Počet checkpointů: {checkpoints.length}</Typography>
-                    <Typography variant="body2">Obtížnost: {game.difficulty}/5</Typography>
-                    {game.settings.time_limit && (
-                      <Typography variant="body2">
-                        Časový limit: {game.settings.time_limit} minut
-                      </Typography>
-                    )}
-                  </Stack>
-                </CardContent>
-              </Card>
-
-              {/* Informace o sdileni polohy */}
+              {/* Informace o sdílení polohy */}
               {shareRequired &&
                 (isAnonymous ? (
-                  <Alert severity="warning">
-                    Tato hra vyžaduje sdílení polohy s organizátorem. Sdílení funguje jen pro
-                    přihlášené hráče – bez přihlášení vás organizátor na mapě neuvidí.
+                  <Alert severity="warning" sx={{ width: '100%', boxSizing: 'border-box' }}>
+                    Tahle hra sdílí polohu s organizátorem. Funguje to jen po přihlášení – bez něj
+                    tě organizátor na mapě neuvidí.
                   </Alert>
                 ) : (
-                  <Alert severity="info">
-                    Tato hra vyžaduje sdílení vaší polohy s organizátorem hry. Vaše pozice bude
-                    zobrazena v reálném čase.
+                  <Alert severity="info" sx={{ width: '100%', boxSizing: 'border-box' }}>
+                    Tahle hra sdílí tvoji polohu s organizátorem – uvidí tě na mapě v reálném čase.
                   </Alert>
                 ))}
 
+              <Stack
+                direction="row"
+                spacing={1.5}
+                alignItems="center"
+                sx={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  bgcolor: 'info.light',
+                  color: 'info.dark',
+                  borderRadius: '16px',
+                  px: 1.75,
+                  py: 1.5,
+                }}
+              >
+                <LocationIcon />
+                <Typography variant="body2" sx={{ color: 'inherit' }}>
+                  Povol prohlížeči polohu a kompas – liška tě pak navede přímo k bodům.
+                </Typography>
+              </Stack>
+
               {!gpsSupported && (
-                <Alert severity="error">Váš prohlížeč nepodporuje geolokaci.</Alert>
+                <Alert severity="error" sx={{ width: '100%', boxSizing: 'border-box' }}>
+                  Tvůj prohlížeč neumí určit polohu.
+                </Alert>
               )}
 
-              {gpsError && <Alert severity="error">{gpsError}</Alert>}
+              {gpsError && (
+                <Alert severity="error" sx={{ width: '100%', boxSizing: 'border-box' }}>
+                  {gpsError}
+                </Alert>
+              )}
 
               <Button
                 variant="contained"
                 size="large"
-                startIcon={<PlayIcon />}
                 onClick={handleStartGame}
                 disabled={!gpsSupported || gpsLoading}
                 fullWidth
               >
-                {gpsLoading ? 'Získávám polohu...' : 'Začít hru'}
+                {gpsLoading ? 'Hledám, kde přesně jsi…' : 'Vyrazit!'}
+              </Button>
+              <Button variant="text" onClick={handleBackToHome}>
+                Ještě ne
               </Button>
             </Stack>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* Game started - show play interface */}
       {gameStarted && (
         <Box
           sx={{
@@ -470,8 +560,7 @@ export default function PlayerPage() {
                     }}
                     onClose={() => dismissAlert('gps-loading')}
                   >
-                    Určuji vaši polohu… Pokud jste ještě nepovolili přístup k poloze, prosím povolte
-                    jej v prohlížeči.
+                    Hledám, kde přesně jsi… Nezapomeň prohlížeči povolit polohu.
                   </Alert>
                 )}
 
