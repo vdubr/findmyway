@@ -26,6 +26,7 @@ import {
 } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 import foxWaypointVideo from '../../../assets/fox/liska_waypoint.mp4';
+import { bottomSheetDialogSx } from '../../../components/bottomSheetSx';
 import Confetti from '../../../components/Confetti';
 import type { Checkpoint, CoordinateDMS } from '../../../types';
 import { verifyCoordinates, verifyPuzzleAnswer } from '../../../utils/answerCheck';
@@ -218,18 +219,7 @@ export default function CheckpointContentDialog({
       maxWidth="sm"
       fullWidth
       scroll="paper"
-      sx={{
-        zIndex: 1400,
-        // Na mobilu jako bottom sheet – ovládání v dosahu palce
-        '& .MuiDialog-container': { alignItems: { xs: 'flex-end', sm: 'center' } },
-        '& .MuiDialog-paper': {
-          m: { xs: 0, sm: 4 },
-          width: { xs: '100%', sm: undefined },
-          maxWidth: { xs: '100%', sm: 600 },
-          maxHeight: { xs: '92dvh', sm: 'calc(100% - 64px)' },
-          borderRadius: { xs: '24px 24px 0 0', sm: '24px' },
-        },
-      }}
+      sx={{ zIndex: 1400, ...bottomSheetDialogSx }}
       PaperProps={{
         sx: phase === 'video' ? { bgcolor: 'black', overflow: 'hidden' } : {},
       }}

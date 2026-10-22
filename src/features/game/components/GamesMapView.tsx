@@ -19,11 +19,14 @@ import {
   Typography,
 } from '@mui/material';
 import { Feature } from 'ol';
+import { createEmpty, extend, isEmpty } from 'ol/extent';
+import type { FeatureLike } from 'ol/Feature';
 import { Point } from 'ol/geom';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
 import OLMap from 'ol/Map';
 import { fromLonLat } from 'ol/proj';
+import Cluster from 'ol/source/Cluster';
 import OSM from 'ol/source/OSM';
 import VectorSource from 'ol/source/Vector';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
@@ -41,6 +44,56 @@ interface GameWithCentroid extends GameWithCheckpointSummary {
   centroid: GeoLocation | null;
 }
 
+// Blízké hry se shlukují do jednoho markeru s počtem – jinak se překrývají a nejdou trefit
+const CLUSTER_DISTANCE = 40;
+
+const singleStyleCache = new Map<string, Style>();
+const clusterStyleCache = new Map<number, Style>();
+
+function markerStyle(feature: FeatureLike): Style {
+  const members = (feature.get('features') as Feature[] | undefined) ?? [];
+  if (members.length > 1) {
+    const count = members.length;
+    let style = clusterStyleCache.get(count);
+    if (!style) {
+      style = new Style({
+        image: new Circle({
+          radius: 20,
+          fill: new Fill({ color: brandColors.sun }),
+          stroke: new Stroke({ color: brandColors.forestDark, width: 3 }),
+        }),
+        text: new Text({
+          text: String(count),
+          fill: new Fill({ color: brandColors.forestDark }),
+          font: 'bold 14px Inter, sans-serif',
+        }),
+      });
+      clusterStyleCache.set(count, style);
+    }
+    return style;
+  }
+  const letter = String(members[0]?.get('gameTitle') ?? '?')
+    .charAt(0)
+    .toUpperCase();
+  let style = singleStyleCache.get(letter);
+  if (!style) {
+    style = new Style({
+      image: new Circle({
+        radius: 16,
+        fill: new Fill({ color: brandColors.forest }),
+        stroke: new Stroke({ color: '#fff', width: 3 }),
+      }),
+      text: new Text({
+        text: letter,
+        fill: new Fill({ color: '#fff' }),
+        font: 'bold 12px Inter, sans-serif',
+      }),
+    });
+    singleStyleCache.set(letter, style);
+  }
+  return style;
+}
+
 interface GamesMapViewProps {
   games: GameWithCheckpointSummary[];
   userPosition?: GPSPosition | null;
@@ -56,7 +109,7 @@ export default function GamesMapView({
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<OLMap | null>(null);
   const [selectedGame, setSelectedGame] = useState<GameWithCentroid | null>(null);
-  const markersLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
+  const markersSourceRef = useRef<VectorSource | null>(null);
   const validGamesRef = useRef<GameWithCentroid[]>([]);
   // Množina her, na kterou byl naposledy proveden fit – GPS update mění jen pořadí her,
   // takže fit se provede jen při skutečné změně seznamu (první načtení, filtr, hledání)
@@ -96,12 +149,13 @@ export default function GamesMapView({
   useEffect(() => {
     if (!mapRef.current || map) return;
 
-    // Vrstva s markery her
+    // Vrstva s markery her (shlukovanými)
     const markersSource = new VectorSource();
+    markersSourceRef.current = markersSource;
     const markersLayer = new VectorLayer({
-      source: markersSource,
+      source: new Cluster({ distance: CLUSTER_DISTANCE, source: markersSource }),
+      style: markerStyle,
     });
-    markersLayerRef.current = markersLayer;
 
     // Vypocet vychoziho centra mapy - stred vsech her nebo default
     let initialCenter = DEFAULT_MAP_CENTER;
@@ -130,7 +184,25 @@ export default function GamesMapView({
 
     // Klik na marker
     initialMap.on('click', (event) => {
-      const feature = initialMap.forEachFeatureAtPixel(event.pixel, (f) => f);
+      const clusterFeature = initialMap.forEachFeatureAtPixel(event.pixel, (f) => f);
+      const members = (clusterFeature?.get('features') as Feature[] | undefined) ?? [];
+      // Shluk: přiblížit na jeho hry, ať se rozpadne na jednotlivé markery
+      if (members.length > 1) {
+        const extent = createEmpty();
+        for (const member of members) {
+          const geometry = member.getGeometry();
+          if (geometry) extend(extent, geometry.getExtent());
+        }
+        if (!isEmpty(extent)) {
+          initialMap.getView().fit(extent, {
+            padding: [80, 80, 80, 80],
+            maxZoom: 15,
+            duration: 500,
+          });
+        }
+        return;
+      }
+      const feature = members[0];
       if (feature) {
         const gameId = feature.get('gameId');
         const game = validGamesRef.current.find((g) => g.id === gameId);
@@ -165,9 +237,7 @@ export default function GamesMapView({
 
   // Aktualizace markeru pri zmene her
   useEffect(() => {
-    if (!markersLayerRef.current) return;
-
-    const source = markersLayerRef.current.getSource();
+    const source = markersSourceRef.current;
     if (!source) return;
 
     source.clear();
@@ -180,25 +250,6 @@ export default function GamesMapView({
         gameId: game.id,
         gameTitle: game.title,
       });
-
-      // Styl markeru
-      feature.setStyle(
-        new Style({
-          image: new Circle({
-            radius: 16,
-            fill: new Fill({ color: brandColors.forest }),
-            stroke: new Stroke({
-              color: '#fff',
-              width: 3,
-            }),
-          }),
-          text: new Text({
-            text: game.title.charAt(0).toUpperCase(),
-            fill: new Fill({ color: '#fff' }),
-            font: 'bold 12px sans-serif',
-          }),
-        })
-      );
 
       source.addFeature(feature);
     });

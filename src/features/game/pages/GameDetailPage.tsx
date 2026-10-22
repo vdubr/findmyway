@@ -4,15 +4,17 @@ import {
   Edit as EditIcon,
   Flag as FlagIcon,
   PlayArrow as PlayIcon,
+  Extension as PuzzleIcon,
   Route as RouteIcon,
+  EmojiEvents as TrophyIcon,
 } from '@mui/icons-material';
 import {
   Alert,
+  Avatar,
   Box,
   Button,
   Chip,
   Container,
-  Divider,
   FormControlLabel,
   Snackbar,
   Stack,
@@ -114,32 +116,51 @@ export default function GameDetailPage() {
   if (loading) return <LoadingSpinner />;
   if (error || !game) return <ErrorDisplay message={error ?? 'Hra nenalezena'} />;
 
+  const authorName = game.creator?.username ?? 'neznámý tvůrce';
+  const pointCount = game.checkpoints.length;
+
   return (
-    <Container maxWidth="md" sx={{ py: 3 }}>
-      <Stack spacing={3}>
-        {/* Název a akční tlačítka */}
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap' }}>
-          <Typography variant="h4" component="h1" color="primary" sx={{ flexGrow: 1 }}>
-            {game.title}
-          </Typography>
-          <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-            {isCreator && (
-              <Button
-                variant="outlined"
-                startIcon={<EditIcon />}
-                onClick={() => navigate(`/games/${gameId}/edit/base`)}
+    // Spodní odsazení kvůli liště s tlačítkem Hrát
+    <Container maxWidth="md" sx={{ pt: 3, pb: 'calc(120px + env(safe-area-inset-bottom))' }}>
+      <Stack spacing={2.5}>
+        {/* Název, autor a editace pro tvůrce */}
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+            <Typography variant="h2" component="h1">
+              {game.title}
+            </Typography>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
+              <Avatar
+                src={game.creator?.avatar_url ?? undefined}
+                sx={{
+                  width: 32,
+                  height: 32,
+                  bgcolor: '#FFE3D3',
+                  color: '#8A3A12',
+                  fontWeight: 800,
+                  fontSize: '0.95rem',
+                }}
               >
-                Editovat
-              </Button>
-            )}
+                {authorName.charAt(0).toUpperCase()}
+              </Avatar>
+              <Typography variant="body2" color="text.secondary">
+                Stezku vyznačil(a){' '}
+                <Box component="strong" sx={{ color: 'text.primary' }}>
+                  {authorName}
+                </Box>
+              </Typography>
+            </Stack>
+          </Box>
+          {isCreator && (
             <Button
-              variant="contained"
-              startIcon={<PlayIcon />}
-              onClick={() => navigate(`/games/${gameId}/game`)}
+              variant="outlined"
+              startIcon={<EditIcon />}
+              onClick={() => navigate(`/games/${gameId}/edit/base`)}
+              sx={{ flexShrink: 0 }}
             >
-              Hrát
+              Upravit
             </Button>
-          </Stack>
+          )}
         </Box>
 
         {/* Metadata */}
@@ -151,7 +172,7 @@ export default function GameDetailPage() {
           />
           <Chip
             icon={<FlagIcon />}
-            label={`${game.checkpoints.length} ${pluralCs(game.checkpoints.length, 'bod', 'body', 'bodů')}`}
+            label={`${pointCount} ${pluralCs(pointCount, 'bod', 'body', 'bodů')}`}
             sx={routeChipSx}
           />
           {routeDistance !== undefined && (
@@ -167,8 +188,6 @@ export default function GameDetailPage() {
           })}
         </Box>
 
-        <Divider />
-
         {/* Popis */}
         {game.description && (
           <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
@@ -179,8 +198,14 @@ export default function GameDetailPage() {
         {/* Mapa checkpointů */}
         {sortedCheckpoints.length > 0 && (
           <Box>
-            <Box sx={{ borderRadius: 2, overflow: 'hidden' }}>
-              <MapComponent center={mapCenter} zoom={13} markers={markers} height={320} />
+            <Box
+              sx={{
+                borderRadius: '24px',
+                overflow: 'hidden',
+                boxShadow: '0 4px 14px rgba(30, 122, 79, 0.18)',
+              }}
+            >
+              <MapComponent center={mapCenter} zoom={13} markers={markers} height={280} />
             </Box>
             {/* Celou trasu vidí jen tvůrce – hráčům by prozradila polohu dalších bodů */}
             {isCreator && sortedCheckpoints.length > 1 && (
@@ -191,20 +216,104 @@ export default function GameDetailPage() {
                     onChange={(e) => setShowAllWaypoints(e.target.checked)}
                   />
                 }
-                label="Zobrazit všechny waypointy"
-                sx={{ mt: 1, color: 'text.secondary' }}
+                label={
+                  <Box>
+                    <Typography variant="body2" fontWeight={700}>
+                      Ukázat všechny body
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Hráči vidí jen první bod, ať si nezkazí překvapení
+                    </Typography>
+                  </Box>
+                }
+                sx={{ mt: 1.5, alignItems: 'center' }}
               />
             )}
           </Box>
         )}
 
-        {/* Tvůrce – méně výrazně pod mapou */}
-        <Typography variant="caption" color="text.disabled">
-          Vytvořil: {game.creator?.username ?? 'Neznámý'}
-        </Typography>
+        {/* Co tě čeká */}
+        <Box sx={{ bgcolor: 'background.paper', borderRadius: '20px', p: 2 }}>
+          <Typography variant="h5" component="h2" sx={{ mb: 1.5 }}>
+            Co tě čeká
+          </Typography>
+          <Stack direction="row" spacing={1}>
+            {[
+              { icon: <FlagIcon />, label: 'Dojdi k bodu', bg: '#E4F3E8', fg: 'text.primary' },
+              { icon: <PuzzleIcon />, label: 'Vyřeš úkol', bg: '#FFE3D3', fg: '#8A3A12' },
+              { icon: <TrophyIcon />, label: 'Najdi poklad', bg: 'warning.light', fg: '#6B4A00' },
+            ].map((step) => (
+              <Box
+                key={step.label}
+                sx={{
+                  flex: 1,
+                  bgcolor: step.bg,
+                  color: step.fg,
+                  borderRadius: '16px',
+                  py: 1.25,
+                  px: 0.5,
+                  textAlign: 'center',
+                }}
+              >
+                {step.icon}
+                <Typography variant="body2" fontWeight={700} sx={{ color: 'inherit' }}>
+                  {step.label}
+                </Typography>
+              </Box>
+            ))}
+          </Stack>
+        </Box>
       </Stack>
 
-      <Snackbar open={!!successMessage} autoHideDuration={6000} onClose={clearSuccessMessage}>
+      {/* Lišta s hlavní akcí dole – v dosahu palce */}
+      <Box
+        sx={{
+          position: 'fixed',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 1100,
+          bgcolor: 'background.paper',
+          borderRadius: '24px 24px 0 0',
+          boxShadow: '0 -4px 16px rgba(15, 77, 48, 0.12)',
+          px: 2,
+          pt: 1.75,
+          pb: 'calc(14px + env(safe-area-inset-bottom))',
+        }}
+      >
+        <Container
+          maxWidth="md"
+          disableGutters
+          sx={{ display: 'flex', alignItems: 'center', gap: 2 }}
+        >
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="h4" component="p" lineHeight={1.1}>
+              {routeDistance !== undefined ? formatDistance(routeDistance) : `${pointCount}`}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {routeDistance !== undefined
+                ? `${pointCount} ${pluralCs(pointCount, 'bod', 'body', 'bodů')}`
+                : pluralCs(pointCount, 'bod', 'body', 'bodů')}
+            </Typography>
+          </Box>
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<PlayIcon />}
+            onClick={() => navigate(`/games/${gameId}/game`)}
+            sx={{ ml: 'auto', px: 4 }}
+          >
+            Hrát
+          </Button>
+        </Container>
+      </Box>
+
+      <Snackbar
+        open={!!successMessage}
+        autoHideDuration={6000}
+        onClose={clearSuccessMessage}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
         <Alert severity="success" onClose={clearSuccessMessage}>
           {successMessage}
         </Alert>

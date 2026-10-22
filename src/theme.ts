@@ -160,6 +160,21 @@ const theme = createTheme({
         },
       },
     },
+    // Vybraná volba přepínače musí být na první pohled poznat (plná zelená)
+    MuiToggleButton: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          textTransform: 'none',
+          fontWeight: 700,
+          color: theme.palette.text.primary,
+          '&.Mui-selected': {
+            backgroundColor: theme.palette.primary.main,
+            color: theme.palette.primary.contrastText,
+            '&:hover': { backgroundColor: theme.palette.primary.dark },
+          },
+        }),
+      },
+    },
     MuiFab: {
       styleOverrides: {
         root: {
