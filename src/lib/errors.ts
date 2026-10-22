@@ -1,12 +1,20 @@
 // Převod chyb (Supabase/PostgREST, síť, vlastní) na hlášku pro uživatele.
 // Surové hlášky PostgREST jsou anglické a technické – uživateli se ukáže jen to, co dává smysl.
 
+const OUTDATED_APP =
+  'Aplikace mezitím dostala novou verzi. Obnovte prosím stránku (Ctrl+F5) a akci zopakujte.';
+
 const CODE_MESSAGES: Record<string, string> = {
   '42501': 'K této akci nemáte oprávnění.',
   '23505': 'Takový záznam už existuje.',
   '23514': 'Některá hodnota je mimo povolený rozsah.',
   PGRST116: 'Záznam nebyl nalezen, nebo k němu nemáte přístup.',
   PGRST301: 'Přihlášení vypršelo. Přihlaste se prosím znovu.',
+  // Klient a databáze nesedí (stará záložka po nasazení nové verze s migrací)
+  '42703': OUTDATED_APP,
+  '42883': OUTDATED_APP,
+  PGRST202: OUTDATED_APP,
+  PGRST204: OUTDATED_APP,
 };
 
 // Vlastní chyby aplikace a RPC mají české texty – ty se zobrazí beze změny
