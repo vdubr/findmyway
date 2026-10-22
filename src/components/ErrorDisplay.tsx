@@ -1,5 +1,7 @@
+// Chyba – liška na zadních s vysvětlením a případným tlačítkem pro nový pokus
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { Alert, AlertTitle, Box, Button } from '@mui/material';
+import { Button } from '@mui/material';
+import FoxMessage from './FoxMessage';
 
 interface ErrorDisplayProps {
   title?: string;
@@ -8,34 +10,23 @@ interface ErrorDisplayProps {
 }
 
 export default function ErrorDisplay({
-  title = 'Něco se pokazilo',
-  message = 'Omlouváme se, ale došlo k chybě. Zkuste to prosím znovu.',
+  title = 'Tady stezka končí',
+  message = 'Něco se pokazilo. Zkuste to prosím znovu.',
   onRetry,
 }: ErrorDisplayProps) {
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '50vh',
-        p: 3,
-      }}
-    >
-      <Alert
-        severity="error"
-        sx={{ maxWidth: 600 }}
-        action={
-          onRetry && (
-            <Button color="inherit" size="small" startIcon={<RefreshIcon />} onClick={onRetry}>
-              Zkusit znovu
-            </Button>
-          )
-        }
-      >
-        <AlertTitle>{title}</AlertTitle>
-        {message}
-      </Alert>
-    </Box>
+    <FoxMessage
+      fox="standing"
+      title={title}
+      message={message}
+      role="alert"
+      action={
+        onRetry && (
+          <Button variant="contained" startIcon={<RefreshIcon />} onClick={onRetry}>
+            Zkusit znovu
+          </Button>
+        )
+      }
+    />
   );
 }

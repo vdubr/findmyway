@@ -17,18 +17,25 @@ import {
   List,
   ListItem,
   ListItemText,
-  Paper,
   Stack,
   Tooltip,
   Typography,
 } from '@mui/material';
 import type { DragEvent, TouchEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { GeoLocation } from '../../../types';
+import FoxMessage from '../../../components/FoxMessage';
+import { brandColors } from '../../../theme';
+import type { CheckpointType, GeoLocation } from '../../../types';
 import { calculateCentroid } from '../../../utils/geo';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
 import type { MapZoomRef } from '../../map/hooks/useMapZoom';
 import { useGameEditorStore } from '../store/gameEditorStore';
+
+const TYPE_LABELS: Record<CheckpointType, string> = {
+  info: 'Info',
+  puzzle: 'Hádanka',
+  input: 'Zadání souřadnic',
+};
 
 interface MapEditorProps {
   onSave?: () => void;
@@ -287,24 +294,17 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
                 '&:last-child': { pb: 2 },
               }}
             >
-              <Typography variant="h6" color="primary" gutterBottom>
-                Checkpointy ({tempCheckpoints.length})
+              <Typography variant="h5" component="h2" gutterBottom>
+                Body na stezce ({tempCheckpoints.length})
               </Typography>
 
               {tempCheckpoints.length === 0 ? (
-                <Paper
-                  sx={{
-                    p: 3,
-                    textAlign: 'center',
-                    bgcolor: 'background.default',
-                  }}
-                >
-                  <Typography variant="body2" color="text.secondary">
-                    Zatím žádné checkpointy.
-                    <br />
-                    Klikněte na mapu pro přidání.
-                  </Typography>
-                </Paper>
+                <FoxMessage
+                  fox="puzzle"
+                  title="Zatím žádné body"
+                  message="Klepni na mapu a přidej první bod – stezka pak začne žít."
+                  minHeight="auto"
+                />
               ) : (
                 <List
                   ref={listRef}
@@ -321,9 +321,13 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
                       onDragEnd={handleDragEnd}
                       onTouchEnd={handleTouchEnd}
                       sx={{
-                        border: 1,
-                        borderColor: dragOverIndex === index ? 'primary.main' : 'divider',
-                        borderRadius: 1,
+                        border: 2,
+                        borderColor:
+                          dragOverIndex === index || selectedCheckpointId === checkpoint.tempId
+                            ? 'primary.main'
+                            : 'transparent',
+                        borderRadius: '18px',
+                        boxShadow: '0 2px 8px rgba(30, 122, 79, 0.10)',
                         mb: 1,
                         cursor: 'pointer',
                         bgcolor:
@@ -392,17 +396,22 @@ export default function MapEditor({ onSave, isLoading = false }: MapEditorProps)
                             <Chip
                               label={index + 1}
                               size="small"
-                              color="primary"
-                              sx={{ minWidth: 32 }}
+                              sx={{
+                                minWidth: 32,
+                                fontWeight: 800,
+                                bgcolor: brandColors.sun,
+                                color: brandColors.forestDark,
+                              }}
                             />
-                            <Typography variant="body2" fontWeight="medium">
+                            <Typography variant="body2" fontWeight={700}>
                               {checkpoint.content.title}
                             </Typography>
                           </Stack>
                         }
                         secondary={
                           <Typography variant="caption" color="text.secondary">
-                            {checkpoint.latitude.toFixed(5)}, {checkpoint.longitude.toFixed(5)}
+                            {TYPE_LABELS[checkpoint.type]} · {checkpoint.latitude.toFixed(5)},{' '}
+                            {checkpoint.longitude.toFixed(5)}
                           </Typography>
                         }
                       />

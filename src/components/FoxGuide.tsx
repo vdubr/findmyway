@@ -10,14 +10,14 @@ import foxStanding from '../assets/fox/liska_na_zadnich.webp';
 import foxTreasure from '../assets/fox/liska_nasla_poklad.webp';
 import foxSitting from '../assets/fox/liska_sedi.webp';
 
-type FoxState = 'waving' | 'traveling' | 'sitting' | 'puzzle' | 'treasure' | 'standing';
+export type FoxState = 'waving' | 'traveling' | 'sitting' | 'puzzle' | 'treasure' | 'standing';
 
 interface FoxGuideProps {
   state?: FoxState;
   inline?: boolean; // Pokud true, nebude fixed position ale inline
 }
 
-const foxImages: Record<FoxState, string> = {
+export const foxImages: Record<FoxState, string> = {
   waving: foxWaving,
   traveling: foxTraveling,
   sitting: foxSitting,

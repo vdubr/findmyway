@@ -15,11 +15,11 @@ import {
   TextField,
   ToggleButton,
   ToggleButtonGroup,
-  Typography,
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import ErrorDisplay from '../../../components/ErrorDisplay';
+import FoxMessage from '../../../components/FoxMessage';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 import { useGeolocation } from '../../../hooks/useGeolocation';
 import { getMyDraftGamesWithCheckpoints, getPublicGamesWithCheckpoints } from '../../../lib/api';
@@ -270,16 +270,34 @@ export default function HomePage() {
         {error ? (
           <ErrorDisplay message={error} onRetry={loadGames} />
         ) : games.length === 0 && !(activeTag === 'drafts' && hasDrafts) ? (
-          <Alert severity="info">
-            <Typography>Zatím nejsou k dispozici žádné veřejné hry.</Typography>
-            {user && <Typography variant="body2">Buďte první a vytvořte hru!</Typography>}
-          </Alert>
+          <FoxMessage
+            fox="puzzle"
+            title="Zatím tu nevede žádná stezka"
+            message={user ? 'Buď první, kdo nějakou vyznačí!' : 'Brzy tu nějaká přibude.'}
+            minHeight="40vh"
+            action={
+              user && (
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => navigate('/games/new/edit/base')}
+                >
+                  Vytvořit hru
+                </Button>
+              )
+            }
+          />
         ) : filteredGames.length === 0 ? (
-          <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-            {searchQuery.trim()
-              ? `Žádná hra neodpovídá hledanému výrazu „${searchQuery}"`
-              : 'Žádná hra neodpovídá zvolenému filtru'}
-          </Typography>
+          <FoxMessage
+            fox="standing"
+            title="Tahle stopa nikam nevede"
+            message={
+              searchQuery.trim()
+                ? `Žádná hra neodpovídá „${searchQuery}“. Zkus jiné hledání.`
+                : 'Pro tenhle filtr tu zatím nic není.'
+            }
+            minHeight="40vh"
+          />
         ) : viewMode === 'cards' ? (
           <GamesCardView games={filteredGames} distances={distances} userId={user?.id} />
         ) : (
