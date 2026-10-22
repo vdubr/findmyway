@@ -50,8 +50,11 @@ export interface Checkpoint {
   radius: number; // v metrech
   type: CheckpointType;
   content: CheckpointContent;
-  secret_solution: SecretSolution | null;
-  is_fake?: boolean; // Fake checkpoint (nebude brán v potaz při dokončování hry)
+  is_fake: boolean; // Falešný checkpoint (zatím bez vlivu na průběh hry)
+  // Řešení úkolu dostává hráč jen jako SHA-256 hash (viz utils/answerCheck.ts a migrace 007)
+  answer_hash: string | null; // hádanka (type 'puzzle')
+  solution_lat_hash: string | null; // souřadnice dalšího bodu (type 'input')
+  solution_lng_hash: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -61,7 +64,16 @@ export interface CheckpointContent {
   description: string | null;
   image_url: string | null;
   clue: string | null;
-  puzzle_answer?: string | null; // Správná odpověď pro typ 'puzzle'
+}
+
+// Řešení úkolu v plaintextu – tabulka checkpoint_secrets, čte ji jen tvůrce hry (editor)
+export interface CheckpointSecret {
+  secret_solution: SecretSolution | null; // souřadnice dalšího bodu (type 'input')
+  puzzle_answer: string | null; // odpověď na hádanku (type 'puzzle')
+}
+
+export interface CheckpointWithSecret extends Checkpoint {
+  secret: CheckpointSecret | null;
 }
 
 // Secret solution obsahuje OBOJE: latitude a longitude v DMS formátu
@@ -179,44 +191,18 @@ export interface UpdateGameInput {
   status?: GameStatus;
 }
 
-export interface CreateCheckpointInput {
-  game_id: string;
+// Jeden checkpoint pro RPC save_game_checkpoints (bez id = nový)
+export interface SaveCheckpointInput {
+  id?: string;
   order_index: number;
   latitude: number;
   longitude: number;
-  radius?: number;
+  radius: number;
   type: CheckpointType;
   content: CheckpointContent;
-  secret_solution?: SecretSolution;
-  is_fake?: boolean;
-}
-
-export interface UpdateCheckpointInput {
-  order_index?: number;
-  latitude?: number;
-  longitude?: number;
-  radius?: number;
-  type?: CheckpointType;
-  content?: Partial<CheckpointContent>;
-  secret_solution?: SecretSolution | null;
-  is_fake?: boolean;
-}
-
-export interface StartGameSessionInput {
-  game_id: string;
-}
-
-export interface UpdateSessionProgressInput {
-  current_checkpoint_index: number;
-  metadata?: Partial<SessionMetadata>;
-}
-
-export interface CompleteCheckpointInput {
-  session_id: string;
-  checkpoint_id: string;
-  entry_latitude: number;
-  entry_longitude: number;
-  entry_accuracy: number;
+  is_fake: boolean;
+  secret_solution: SecretSolution | null;
+  puzzle_answer: string | null;
 }
 
 // ============================================================================
@@ -227,7 +213,8 @@ export interface GameWithCreator extends Game {
   creator: Pick<Profile, 'id' | 'username' | 'avatar_url'>;
 }
 
-export interface GameWithCheckpoints extends Game {
+// Detail hry pro hráče: tvůrce + checkpointy seřazené podle order_index (bez řešení úkolů)
+export interface GameDetail extends GameWithCreator {
   checkpoints: Checkpoint[];
 }
 
@@ -237,19 +224,3 @@ export type CheckpointSummary = Pick<Checkpoint, 'id' | 'order_index' | 'latitud
 export interface GameWithCheckpointSummary extends Game {
   checkpoints: CheckpointSummary[];
 }
-
-export interface GameSessionWithDetails extends GameSession {
-  game: Game;
-  completions: CheckpointCompletion[];
-}
-
-// ============================================================================
-// STORAGE TYPES
-// ============================================================================
-
-export interface UploadImageResult {
-  path: string;
-  url: string;
-}
-
-export type StorageBucket = 'checkpoint-images' | 'avatars';

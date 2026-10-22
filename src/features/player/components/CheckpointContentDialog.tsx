@@ -20,8 +20,8 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import foxWaypointVideo from '../../../assets/fox/liska_waypoint.mp4';
 import type { Checkpoint, CoordinateDMS } from '../../../types';
+import { verifyCoordinates, verifyPuzzleAnswer } from '../../../utils/answerCheck';
 import { CHECKPOINT_COMPLETE_DELAY } from '../../../utils/constants';
-import { validateCoordinateInput } from '../../../utils/coordinateValidation';
 import CoordinatePicker from './CoordinatePicker';
 
 interface CheckpointContentDialogProps {
@@ -113,23 +113,22 @@ export default function CheckpointContentDialog({
     setPhase('content');
   };
 
-  const handlePuzzleSubmit = () => {
-    if (!checkpoint.content.puzzle_answer) {
+  // Odpovědi se ověřují proti SHA-256 hashům – řešení v plaintextu klient nemá
+  const handlePuzzleSubmit = async () => {
+    if (!checkpoint.answer_hash) {
       setMissingConfigError(true);
       return;
     }
     setMissingConfigError(false);
     setIsSubmitting(true);
 
-    const correctAnswer = checkpoint.content.puzzle_answer.toLowerCase().trim();
-    const userAnswer = puzzleAnswer.toLowerCase().trim();
-    const isCorrect = userAnswer === correctAnswer;
+    const isCorrect = await verifyPuzzleAnswer(puzzleAnswer, checkpoint.answer_hash);
 
     setValidationResult({
       isValid: isCorrect,
       message: isCorrect
-        ? '🎉 Správně! Vyřešili jste hádanku.'
-        : '❌ Nesprávná odpověď. Zkuste to znovu.',
+        ? 'Správně! Vyřešili jste hádanku.'
+        : 'Nesprávná odpověď. Zkuste to znovu.',
     });
 
     setIsSubmitting(false);
@@ -139,18 +138,19 @@ export default function CheckpointContentDialog({
     }
   };
 
-  const handleCoordinateSubmit = () => {
-    if (!checkpoint.secret_solution) {
+  const handleCoordinateSubmit = async () => {
+    if (!checkpoint.solution_lat_hash || !checkpoint.solution_lng_hash) {
       setMissingConfigError(true);
       return;
     }
     setMissingConfigError(false);
     setIsSubmitting(true);
 
-    const result = validateCoordinateInput(
+    const result = await verifyCoordinates(
       inputLatitude,
       inputLongitude,
-      checkpoint.secret_solution,
+      checkpoint.solution_lat_hash,
+      checkpoint.solution_lng_hash,
       1
     );
 
@@ -231,7 +231,7 @@ export default function CheckpointContentDialog({
                 <Card variant="outlined" sx={{ bgcolor: 'info.light' }}>
                   <CardContent>
                     <Typography variant="subtitle2" color="info.dark" gutterBottom>
-                      💡 Nápověda:
+                      Nápověda:
                     </Typography>
                     <Typography variant="body2" color="info.dark">
                       {checkpoint.content.clue}
@@ -296,7 +296,7 @@ export default function CheckpointContentDialog({
                         sekundy).
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        💡 Tip: Použijte posuvníky níže pro nastavení každé hodnoty.
+                        Tip: Použijte posuvníky níže pro nastavení každé hodnoty.
                       </Typography>
                     </CardContent>
                   </Card>

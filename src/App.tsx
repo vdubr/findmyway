@@ -1,24 +1,27 @@
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider } from '@mui/material/styles';
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useParams } from 'react-router-dom';
 import AppLayout from './components/AppLayout';
 
 // Components
 import ErrorBoundary from './components/ErrorBoundary';
+import LoadingSpinner from './components/LoadingSpinner';
 import ProtectedRoute from './components/ProtectedRoute';
-import AdminEditPage from './features/admin/pages/AdminEditPage';
 
 // Auth
 import { AuthProvider } from './features/auth/AuthContext';
-import AuthPage from './features/auth/pages/AuthPage';
-
-// Pages
-import GameDetailPage from './features/game/pages/GameDetailPage';
-import HomePage from './features/game/pages/HomePage';
-import LandingPage from './features/game/pages/LandingPage';
-import PlayerPage from './features/player/pages/PlayerPage';
-import ProfilePage from './features/profile/pages/ProfilePage';
 import theme from './theme';
+
+// Stránky se načítají až při první návštěvě (code splitting) – OpenLayers a editor
+// se tak nestahují na úvodní stránce ani při přihlášení
+const LandingPage = lazy(() => import('./features/game/pages/LandingPage'));
+const HomePage = lazy(() => import('./features/game/pages/HomePage'));
+const GameDetailPage = lazy(() => import('./features/game/pages/GameDetailPage'));
+const PlayerPage = lazy(() => import('./features/player/pages/PlayerPage'));
+const AdminEditPage = lazy(() => import('./features/admin/pages/AdminEditPage'));
+const ProfilePage = lazy(() => import('./features/profile/pages/ProfilePage'));
+const AuthPage = lazy(() => import('./features/auth/pages/AuthPage'));
 
 // Pomocné redirect komponenty pro zpětnou kompatibilitu
 function RedirectPlay() {
@@ -53,7 +56,9 @@ function App() {
               <Route
                 element={
                   <AppLayout>
-                    <Outlet />
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Outlet />
+                    </Suspense>
                   </AppLayout>
                 }
               >

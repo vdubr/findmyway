@@ -1,17 +1,18 @@
-// Helper funkce pro práci s Supabase databází
+// Datová vrstva nad Supabase – jediné místo, které zná tvar řádků v DB.
+// Řádky převádí přes lib/mappers.ts na aplikační typy (Game, Checkpoint, GameSession…).
 
 import type {
   ActivePlayer,
   Checkpoint,
-  CreateCheckpointInput,
+  CheckpointWithSecret,
   CreateGameInput,
-  Game,
+  GameDetail,
   GameSession,
-  GameWithCreator,
+  GameWithCheckpointSummary,
   PlayerLocation,
   Profile,
+  SaveCheckpointInput,
   SessionMetadata,
-  UpdateCheckpointInput,
   UpdateGameInput,
 } from '../types';
 import {
@@ -22,6 +23,14 @@ import {
   updateAnonymousSession,
 } from './anonymousSessions';
 import type { Json } from './database.types';
+import {
+  EMPTY_SESSION_METADATA,
+  toCheckpoint,
+  toCheckpointWithSecret,
+  toGame,
+  toGameSession,
+  toGameWithCreator,
+} from './mappers';
 import {
   cacheCheckpoints,
   cacheGame,
@@ -48,8 +57,7 @@ async function getCurrentUserId(): Promise<string | null> {
 // Veřejné údaje o tvůrci – e-mail se do seznamů her ani do offline cache nenačítá
 const CREATOR_SELECT = 'creator:profiles!creator_id(id, username, avatar_url)';
 
-// Seznam her potřebuje z checkpointů jen polohu a pořadí (pin na mapě, vzdálenost),
-// řešení úkolů se do seznamu nestahují
+// Seznam her potřebuje z checkpointů jen polohu a pořadí (pin na mapě, vzdálenost)
 const CHECKPOINT_SUMMARY_SELECT = 'checkpoints(id, order_index, latitude, longitude)';
 
 // Síťová chyba = fetch vůbec neproběhl. PostgREST chyby (např. PGRST116 – řádek neexistuje
@@ -59,6 +67,10 @@ function isNetworkError(err: unknown): boolean {
   if (err instanceof TypeError) return true;
   const code = (err as { code?: unknown } | null)?.code;
   return err != null && !code;
+}
+
+function errorCode(err: unknown): string | undefined {
+  return (err as { code?: string } | null)?.code;
 }
 
 function warnCacheError(err: unknown) {
@@ -74,16 +86,6 @@ interface FetchOptions {
 // ============================================================================
 // PROFILES
 // ============================================================================
-
-export async function getCurrentProfile() {
-  const userId = await getCurrentUserId();
-  if (!userId) return null;
-
-  const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
-
-  if (error) throw error;
-  return data as Profile;
-}
 
 export async function updateProfile(
   userId: string,
@@ -104,82 +106,63 @@ export async function updateProfile(
 // GAMES
 // ============================================================================
 
-export async function getPublicGames() {
+// Veřejné publikované hry s polohou checkpointů (seznam her, mapa)
+export async function getPublicGamesWithCheckpoints(): Promise<GameWithCheckpointSummary[]> {
   const { data, error } = await supabase
     .from('games')
-    .select(`*, ${CREATOR_SELECT}`)
+    .select(`*, ${CHECKPOINT_SUMMARY_SELECT}`)
     .eq('is_public', true)
     .eq('status', 'published')
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data;
+  return data.map((row) => ({ ...toGame(row), checkpoints: row.checkpoints }));
 }
 
-// Varianta s checkpointy pro zobrazení her na mapě (výpočet těžiště)
-export async function getPublicGamesWithCheckpoints() {
-  const { data, error } = await supabase
-    .from('games')
-    .select(`*, ${CREATOR_SELECT}, ${CHECKPOINT_SUMMARY_SELECT}`)
-    .eq('is_public', true)
-    .eq('status', 'published')
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return data;
-}
-
-// Draft hry přihlášeného uživatele s checkpointy (pro seznam her)
-export async function getMyDraftGamesWithCheckpoints() {
+// Draft hry přihlášeného uživatele s polohou checkpointů (pro seznam her)
+export async function getMyDraftGamesWithCheckpoints(): Promise<GameWithCheckpointSummary[]> {
   const userId = await getCurrentUserId();
   if (!userId) return [];
 
   const { data, error } = await supabase
     .from('games')
-    .select(`*, ${CREATOR_SELECT}, ${CHECKPOINT_SUMMARY_SELECT}`)
+    .select(`*, ${CHECKPOINT_SUMMARY_SELECT}`)
     .eq('creator_id', userId)
     .eq('status', 'draft')
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data;
+  return data.map((row) => ({ ...toGame(row), checkpoints: row.checkpoints }));
 }
-
-export async function getMyGames() {
-  const userId = await getCurrentUserId();
-  if (!userId) throw new Error('Not authenticated');
-
-  const { data, error } = await supabase
-    .from('games')
-    .select(`*, ${CREATOR_SELECT}`)
-    .eq('creator_id', userId)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return data;
-}
-
-export type GameWithCreatorAndCheckpoints = GameWithCreator & { checkpoints: Checkpoint[] };
 
 export async function getGameById(
   gameId: string,
   { offlineFallback = true }: FetchOptions = {}
-): Promise<GameWithCreatorAndCheckpoints> {
-  let data: unknown = null;
+): Promise<GameDetail> {
+  let game: GameDetail | null = null;
   let error: unknown = null;
   try {
-    ({ data, error } = await fetchGame(gameId));
+    const result = await supabase
+      .from('games')
+      .select(`*, ${CREATOR_SELECT}, checkpoints(*)`)
+      .eq('id', gameId)
+      .order('order_index', { referencedTable: 'checkpoints', ascending: true })
+      .single();
+    error = result.error;
+    if (result.data) {
+      game = {
+        ...toGameWithCreator(result.data),
+        checkpoints: result.data.checkpoints.map(toCheckpoint),
+      };
+    }
   } catch (err) {
     error = err;
   }
 
-  if (!error && data) {
-    const game = data as GameWithCreatorAndCheckpoints;
+  if (game) {
     // Zápis do cache je best-effort – selhání úložiště nesmí shodit úspěšný online fetch
     cacheGame(game).catch(warnCacheError);
-    if (game.checkpoints) {
-      cacheCheckpoints(gameId, game.checkpoints).catch(warnCacheError);
-    }
+    cacheCheckpoints(gameId, game.checkpoints).catch(warnCacheError);
     return game;
   }
 
@@ -187,23 +170,14 @@ export async function getGameById(
     const cachedGame = await getCachedGame(gameId);
     if (cachedGame) {
       console.warn('Offline – používám hru z cache');
-      return cachedGame as GameWithCreatorAndCheckpoints;
+      return cachedGame;
     }
-  } else if ((error as { code?: string } | null)?.code === 'PGRST116') {
+  } else if (errorCode(error) === 'PGRST116') {
     // Hra neexistuje nebo k ní uživatel už nemá přístup – zastaralou kopii smazat
     removeCachedGame(gameId).catch(warnCacheError);
   }
 
   throw error;
-}
-
-function fetchGame(gameId: string) {
-  return supabase
-    .from('games')
-    .select(`*, ${CREATOR_SELECT}, checkpoints(*)`)
-    .eq('id', gameId)
-    .order('order_index', { referencedTable: 'checkpoints', ascending: true })
-    .single();
 }
 
 export async function createGame(input: CreateGameInput) {
@@ -218,12 +192,7 @@ export async function createGame(input: CreateGameInput) {
       description: input.description ?? null,
       is_public: input.is_public,
       difficulty: input.difficulty,
-      settings: (input.settings ?? {
-        radius_tolerance: 10,
-        allow_skip: false,
-        max_players: null,
-        time_limit: null,
-      }) as Json,
+      settings: (input.settings ?? {}) as Json,
       status: 'draft',
       tags: input.tags ?? [],
     })
@@ -231,7 +200,7 @@ export async function createGame(input: CreateGameInput) {
     .single();
 
   if (error) throw error;
-  return data as unknown as Game;
+  return toGame(data);
 }
 
 export async function updateGame(gameId: string, updates: UpdateGameInput) {
@@ -248,7 +217,7 @@ export async function updateGame(gameId: string, updates: UpdateGameInput) {
     .single();
 
   if (error) throw error;
-  return data as unknown as Game;
+  return toGame(data);
 }
 
 export async function deleteGame(gameId: string) {
@@ -266,20 +235,26 @@ export async function deleteGame(gameId: string) {
 // CHECKPOINTS
 // ============================================================================
 
+// Checkpointy pro hráče – bez řešení úkolů, jen hashe (viz utils/answerCheck.ts)
 export async function getCheckpointsByGameId(
   gameId: string,
   { offlineFallback = true }: FetchOptions = {}
 ): Promise<Checkpoint[]> {
-  let data: unknown = null;
+  let checkpoints: Checkpoint[] | null = null;
   let error: unknown = null;
   try {
-    ({ data, error } = await fetchCheckpoints(gameId));
+    const result = await supabase
+      .from('checkpoints')
+      .select('*')
+      .eq('game_id', gameId)
+      .order('order_index', { ascending: true });
+    error = result.error;
+    if (result.data) checkpoints = result.data.map(toCheckpoint);
   } catch (err) {
     error = err;
   }
 
-  if (!error && data) {
-    const checkpoints = data as Checkpoint[];
+  if (checkpoints) {
     cacheCheckpoints(gameId, checkpoints).catch(warnCacheError);
     return checkpoints;
   }
@@ -295,75 +270,42 @@ export async function getCheckpointsByGameId(
   throw error;
 }
 
-function fetchCheckpoints(gameId: string) {
-  return supabase
+// Checkpointy včetně řešení úkolů – pro editor. RLS vrátí secret jen tvůrci hry,
+// ostatním přijde null (editor je pro ně stejně zavřený).
+export async function getCheckpointsWithSecrets(gameId: string): Promise<CheckpointWithSecret[]> {
+  const { data, error } = await supabase
     .from('checkpoints')
-    .select('*')
+    .select('*, secret:checkpoint_secrets(*)')
     .eq('game_id', gameId)
     .order('order_index', { ascending: true });
-}
-
-export async function createCheckpoint(input: CreateCheckpointInput) {
-  const { data, error } = await supabase
-    .from('checkpoints')
-    .insert({
-      game_id: input.game_id,
-      order_index: input.order_index,
-      latitude: input.latitude,
-      longitude: input.longitude,
-      radius: input.radius ?? 10,
-      type: input.type,
-      content: input.content as unknown as Json,
-      secret_solution: (input.secret_solution ?? null) as Json | null,
-      is_fake: input.is_fake ?? false,
-    })
-    .select()
-    .single();
 
   if (error) throw error;
-  return data as unknown as Checkpoint;
+  return data.map(toCheckpointWithSecret);
 }
 
-export async function updateCheckpoint(checkpointId: string, updates: UpdateCheckpointInput) {
-  const { content, secret_solution, ...rest } = updates;
-  const { data, error } = await supabase
-    .from('checkpoints')
-    .update({
-      ...rest,
-      ...(content !== undefined && { content: content as unknown as Json }),
-      ...(secret_solution !== undefined && {
-        secret_solution: secret_solution as unknown as Json | null,
-      }),
-    })
-    .eq('id', checkpointId)
-    .select()
-    .single();
+// Uloží všechny checkpointy hry v jedné transakci (RPC save_game_checkpoints):
+// existující podle id aktualizuje, nové vloží, chybějící smaže, řešení zapíše do
+// checkpoint_secrets. Vrací uložené checkpointy seřazené podle order_index.
+export async function saveGameCheckpoints(
+  gameId: string,
+  checkpoints: SaveCheckpointInput[]
+): Promise<Checkpoint[]> {
+  const { data, error } = await supabase.rpc('save_game_checkpoints', {
+    p_game_id: gameId,
+    p_checkpoints: checkpoints as unknown as Json,
+  });
 
   if (error) throw error;
-  return data as unknown as Checkpoint;
-}
-
-// Pomocná funkce pro přesunutí order_index na dočasnou hodnotu (vyhnutí se unique constraint při reorder)
-export async function shiftCheckpointOrderIndex(checkpointId: string, tempIndex: number) {
-  const { error } = await supabase
-    .from('checkpoints')
-    .update({ order_index: tempIndex })
-    .eq('id', checkpointId);
-
-  if (error) throw error;
-}
-
-export async function deleteCheckpoint(checkpointId: string) {
-  const { error } = await supabase.from('checkpoints').delete().eq('id', checkpointId);
-
-  if (error) throw error;
+  const saved = data.map(toCheckpoint);
+  cacheCheckpoints(gameId, saved).catch(warnCacheError);
+  return saved;
 }
 
 // ============================================================================
 // GAME SESSIONS
 // ============================================================================
 
-export async function getActiveSession(gameId: string) {
+async function getActiveSession(gameId: string): Promise<GameSession | null> {
   const userId = await getCurrentUserId();
 
   // Anonymní uživatel - použít localStorage (dokončená session se jako aktivní nevrací)
@@ -382,13 +324,13 @@ export async function getActiveSession(gameId: string) {
     .maybeSingle();
 
   if (error) throw error;
-  return data as unknown as GameSession | null;
+  return data ? toGameSession(data) : null;
 }
 
-export async function startGameSession(gameId: string) {
+// Vrátí rozehranou session, nebo založí novou
+export async function startGameSession(gameId: string): Promise<GameSession> {
   const userId = await getCurrentUserId();
 
-  // Existující aktivní session – pokračovat v rozehrané hře
   const existingSession = await getActiveSession(gameId);
   if (existingSession) {
     return existingSession;
@@ -407,11 +349,7 @@ export async function startGameSession(gameId: string) {
       game_id: gameId,
       current_checkpoint_index: 0,
       status: 'active',
-      metadata: {
-        hints_used: 0,
-        wrong_attempts: 0,
-        checkpoints_completed: [],
-      } as unknown as Json,
+      metadata: EMPTY_SESSION_METADATA as unknown as Json,
     })
     .select()
     .single();
@@ -424,14 +362,14 @@ export async function startGameSession(gameId: string) {
     }
     throw error;
   }
-  return data as unknown as GameSession;
+  return toGameSession(data);
 }
 
 export async function updateSessionProgress(
   sessionId: string,
   checkpointIndex: number,
   metadata?: SessionMetadata
-) {
+): Promise<GameSession> {
   // Anonymní session - aktualizovat localStorage
   if (isAnonymousSessionId(sessionId)) {
     const gameId = extractGameIdFromAnonymousSessionId(sessionId);
@@ -460,10 +398,10 @@ export async function updateSessionProgress(
     .single();
 
   if (error) throw error;
-  return data as unknown as GameSession;
+  return toGameSession(data);
 }
 
-export async function completeGameSession(sessionId: string, score: number) {
+export async function completeGameSession(sessionId: string, score: number): Promise<GameSession> {
   // Anonymní session - dokončit v localStorage
   if (isAnonymousSessionId(sessionId)) {
     const gameId = extractGameIdFromAnonymousSessionId(sessionId);
@@ -492,7 +430,7 @@ export async function completeGameSession(sessionId: string, score: number) {
     .single();
 
   if (error) throw error;
-  return data as unknown as GameSession;
+  return toGameSession(data);
 }
 
 // ============================================================================
@@ -517,37 +455,6 @@ export async function uploadCheckpointImage(
   } = supabase.storage.from('checkpoint-images').getPublicUrl(filePath);
 
   return publicUrl;
-}
-
-export async function uploadAvatar(userId: string, file: File): Promise<string> {
-  const fileExt = file.name.split('.').pop();
-  const fileName = `avatar.${fileExt}`;
-  const filePath = `${userId}/${fileName}`;
-
-  // Smazat starý avatar pokud existuje
-  await supabase.storage.from('avatars').remove([filePath]);
-
-  const { error } = await supabase.storage.from('avatars').upload(filePath, file);
-
-  if (error) throw error;
-
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from('avatars').getPublicUrl(filePath);
-
-  return publicUrl;
-}
-
-export async function deleteCheckpointImage(imageUrl: string) {
-  // Extract path from URL
-  const url = new URL(imageUrl);
-  const pathParts = url.pathname.split('/checkpoint-images/');
-  if (pathParts.length < 2) throw new Error('Invalid image URL');
-
-  const filePath = pathParts[1];
-  const { error } = await supabase.storage.from('checkpoint-images').remove([filePath]);
-
-  if (error) throw error;
 }
 
 // ============================================================================
@@ -597,7 +504,7 @@ export async function deletePlayerLocation(sessionId: string): Promise<void> {
 }
 
 // Ziskat aktivni hrace pro danou hru (pro admina)
-export async function getActivePlayersForGame(gameId: string): Promise<ActivePlayer[]> {
+async function getActivePlayersForGame(gameId: string): Promise<ActivePlayer[]> {
   const { data, error } = await supabase
     .from('active_players_view')
     .select('*')
@@ -605,17 +512,6 @@ export async function getActivePlayersForGame(gameId: string): Promise<ActivePla
 
   if (error) throw error;
   return (data as ActivePlayer[]) || [];
-}
-
-// Pocet aktivnich hracu pro danou hru
-export async function getActivePlayersCount(gameId: string): Promise<number> {
-  const { count, error } = await supabase
-    .from('active_players_view')
-    .select('*', { count: 'exact', head: true })
-    .eq('game_id', gameId);
-
-  if (error) throw error;
-  return count || 0;
 }
 
 // Subscripce na zmeny pozic hracu (pro real-time aktualizace)
@@ -698,9 +594,7 @@ export async function getProfileStats(userId: string): Promise<ProfileStats> {
   if (playedError) throw playedError;
 
   // Unikatni hry
-  const uniqueGamesPlayed = new Set(
-    (playedData as { game_id: string }[] | null)?.map((s) => s.game_id) || []
-  );
+  const uniqueGamesPlayed = new Set((playedData ?? []).map((s) => s.game_id));
 
   // Pocet dokoncenych her
   const { count: gamesCompleted, error: completedError } = await supabase

@@ -35,7 +35,7 @@ import {
   startGameSession,
   updatePlayerLocation,
 } from '../../../lib/api';
-import type { Game } from '../../../types';
+import { toUserMessage } from '../../../lib/errors';
 import { LOCATION_UPDATE_INTERVAL } from '../../../utils/constants';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
 import type { MapZoomRef } from '../../map/hooks/useMapZoom';
@@ -118,10 +118,10 @@ export default function PlayerPage() {
         // Ulozit session id pro sdileni polohy
         setSessionId(session.id);
 
-        initGame(gameData as unknown as Game, checkpointsData, session);
+        initGame(gameData, checkpointsData, session);
       } catch (err) {
         if (isCancelled()) return;
-        setError(err instanceof Error ? err.message : 'Chyba při načítání hry');
+        setError(toUserMessage(err, 'Chyba při načítání hry'));
       } finally {
         if (!isCancelled()) setIsLoading(false);
       }
@@ -357,13 +357,11 @@ export default function PlayerPage() {
                     <Typography variant="subtitle2" color="primary">
                       Informace o hře:
                     </Typography>
-                    <Typography variant="body2">
-                      📍 Počet checkpointů: {checkpoints.length}
-                    </Typography>
-                    <Typography variant="body2">⭐ Obtížnost: {game.difficulty}/5</Typography>
+                    <Typography variant="body2">Počet checkpointů: {checkpoints.length}</Typography>
+                    <Typography variant="body2">Obtížnost: {game.difficulty}/5</Typography>
                     {game.settings.time_limit && (
                       <Typography variant="body2">
-                        ⏱️ Časový limit: {game.settings.time_limit} minut
+                        Časový limit: {game.settings.time_limit} minut
                       </Typography>
                     )}
                   </Stack>

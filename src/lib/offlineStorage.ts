@@ -1,6 +1,6 @@
 // Offline storage pomocí IndexedDB pro ukládání her a checkpointů
 import localforage from 'localforage';
-import type { Checkpoint, Game, GameSession } from '../types';
+import type { Checkpoint, GameDetail } from '../types';
 
 // Konfigurace IndexedDB stores
 const gamesStore = localforage.createInstance({
@@ -15,15 +15,17 @@ const checkpointsStore = localforage.createInstance({
   description: 'Cached checkpoints for offline play',
 });
 
+// Session se do IndexedDB už neukládají (postup drží DB / localStorage); store zůstává jen kvůli
+// smazání dat ze starších verzí v clearAllOfflineData
 const sessionsStore = localforage.createInstance({
   name: 'GeoQuest',
   storeName: 'sessions',
-  description: 'Game sessions for offline play',
+  description: 'Game sessions (legacy, jen úklid starých dat)',
 });
 
 // === GAMES ===
 
-export async function cacheGame(game: Game): Promise<void> {
+export async function cacheGame(game: GameDetail): Promise<void> {
   await gamesStore.setItem(game.id, {
     ...game,
     cached_at: Date.now(),
@@ -34,17 +36,9 @@ export async function cacheGame(game: Game): Promise<void> {
  * Vrátí hru z cache nebo null pokud není uložena.
  * Vyhodí chybu pokud dojde k chybě úložiště (odlišit od "není v cache").
  */
-export async function getCachedGame(gameId: string): Promise<Game | null> {
-  const game = await gamesStore.getItem<Game>(gameId);
+export async function getCachedGame(gameId: string): Promise<GameDetail | null> {
+  const game = await gamesStore.getItem<GameDetail>(gameId);
   return game;
-}
-
-export async function getAllCachedGames(): Promise<Game[]> {
-  const games: Game[] = [];
-  await gamesStore.iterate<Game, void>((value) => {
-    games.push(value);
-  });
-  return games;
 }
 
 export async function removeCachedGame(gameId: string): Promise<void> {
@@ -76,40 +70,10 @@ export async function getCachedCheckpoints(gameId: string): Promise<Checkpoint[]
 
 // === SESSIONS ===
 
-export async function saveGameSession(session: GameSession): Promise<void> {
-  const key = `${session.game_id}_${session.user_id}`;
-  await sessionsStore.setItem(key, session);
-}
-
-export async function getGameSession(gameId: string, userId: string): Promise<GameSession | null> {
-  const key = `${gameId}_${userId}`;
-  const session = await sessionsStore.getItem<GameSession>(key);
-  return session;
-}
-
-export async function clearGameSession(gameId: string, userId: string): Promise<void> {
-  const key = `${gameId}_${userId}`;
-  await sessionsStore.removeItem(key);
-}
-
 // === UTILITY ===
 
 export async function clearAllOfflineData(): Promise<void> {
   await gamesStore.clear();
   await checkpointsStore.clear();
   await sessionsStore.clear();
-}
-
-export async function getOfflineStorageSize(): Promise<number> {
-  let totalSize = 0;
-  await gamesStore.iterate<Game, void>((value) => {
-    totalSize += JSON.stringify(value).length;
-  });
-  await checkpointsStore.iterate<unknown, void>((value) => {
-    totalSize += JSON.stringify(value).length;
-  });
-  await sessionsStore.iterate<GameSession, void>((value) => {
-    totalSize += JSON.stringify(value).length;
-  });
-  return totalSize;
 }

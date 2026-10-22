@@ -62,8 +62,41 @@ export type Database = {
           },
         ];
       };
+      checkpoint_secrets: {
+        Row: {
+          checkpoint_id: string;
+          created_at: string;
+          puzzle_answer: string | null;
+          secret_solution: Json | null;
+          updated_at: string;
+        };
+        Insert: {
+          checkpoint_id: string;
+          created_at?: string;
+          puzzle_answer?: string | null;
+          secret_solution?: Json | null;
+          updated_at?: string;
+        };
+        Update: {
+          checkpoint_id?: string;
+          created_at?: string;
+          puzzle_answer?: string | null;
+          secret_solution?: Json | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'checkpoint_secrets_checkpoint_id_fkey';
+            columns: ['checkpoint_id'];
+            isOneToOne: true;
+            referencedRelation: 'checkpoints';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       checkpoints: {
         Row: {
+          answer_hash: string | null;
           content: Json;
           created_at: string;
           game_id: string;
@@ -73,11 +106,13 @@ export type Database = {
           longitude: number;
           order_index: number;
           radius: number;
-          secret_solution: Json | null;
+          solution_lat_hash: string | null;
+          solution_lng_hash: string | null;
           type: string;
           updated_at: string;
         };
         Insert: {
+          answer_hash?: string | null;
           content?: Json;
           created_at?: string;
           game_id: string;
@@ -87,11 +122,13 @@ export type Database = {
           longitude: number;
           order_index: number;
           radius?: number;
-          secret_solution?: Json | null;
+          solution_lat_hash?: string | null;
+          solution_lng_hash?: string | null;
           type: string;
           updated_at?: string;
         };
         Update: {
+          answer_hash?: string | null;
           content?: Json;
           created_at?: string;
           game_id?: string;
@@ -101,7 +138,8 @@ export type Database = {
           longitude?: number;
           order_index?: number;
           radius?: number;
-          secret_solution?: Json | null;
+          solution_lat_hash?: string | null;
+          solution_lng_hash?: string | null;
           type?: string;
           updated_at?: string;
         };
@@ -237,7 +275,7 @@ export type Database = {
         Insert: {
           accuracy?: number | null;
           created_at?: string;
-          current_checkpoint_index: number;
+          current_checkpoint_index?: number;
           id?: string;
           last_seen_at?: string;
           latitude: number;
@@ -299,7 +337,6 @@ export type Database = {
         Row: {
           accuracy: number | null;
           avatar_url: string | null;
-          created_at: string | null;
           creator_id: string | null;
           current_checkpoint_index: number | null;
           game_id: string | null;
@@ -308,11 +345,31 @@ export type Database = {
           latitude: number | null;
           longitude: number | null;
           session_id: string | null;
-          updated_at: string | null;
           user_id: string | null;
           username: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: 'game_sessions_game_id_fkey';
+            columns: ['game_id'];
+            isOneToOne: false;
+            referencedRelation: 'games';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'game_sessions_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'games_creator_id_fkey';
+            columns: ['creator_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'player_locations_session_id_fkey';
             columns: ['session_id'];
@@ -325,15 +382,39 @@ export type Database = {
     };
     Functions: {
       can_access_game: { Args: { game_id: string }; Returns: boolean };
-      get_avatar_url: {
-        Args: { filename: string; user_id: string };
-        Returns: string;
-      };
-      get_checkpoint_image_url: {
-        Args: { checkpoint_id: string; filename: string; game_id: string };
-        Returns: string;
+      dms_hash: { Args: { p_dms: Json }; Returns: string };
+      is_checkpoint_creator: {
+        Args: { p_checkpoint_id: string };
+        Returns: boolean;
       };
       is_game_creator: { Args: { game_id: string }; Returns: boolean };
+      puzzle_answer_hash: { Args: { p_answer: string }; Returns: string };
+      save_game_checkpoints: {
+        Args: { p_checkpoints: Json; p_game_id: string };
+        Returns: {
+          answer_hash: string | null;
+          content: Json;
+          created_at: string;
+          game_id: string;
+          id: string;
+          is_fake: boolean | null;
+          latitude: number;
+          longitude: number;
+          order_index: number;
+          radius: number;
+          solution_lat_hash: string | null;
+          solution_lng_hash: string | null;
+          type: string;
+          updated_at: string;
+        }[];
+        SetofOptions: {
+          from: '*';
+          to: 'checkpoints';
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
+      sha256_hex: { Args: { p_text: string }; Returns: string };
     };
     Enums: {
       [_ in never]: never;

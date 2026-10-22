@@ -1,16 +1,20 @@
 // Zustand store pro správu stavu při vytváření/editaci hry
 import { create } from 'zustand';
-import { getCheckpointsByGameId, getGameById } from '../../../lib/api';
+import { getCheckpointsWithSecrets, getGameById } from '../../../lib/api';
+import { toUserMessage } from '../../../lib/errors';
+import { DEFAULT_GAME_SETTINGS } from '../../../lib/mappers';
 import type {
-  Checkpoint,
   CheckpointContent,
   CheckpointType,
+  CheckpointWithSecret,
   CreateGameInput,
   Game,
+  GameSettings,
+  SaveCheckpointInput,
   SecretSolution,
 } from '../../../types';
 
-// Temporary checkpoint (před uložením do DB)
+// Checkpoint v editoru (před uložením do DB i po něm)
 export interface TempCheckpoint {
   tempId: string; // Dočasné ID před uložením do DB
   id?: string; // Reálné ID po uložení
@@ -20,54 +24,91 @@ export interface TempCheckpoint {
   radius: number;
   type: CheckpointType;
   content: CheckpointContent;
+  // Řešení úkolu – do DB jde do checkpoint_secrets (čte jen tvůrce), hráč dostává jen hash
   secret_solution: SecretSolution | null;
-  is_fake?: boolean; // Fake checkpoint (nebude se počítat k dokončení)
+  puzzle_answer: string | null;
+  is_fake?: boolean; // Falešný checkpoint (zatím bez vlivu na průběh hry)
 }
 
 interface GameEditorState {
   // Current game being edited
   currentGame: Game | null;
 
-  // Temporary checkpoints (během editace)
+  // Checkpointy během editace (zdroj pravdy pro uložení – co tu není, se v DB smaže)
   tempCheckpoints: TempCheckpoint[];
-
-  // IDs checkpointů smazaných během editace (jen ty co existují v DB - mají reálné ID)
-  deletedCheckpointIds: string[];
 
   // Selected checkpoint for editing
   selectedCheckpointId: string | null;
 
-  // UI state
-  isMapEditorOpen: boolean;
-  isCheckpointEditorOpen: boolean;
-  isSaving: boolean;
+  // Loading state pro loadGame
+  isLoading: boolean;
+  loadError: string | null;
 
   // Actions
   setCurrentGame: (game: Game | null) => void;
   initNewGame: (gameData: CreateGameInput) => void;
-  initEditGame: (game: Game, checkpoints: Checkpoint[]) => void;
   loadGame: (gameId: string) => Promise<void>; // Načte hru a checkpointy z API podle ID
   updateCurrentGame: (gameData: CreateGameInput) => void;
-
-  // Loading state pro loadGame
-  isLoading: boolean;
-  loadError: string | null;
 
   // Checkpoint management
   addTempCheckpoint: (latitude: number, longitude: number) => void;
   updateTempCheckpoint: (tempId: string, updates: Partial<TempCheckpoint>) => void;
   deleteTempCheckpoint: (tempId: string) => void;
   reorderCheckpoints: (fromIndex: number, toIndex: number) => void;
+  // Po uložení nahradit checkpointy těmi z DB (nová ID)
+  setSavedCheckpoints: (checkpoints: CheckpointWithSecret[]) => void;
 
   // Selected checkpoint
   selectCheckpoint: (tempId: string | null) => void;
 
-  // UI toggles
-  toggleMapEditor: () => void;
-  toggleCheckpointEditor: () => void;
-
   // Reset
   reset: () => void;
+}
+
+// Nastavení hry z formuláře doplněné o výchozí hodnoty
+function toGameSettings(settings: CreateGameInput['settings']): GameSettings {
+  return {
+    radius_tolerance: settings?.radius_tolerance ?? DEFAULT_GAME_SETTINGS.radius_tolerance,
+    allow_skip: settings?.allow_skip ?? DEFAULT_GAME_SETTINGS.allow_skip,
+    max_players: settings?.max_players ?? DEFAULT_GAME_SETTINGS.max_players,
+    time_limit: settings?.time_limit ?? DEFAULT_GAME_SETTINGS.time_limit,
+    share_location_required:
+      settings?.share_location_required ?? DEFAULT_GAME_SETTINGS.share_location_required,
+    show_radius: settings?.show_radius ?? DEFAULT_GAME_SETTINGS.show_radius,
+  };
+}
+
+function toTempCheckpoint(cp: CheckpointWithSecret): TempCheckpoint {
+  return {
+    tempId: cp.id, // Reálné ID slouží i jako tempId
+    id: cp.id,
+    order_index: cp.order_index,
+    latitude: cp.latitude,
+    longitude: cp.longitude,
+    radius: cp.radius,
+    type: cp.type,
+    content: cp.content,
+    secret_solution: cp.secret?.secret_solution ?? null,
+    puzzle_answer: cp.secret?.puzzle_answer ?? null,
+    is_fake: cp.is_fake,
+  };
+}
+
+// Checkpoint z editoru ve tvaru pro RPC save_game_checkpoints
+export function toSaveCheckpointInput(cp: TempCheckpoint): SaveCheckpointInput {
+  return {
+    id: cp.id,
+    order_index: cp.order_index,
+    latitude: cp.latitude,
+    longitude: cp.longitude,
+    radius: cp.radius,
+    type: cp.type,
+    content: cp.content,
+    is_fake: cp.is_fake ?? false,
+    // Řešení má smysl jen u odpovídajícího typu – u ostatních se v DB smaže
+    secret_solution: cp.type === 'input' ? cp.secret_solution : null,
+    puzzle_answer: cp.type === 'puzzle' ? cp.puzzle_answer : null,
+  };
 }
 
 // Pořadové číslo posledního načítání hry (viz loadGame)
@@ -76,11 +117,7 @@ let loadRequestId = 0;
 export const useGameEditorStore = create<GameEditorState>((set, get) => ({
   currentGame: null,
   tempCheckpoints: [],
-  deletedCheckpointIds: [],
   selectedCheckpointId: null,
-  isMapEditorOpen: false,
-  isCheckpointEditorOpen: false,
-  isSaving: false,
   isLoading: false,
   loadError: null,
 
@@ -89,49 +126,21 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
   initNewGame: (gameData) =>
     set((state) => ({
       currentGame: {
-        id: '', // Will be set after save
+        id: '', // Doplní se po uložení
         creator_id: '',
         title: gameData.title,
         description: gameData.description || null,
         is_public: gameData.is_public,
         difficulty: gameData.difficulty,
         tags: gameData.tags ?? [],
-        settings: {
-          radius_tolerance: gameData.settings?.radius_tolerance || 10,
-          allow_skip: gameData.settings?.allow_skip || false,
-          max_players: gameData.settings?.max_players || null,
-          time_limit: gameData.settings?.time_limit || null,
-          share_location_required: gameData.settings?.share_location_required || false,
-          show_radius: gameData.settings?.show_radius ?? true,
-        },
+        settings: toGameSettings(gameData.settings),
         status: 'draft',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
       // Návrat z mapy na základní info u rozpracované nové hry nesmí smazat rozmístěné body
       tempCheckpoints: state.currentGame && !state.currentGame.id ? state.tempCheckpoints : [],
-      isMapEditorOpen: true,
     })),
-
-  initEditGame: (game, checkpoints) =>
-    set({
-      currentGame: game,
-      deletedCheckpointIds: [],
-      tempCheckpoints: checkpoints.map((cp) => ({
-        tempId: cp.id, // Use real ID as tempId for existing checkpoints
-        id: cp.id,
-        order_index: cp.order_index,
-        latitude: cp.latitude,
-        longitude: cp.longitude,
-        radius: cp.radius,
-        type: cp.type,
-        content: cp.content,
-        secret_solution: cp.secret_solution,
-        is_fake: cp.is_fake,
-      })),
-      selectedCheckpointId: null,
-      isMapEditorOpen: true,
-    }),
 
   // Načtení hry z API podle ID (pro URL routing)
   loadGame: async (gameId: string) => {
@@ -145,34 +154,21 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
       // přepsala novější stav v DB
       const [gameData, checkpoints] = await Promise.all([
         getGameById(gameId, { offlineFallback: false }),
-        getCheckpointsByGameId(gameId, { offlineFallback: false }),
+        getCheckpointsWithSecrets(gameId),
       ]);
       if (requestId !== loadRequestId) return;
 
       set({
         currentGame: gameData,
-        deletedCheckpointIds: [],
-        tempCheckpoints: checkpoints.map((cp) => ({
-          tempId: cp.id,
-          id: cp.id,
-          order_index: cp.order_index,
-          latitude: cp.latitude,
-          longitude: cp.longitude,
-          radius: cp.radius,
-          type: cp.type,
-          content: cp.content,
-          secret_solution: cp.secret_solution,
-          is_fake: cp.is_fake,
-        })),
+        tempCheckpoints: checkpoints.map(toTempCheckpoint),
         selectedCheckpointId: null,
-        isMapEditorOpen: true,
         isLoading: false,
       });
     } catch (err) {
       if (requestId !== loadRequestId) return;
       set({
         isLoading: false,
-        loadError: err instanceof Error ? err.message : 'Chyba pri nacitani hry',
+        loadError: toUserMessage(err, 'Chyba při načítání hry'),
       });
     }
   },
@@ -188,14 +184,7 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
             is_public: gameData.is_public,
             difficulty: gameData.difficulty,
             tags: gameData.tags ?? state.currentGame.tags ?? [],
-            settings: {
-              radius_tolerance: gameData.settings?.radius_tolerance || 10,
-              allow_skip: gameData.settings?.allow_skip || false,
-              max_players: gameData.settings?.max_players || null,
-              time_limit: gameData.settings?.time_limit || null,
-              share_location_required: gameData.settings?.share_location_required || false,
-              show_radius: gameData.settings?.show_radius ?? true,
-            },
+            settings: toGameSettings(gameData.settings),
           }
         : null,
     })),
@@ -216,12 +205,12 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
         clue: null,
       },
       secret_solution: null,
+      puzzle_answer: null,
     };
 
     set({
       tempCheckpoints: [...tempCheckpoints, newCheckpoint],
       selectedCheckpointId: newCheckpoint.tempId,
-      isCheckpointEditorOpen: true,
     });
   },
 
@@ -234,22 +223,10 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
 
   deleteTempCheckpoint: (tempId) =>
     set((state) => {
-      const toDelete = state.tempCheckpoints.find((cp) => cp.tempId === tempId);
       const filtered = state.tempCheckpoints.filter((cp) => cp.tempId !== tempId);
-      // Reindex order
-      const reindexed = filtered.map((cp, index) => ({
-        ...cp,
-        order_index: index,
-      }));
-
-      // Pokud má checkpoint reálné DB ID, zaznamenej ho ke smazání
-      const newDeletedIds = toDelete?.id
-        ? [...state.deletedCheckpointIds, toDelete.id]
-        : state.deletedCheckpointIds;
-
       return {
-        tempCheckpoints: reindexed,
-        deletedCheckpointIds: newDeletedIds,
+        // Přečíslovat pořadí
+        tempCheckpoints: filtered.map((cp, index) => ({ ...cp, order_index: index })),
         selectedCheckpointId:
           state.selectedCheckpointId === tempId ? null : state.selectedCheckpointId,
       };
@@ -260,37 +237,22 @@ export const useGameEditorStore = create<GameEditorState>((set, get) => ({
       const checkpoints = [...state.tempCheckpoints];
       const [moved] = checkpoints.splice(fromIndex, 1);
       checkpoints.splice(toIndex, 0, moved);
-
-      // Update order_index
-      const reindexed = checkpoints.map((cp, index) => ({
-        ...cp,
-        order_index: index,
-      }));
-
-      return { tempCheckpoints: reindexed };
+      return {
+        tempCheckpoints: checkpoints.map((cp, index) => ({ ...cp, order_index: index })),
+      };
     }),
 
-  selectCheckpoint: (tempId) =>
-    set({
-      selectedCheckpointId: tempId,
-      isCheckpointEditorOpen: tempId !== null,
-    }),
+  setSavedCheckpoints: (checkpoints) =>
+    set({ tempCheckpoints: checkpoints.map(toTempCheckpoint), selectedCheckpointId: null }),
 
-  toggleMapEditor: () => set((state) => ({ isMapEditorOpen: !state.isMapEditorOpen })),
-
-  toggleCheckpointEditor: () =>
-    set((state) => ({ isCheckpointEditorOpen: !state.isCheckpointEditorOpen })),
+  selectCheckpoint: (tempId) => set({ selectedCheckpointId: tempId }),
 
   reset: () => {
     loadRequestId++;
     set({
       currentGame: null,
       tempCheckpoints: [],
-      deletedCheckpointIds: [],
       selectedCheckpointId: null,
-      isMapEditorOpen: false,
-      isCheckpointEditorOpen: false,
-      isSaving: false,
       isLoading: false,
       loadError: null,
     });

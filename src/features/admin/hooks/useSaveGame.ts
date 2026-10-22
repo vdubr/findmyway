@@ -1,18 +1,11 @@
 // Hook pro uložení hry a checkpointů do databáze
-// Extrahováno z AdminEditPage – sdílená logika pro vytvoření i aktualizaci hry
+// Sdílená logika pro vytvoření i aktualizaci hry (AdminEditPage)
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  createCheckpoint,
-  createGame,
-  deleteCheckpoint,
-  deleteGame,
-  shiftCheckpointOrderIndex,
-  updateCheckpoint,
-  updateGame,
-} from '../../../lib/api';
-import { useGameEditorStore } from '../store/gameEditorStore';
+import { createGame, deleteGame, saveGameCheckpoints, updateGame } from '../../../lib/api';
+import { toUserMessage } from '../../../lib/errors';
+import { toSaveCheckpointInput, useGameEditorStore } from '../store/gameEditorStore';
 
 interface UseSaveGameReturn {
   isSaving: boolean;
@@ -39,7 +32,7 @@ export function useSaveGame(): UseSaveGameReturn {
       setIsSaving(true);
       setErrorMessage(null);
 
-      // 1. Vytvorit hru
+      // 1. Vytvořit hru
       const createdGame = await createGame({
         title: currentGame.title,
         description: currentGame.description || undefined,
@@ -49,25 +42,12 @@ export function useSaveGame(): UseSaveGameReturn {
         settings: currentGame.settings,
       });
 
-      // 2. Vytvorit vsechny checkpointy – rollback (smazat hru) pokud selze
+      // 2. Checkpointy jedním RPC (transakce) – při selhání smazat hru, ať nezůstane prázdná
       try {
-        for (const checkpoint of tempCheckpoints) {
-          await createCheckpoint({
-            game_id: createdGame.id,
-            order_index: checkpoint.order_index,
-            latitude: checkpoint.latitude,
-            longitude: checkpoint.longitude,
-            radius: checkpoint.radius,
-            type: checkpoint.type,
-            content: checkpoint.content,
-            secret_solution: checkpoint.secret_solution || undefined,
-            is_fake: checkpoint.is_fake ?? false,
-          });
-        }
+        await saveGameCheckpoints(createdGame.id, tempCheckpoints.map(toSaveCheckpointInput));
       } catch (checkpointErr) {
-        // Rollback – smazat hru pokud selze vytvoreni checkpointu
-        await deleteGame(createdGame.id).catch((_rollbackErr) => {
-          // Rollback selhal – hra zůstane v DB bez checkpointů, uživatel může smazat ručně
+        await deleteGame(createdGame.id).catch(() => {
+          // Rollback selhal – hra zůstane v DB bez checkpointů, uživatel ji může smazat ručně
         });
         throw checkpointErr;
       }
@@ -76,15 +56,14 @@ export function useSaveGame(): UseSaveGameReturn {
       reset();
       navigate(`/games/${createdGame.id}/edit/base`);
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Chyba při ukládání hry');
+      setErrorMessage(toUserMessage(err, 'Chyba při ukládání hry'));
     } finally {
       setIsSaving(false);
     }
   };
 
   const updateExistingGame = async () => {
-    const { currentGame, tempCheckpoints, deletedCheckpointIds, updateTempCheckpoint } =
-      useGameEditorStore.getState();
+    const { currentGame, tempCheckpoints } = useGameEditorStore.getState();
     if (!currentGame?.id) return;
 
     // Formulář základního info se synchronizuje průběžně, validace ale běží jen při jeho odeslání
@@ -97,7 +76,7 @@ export function useSaveGame(): UseSaveGameReturn {
       setIsSaving(true);
       setErrorMessage(null);
 
-      // 1. Update game details (null = popis smazaný, undefined by sloupec nezměnil)
+      // 1. Údaje hry (null = popis smazaný, undefined by sloupec nezměnil)
       await updateGame(currentGame.id, {
         title: currentGame.title,
         description: currentGame.description || null,
@@ -107,60 +86,15 @@ export function useSaveGame(): UseSaveGameReturn {
         tags: currentGame.tags,
       });
 
-      // 2. Nejdřív smazat odebrané checkpointy – jinak by jejich order_index kolidoval
-      // s přečíslovanými zbývajícími body (UNIQUE game_id + order_index)
-      for (const id of deletedCheckpointIds) {
-        await deleteCheckpoint(id);
-      }
-
-      // 3. Handle checkpoints - update existing, create new
-      const existingCheckpoints = tempCheckpoints.filter((cp) => cp.id);
-      const newCheckpoints = tempCheckpoints.filter((cp) => !cp.id);
-
-      // Dvouprůchodové uložení order_index – vyhnutí se unique constraint porušení.
-      // Průchod 1: přesunout na dočasná velká čísla (10000+), aby se předešlo konfliktům.
-      const TEMP_OFFSET = 10000;
-      for (let i = 0; i < existingCheckpoints.length; i++) {
-        await shiftCheckpointOrderIndex(existingCheckpoints[i].id!, TEMP_OFFSET + i);
-      }
-
-      // Průchod 2: nastavit skutečné hodnoty
-      for (const checkpoint of existingCheckpoints) {
-        await updateCheckpoint(checkpoint.id!, {
-          order_index: checkpoint.order_index,
-          latitude: checkpoint.latitude,
-          longitude: checkpoint.longitude,
-          radius: checkpoint.radius,
-          type: checkpoint.type,
-          content: checkpoint.content,
-          // null = řešení odebrané, undefined by sloupec nezměnil
-          secret_solution: checkpoint.secret_solution ?? null,
-          is_fake: checkpoint.is_fake ?? false,
-        });
-      }
-
-      for (const checkpoint of newCheckpoints) {
-        const created = await createCheckpoint({
-          game_id: currentGame.id,
-          order_index: checkpoint.order_index,
-          latitude: checkpoint.latitude,
-          longitude: checkpoint.longitude,
-          radius: checkpoint.radius,
-          type: checkpoint.type,
-          content: checkpoint.content,
-          secret_solution: checkpoint.secret_solution || undefined,
-          is_fake: checkpoint.is_fake ?? false,
-        });
-        // Zapsat ID zpět – při opakovaném uložení po chybě se bod nevytvoří podruhé
-        updateTempCheckpoint(checkpoint.tempId, { id: created.id });
-      }
+      // 2. Všechny checkpointy jedním RPC v jedné transakci: update, insert, delete i řešení úkolů
+      await saveGameCheckpoints(currentGame.id, tempCheckpoints.map(toSaveCheckpointInput));
 
       reset();
       navigate(`/games/${currentGame.id}`, {
         state: { successMessage: `Hra "${currentGame.title}" byla úspěšně aktualizována!` },
       });
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Chyba při ukládání změn');
+      setErrorMessage(toUserMessage(err, 'Chyba při ukládání změn'));
     } finally {
       setIsSaving(false);
     }

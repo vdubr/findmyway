@@ -62,8 +62,8 @@ export default function HomePage() {
         getPublicGamesWithCheckpoints(),
         getMyDraftGamesWithCheckpoints(),
       ]);
-      setGames(publicData as unknown as GameWithCheckpoints[]);
-      setDraftGames(draftData as unknown as GameWithCheckpoints[]);
+      setGames(publicData);
+      setDraftGames(draftData);
     } catch (err) {
       console.error('Error loading games:', err);
       setError('Nepodařilo se načíst hry');
@@ -234,10 +234,10 @@ export default function HomePage() {
 
       {/* Obsah */}
       <Container maxWidth="lg" sx={{ py: 3 }}>
-        {/* Error display */}
-        {error && <ErrorDisplay message={error} onRetry={loadGames} />}
-
-        {games.length === 0 ? (
+        {/* Při chybě načítání jen chyba – hláška o prázdném seznamu by byla zavádějící */}
+        {error ? (
+          <ErrorDisplay message={error} onRetry={loadGames} />
+        ) : games.length === 0 ? (
           <Alert severity="info">
             <Typography>Zatím nejsou k dispozici žádné veřejné hry.</Typography>
             {user && <Typography variant="body2">Buďte první a vytvořte hru!</Typography>}

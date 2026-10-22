@@ -300,11 +300,11 @@ export default function CheckpointEditor({ open, onClose }: CheckpointEditorProp
           {formData.type === 'puzzle' && (
             <TextField
               label="Správná odpověď"
-              value={formData.content?.puzzle_answer || ''}
-              onChange={(e) => handleContentChange('puzzle_answer', e.target.value)}
+              value={formData.puzzle_answer || ''}
+              onChange={(e) => handleChange('puzzle_answer', e.target.value)}
               fullWidth
               required
-              helperText="Odpověď, kterou musí hráč zadat (case-insensitive)"
+              helperText="Odpověď, kterou musí hráč zadat (bez ohledu na velikost písmen). Hráč dostane jen její otisk, ne text."
             />
           )}
 

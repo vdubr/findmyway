@@ -49,7 +49,7 @@ export default defineConfig({
       },
       workbox: {
         // mp4 = video lišky v dialogu checkpointu, bez něj by offline zůstalo černé okno
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,mp4}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,webp,svg,woff,woff2,mp4}'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

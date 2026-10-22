@@ -20,7 +20,8 @@ import DifficultyIcon from '../../../components/DifficultyIcon';
 import ErrorDisplay from '../../../components/ErrorDisplay';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 import { getGameById } from '../../../lib/api';
-import type { Checkpoint, GameWithCreator } from '../../../types';
+import { toUserMessage } from '../../../lib/errors';
+import type { GameDetail } from '../../../types';
 import { GAME_TAGS } from '../../../utils/constants';
 import { calculateDistance, formatDistance } from '../../../utils/geo';
 import { useAuth } from '../../auth/AuthContext';
@@ -28,7 +29,6 @@ import MapComponent, { type MapMarker } from '../../map/components/MapComponent'
 import { useGameDetailStore } from '../store/gameDetailStore';
 
 // Typ pro hru s tvůrcem a checkpointy
-type GameFull = GameWithCreator & { checkpoints: Checkpoint[] };
 
 export default function GameDetailPage() {
   const { gameId } = useParams<{ gameId: string }>();
@@ -40,7 +40,7 @@ export default function GameDetailPage() {
   const { user } = useAuth();
   const setDetailGame = useGameDetailStore((s) => s.setGame);
 
-  const [game, setGame] = useState<GameFull | null>(null);
+  const [game, setGame] = useState<GameDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAllWaypoints, setShowAllWaypoints] = useState(false);
@@ -52,11 +52,11 @@ export default function GameDetailPage() {
       try {
         setLoading(true);
         setError(null);
-        const data = (await getGameById(gameId)) as unknown as GameFull;
+        const data = await getGameById(gameId);
         setGame(data);
         setDetailGame(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Nepodařilo se načíst hru');
+        setError(toUserMessage(err, 'Nepodařilo se načíst hru'));
       } finally {
         setLoading(false);
       }

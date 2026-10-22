@@ -51,26 +51,6 @@ export function formatDistance(meters: number): string {
 }
 
 /**
- * Výpočet azimutu (směru) mezi dvěma body
- * @param from Výchozí bod
- * @param to Cílový bod
- * @returns Azimut ve stupních (0-360, kde 0 je sever)
- */
-export function calculateBearing(from: GeoLocation, to: GeoLocation): number {
-  const φ1 = (from.latitude * Math.PI) / 180;
-  const φ2 = (to.latitude * Math.PI) / 180;
-  const Δλ = ((to.longitude - from.longitude) * Math.PI) / 180;
-
-  const y = Math.sin(Δλ) * Math.cos(φ2);
-  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
-
-  const θ = Math.atan2(y, x);
-  const bearing = ((θ * 180) / Math.PI + 360) % 360;
-
-  return bearing;
-}
-
-/**
  * Převod desetinných stupňů na DMS (Degrees, Minutes, Seconds)
  * @param decimal Desetinné stupně
  * @param isLatitude true pro zeměpisnou šířku, false pro délku

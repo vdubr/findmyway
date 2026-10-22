@@ -13,6 +13,7 @@ import FoxGuide from '../../../components/FoxGuide';
 import { useDeviceOrientation } from '../../../hooks/useDeviceOrientation';
 import { useGeolocation } from '../../../hooks/useGeolocation';
 import type { Checkpoint, Game } from '../../../types';
+import { hashDms, hashPuzzleAnswer } from '../../../utils/answerCheck';
 import { calculateDistance } from '../../../utils/geo';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
 import type { MapZoomRef } from '../../map/hooks/useMapZoom';
@@ -26,9 +27,16 @@ interface DemoPlayerProps {
   onExit: () => void;
 }
 
-// Prevod TempCheckpoint na Checkpoint pro pouziti v hracskych komponentach
-function toCheckpoint(tc: TempCheckpoint, gameId: string): Checkpoint {
+// Prevod TempCheckpoint na Checkpoint pro pouziti v hracskych komponentach.
+// Řešení se zahashuje stejně jako v DB (trigger z migrace 007), takže demo ověřuje
+// odpovědi stejnou cestou jako skutečný hráč.
+async function toCheckpoint(tc: TempCheckpoint, gameId: string): Promise<Checkpoint> {
   const now = new Date().toISOString();
+  const [answer_hash, solution_lat_hash, solution_lng_hash] = await Promise.all([
+    hashPuzzleAnswer(tc.puzzle_answer),
+    tc.secret_solution ? hashDms(tc.secret_solution.latitude) : null,
+    tc.secret_solution ? hashDms(tc.secret_solution.longitude) : null,
+  ]);
   return {
     id: tc.id || tc.tempId,
     game_id: gameId,
@@ -38,8 +46,10 @@ function toCheckpoint(tc: TempCheckpoint, gameId: string): Checkpoint {
     radius: tc.radius,
     type: tc.type,
     content: tc.content,
-    secret_solution: tc.secret_solution,
-    is_fake: tc.is_fake,
+    is_fake: tc.is_fake ?? false,
+    answer_hash,
+    solution_lat_hash,
+    solution_lng_hash,
     created_at: now,
     updated_at: now,
   };
@@ -70,10 +80,18 @@ export default function DemoPlayer({ game, tempCheckpoints, onExit }: DemoPlayer
     requestPermission: requestOrientationPermission,
   } = useDeviceOrientation();
 
-  // Prevest tempCheckpoints na Checkpoint[] (serazene)
-  const checkpoints: Checkpoint[] = [...tempCheckpoints]
-    .sort((a, b) => a.order_index - b.order_index)
-    .map((tc) => toCheckpoint(tc, game.id || 'demo'));
+  // Prevest tempCheckpoints na Checkpoint[] (serazene); hashování je asynchronní
+  const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    const sorted = [...tempCheckpoints].sort((a, b) => a.order_index - b.order_index);
+    Promise.all(sorted.map((tc) => toCheckpoint(tc, game.id || 'demo'))).then((result) => {
+      if (!cancelled) setCheckpoints(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [tempCheckpoints, game.id]);
 
   const currentCheckpoint = checkpoints[currentCheckpointIndex] || null;
 

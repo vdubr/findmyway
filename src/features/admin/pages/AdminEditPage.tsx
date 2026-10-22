@@ -21,6 +21,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import ErrorDisplay from '../../../components/ErrorDisplay';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 import { deleteGame, updateGame } from '../../../lib/api';
+import { toUserMessage } from '../../../lib/errors';
 import type { CreateGameInput } from '../../../types';
 import { useAuth } from '../../auth/AuthContext';
 import CheckpointEditor from '../components/CheckpointEditor';
@@ -128,7 +129,7 @@ export default function AdminEditPage() {
       reset();
       navigate('/games');
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Chyba při mazání hry');
+      setActionError(toUserMessage(err, 'Chyba při mazání hry'));
     } finally {
       setDeleteDialogOpen(false);
     }
@@ -143,7 +144,7 @@ export default function AdminEditPage() {
       await updateGame(currentGame.id, { status: newStatus });
       setCurrentGame({ ...currentGame, status: newStatus });
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Chyba při změně stavu hry');
+      setActionError(toUserMessage(err, 'Chyba při změně stavu hry'));
     } finally {
       setIsPublishing(false);
     }

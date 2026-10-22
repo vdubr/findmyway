@@ -1,6 +1,6 @@
 import type { Session, User } from '@supabase/supabase-js';
 import type { ReactNode } from 'react';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { clearAllOfflineData } from '../../lib/offlineStorage';
 import { supabase } from '../../lib/supabase';
 import type { Profile } from '../../types';
@@ -29,16 +29,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Pořadové číslo posledního načítání profilu – pomalejší starší odpověď (např. po rychlém
+  // odhlášení a přihlášení jiného účtu) nesmí přepsat novější
+  const profileRequestRef = useRef(0);
+  // Pro kterého uživatele je načtený profil – obnovení tokenu nebo návrat do záložky
+  // (Supabase znovu hlásí SIGNED_IN) profil znovu nestahuje
+  const profileUserIdRef = useRef<string | null>(null);
+
   // Načíst profil uživatele
   const loadProfile = async (userId: string) => {
+    const requestId = ++profileRequestRef.current;
     try {
       const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      if (requestId !== profileRequestRef.current) return;
 
       if (error) throw error;
       setProfile(data as Profile);
+      profileUserIdRef.current = userId;
     } catch (error) {
+      if (requestId !== profileRequestRef.current) return;
       console.error('Error loading profile:', error);
       setProfile(null);
+      profileUserIdRef.current = null;
     }
   };
 
@@ -79,7 +91,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Email/Password sign up
   const signUpWithEmail = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -91,8 +103,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.error('Error signing up with email:', error);
       throw error;
     }
-
-    console.log('Sign up successful:', data);
   };
 
   // Sign out
@@ -105,35 +115,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(null);
     setProfile(null);
     setSession(null);
+    profileUserIdRef.current = null;
     // Cache může obsahovat drafty odhlášeného uživatele včetně řešení úkolů (sdílené zařízení)
     clearAllOfflineData().catch((err) => console.warn('Nepodařilo se smazat offline data:', err));
   };
 
-  // Sledovat změny autentizace
+  // Sledovat změny autentizace. onAuthStateChange hlásí i INITIAL_SESSION (uloženou session
+  // z localStorage), takže samostatné getSession() není potřeba.
   // biome-ignore lint/correctness/useExhaustiveDependencies: loadProfile je stabilní funkce, spouští se pouze při mountu
   useEffect(() => {
-    // Načíst aktuální session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadProfile(session.user.id);
-      }
-      setLoading(false);
-    });
-
-    // Poslouchat změny auth stavu
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) {
-        loadProfile(session.user.id);
-      } else {
+
+      const userId = session?.user.id ?? null;
+      if (!userId) {
+        profileRequestRef.current++;
+        profileUserIdRef.current = null;
         setProfile(null);
+        setLoading(false);
+        return;
       }
-      setLoading(false);
+
+      // Profil stahovat jen při změně uživatele nebo jeho údajů, ne při každém obnovení tokenu
+      const needsProfile = profileUserIdRef.current !== userId || event === 'USER_UPDATED';
+      if (!needsProfile) {
+        setLoading(false);
+        return;
+      }
+
+      // loading končí až s profilem – chráněné stránky by jinak chvíli běžely bez něj
+      loadProfile(userId).finally(() => setLoading(false));
     });
 
     return () => subscription.unsubscribe();
@@ -155,7 +169,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 }
 
 // Hook pro použití auth contextu
-// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {

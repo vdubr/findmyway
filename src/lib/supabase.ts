@@ -17,6 +17,3 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
   },
 });
-
-// Re-export Database type
-export type { Database };

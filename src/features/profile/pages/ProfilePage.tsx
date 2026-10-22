@@ -23,6 +23,7 @@ import {
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { getProfileStats, type ProfileStats, updateProfile } from '../../../lib/api';
+import { toUserMessage } from '../../../lib/errors';
 import { useAuth } from '../../auth/AuthContext';
 
 export default function ProfilePage() {
@@ -50,7 +51,7 @@ export default function ProfilePage() {
         const data = await getProfileStats(user.id);
         setStats(data);
       } catch (err) {
-        setStatsError(err instanceof Error ? err.message : 'Chyba při načítání statistik');
+        setStatsError(toUserMessage(err, 'Chyba při načítání statistik'));
       } finally {
         setStatsLoading(false);
       }
@@ -88,7 +89,7 @@ export default function ProfilePage() {
       // Skryt uspech po 3 sekundach
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Chyba při ukládání profilu');
+      setSaveError(toUserMessage(err, 'Chyba při ukládání profilu'));
     } finally {
       setIsSaving(false);
     }

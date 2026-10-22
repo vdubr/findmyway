@@ -1,14 +1,14 @@
-// Komponenta lišky průvodce, která se mění podle situace
+// Komponenta lišky průvodce, která se mění podle situace.
+// Obrázky jsou WebP s průhledným pozadím (připravené offline), takže se nic nepřekresluje
+// na canvasu za běhu – původní PNG měly zelené pozadí odstraňované pixel po pixelu.
 import { Box } from '@mui/material';
-import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import foxPuzzle from '../assets/fox/liska_lusti_krizovky.png';
-// Import obrázků lišky
-import foxWaving from '../assets/fox/liska_mava.png';
-import foxTraveling from '../assets/fox/liska_na_cestach_sbatohem_a_buzolou.png';
-import foxStanding from '../assets/fox/liska_na_zadnich.png';
-import foxTreasure from '../assets/fox/liska_nasla_poklad.png';
-import foxSitting from '../assets/fox/liska_sedi.png';
+import foxPuzzle from '../assets/fox/liska_lusti_krizovky.webp';
+import foxWaving from '../assets/fox/liska_mava.webp';
+import foxTraveling from '../assets/fox/liska_na_cestach_sbatohem_a_buzolou.webp';
+import foxStanding from '../assets/fox/liska_na_zadnich.webp';
+import foxTreasure from '../assets/fox/liska_nasla_poklad.webp';
+import foxSitting from '../assets/fox/liska_sedi.webp';
 
 type FoxState = 'waving' | 'traveling' | 'sitting' | 'puzzle' | 'treasure' | 'standing';
 
@@ -17,115 +17,36 @@ interface FoxGuideProps {
   inline?: boolean; // Pokud true, nebude fixed position ale inline
 }
 
+const foxImages: Record<FoxState, string> = {
+  waving: foxWaving,
+  traveling: foxTraveling,
+  sitting: foxSitting,
+  puzzle: foxPuzzle,
+  treasure: foxTreasure,
+  standing: foxStanding,
+};
+
+// Stav lišky podle aktuální stránky (pokud není zadaný explicitně)
+function foxStateForPath(path: string): FoxState {
+  // Homepage - liška máva na uvítanou
+  if (path === '/') return 'waving';
+
+  // Auth stránka - liška sedí a čeká
+  if (path === '/auth') return 'sitting';
+
+  // Editace hry (/games/:gameId/edit/:tab) - liška luští křížovky (tvoření hry)
+  if (/^\/games\/[^/]+\/edit(\/|$)/.test(path)) return 'puzzle';
+
+  // Hraní hry (/games/:gameId/game) - liška cestuje s batohem
+  if (/^\/games\/[^/]+\/game\/?$/.test(path)) return 'traveling';
+
+  // Default - liška stojí
+  return 'standing';
+}
+
 export default function FoxGuide({ state, inline = false }: FoxGuideProps) {
   const location = useLocation();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
-
-  // Automaticky určit stav lišky podle aktuální stránky
-  const getFoxState = (): FoxState => {
-    if (state) return state;
-
-    const path = location.pathname;
-
-    // Homepage - liška máva na uvítanou
-    if (path === '/') return 'waving';
-
-    // Auth stránka - liška sedí a čeká
-    if (path === '/auth') return 'sitting';
-
-    // Editace hry (/games/:gameId/edit/:tab) - liška luští křížovky (tvoření hry)
-    if (/^\/games\/[^/]+\/edit(\/|$)/.test(path)) return 'puzzle';
-
-    // Hraní hry (/games/:gameId/game) - liška cestuje s batohem
-    if (/^\/games\/[^/]+\/game\/?$/.test(path)) return 'traveling';
-
-    // Victory/completion - liška našla poklad
-    if (path.includes('victory') || path.includes('complete')) return 'treasure';
-
-    // Default - liška stojí
-    return 'standing';
-  };
-
-  const foxState = getFoxState();
-
-  const foxImages: Record<FoxState, string> = {
-    waving: foxWaving,
-    traveling: foxTraveling,
-    sitting: foxSitting,
-    puzzle: foxPuzzle,
-    treasure: foxTreasure,
-    standing: foxStanding,
-  };
-
-  // Odstranění zelené barvy pomocí Canvas API
-  // biome-ignore lint/correctness/useExhaustiveDependencies: foxState je záměrně v deps – efekt přemaluje canvas při každé změně obrázku lišky
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const img = imgRef.current;
-
-    if (!canvas || !img) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Flag pro zamezení race condition - pokud se efekt cleanupne před načtením obrázku
-    let cancelled = false;
-
-    const processImage = () => {
-      if (cancelled) return;
-
-      // Nastavit velikost canvasu podle obrázku
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-
-      // Nakreslit obrázek
-      ctx.drawImage(img, 0, 0);
-
-      // Získat pixely
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-
-      // Barva na odstranění: #c8df46 = RGB(200, 223, 70)
-      const targetR = 200;
-      const targetG = 223;
-      const targetB = 70;
-      const threshold = 80; // Zvýšená tolerance pro podobné barvy
-
-      // Projít všechny pixely a nastavit zelenou jako průhlednou
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-
-        // Pokud je pixel podobný cílové zelené, nastavit alpha na 0
-        const dr = Math.abs(r - targetR);
-        const dg = Math.abs(g - targetG);
-        const db = Math.abs(b - targetB);
-
-        // Kontrola že je to zelená barva (G > R a G > B)
-        const isGreenish = g > r && g > b;
-
-        if (isGreenish && dr < threshold && dg < threshold && db < threshold) {
-          data[i + 3] = 0; // Průhlednost
-        }
-      }
-
-      // Zapsat zpět upravené pixely
-      ctx.putImageData(imageData, 0, 0);
-    };
-
-    if (img.complete && img.naturalWidth > 0) {
-      processImage();
-    } else {
-      img.addEventListener('load', processImage);
-    }
-
-    return () => {
-      cancelled = true;
-      img.removeEventListener('load', processImage);
-    };
-  }, [foxState]);
+  const foxState = state ?? foxStateForPath(location.pathname);
 
   return (
     <Box
@@ -143,18 +64,9 @@ export default function FoxGuide({ state, inline = false }: FoxGuideProps) {
         },
       }}
     >
-      {/* Skrytý img element pro načtení obrázku */}
       <img
-        ref={imgRef}
         src={foxImages[foxState]}
         alt=""
-        style={{ display: 'none' }}
-        crossOrigin="anonymous"
-      />
-
-      {/* Canvas s odstraněnou zelenou */}
-      <canvas
-        ref={canvasRef}
         style={{
           width: '100%',
           height: '100%',
