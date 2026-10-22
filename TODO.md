@@ -71,3 +71,31 @@ dialog výhry) sdílet jako komponenty.
 
 **Soubory:** `src/features/admin/components/DemoPlayer.tsx`, `src/features/player/pages/PlayerPage.tsx`,
 `src/features/player/store/gamePlayStore.ts`.
+
+## Sledování hrajících hráčů správcem hry
+
+**Cíl:** správce (tvůrce hry) vidí, kdo jeho hru právě hraje – na mapě polohu hráčů, u každého
+jméno, aktuální checkpoint (např. 3/7), čas posledního signálu a dosavadní postup.
+
+**Co už existuje:** tabulka `player_locations` + view `active_players_view` (hráči aktivní
+posledních 5 minut, po migraci 006 jen pro tvůrce hry), realtime odběr
+`subscribeToPlayerLocations` a dialog `LivePlayersMap` v editoru (tlačítko „Živí hráči“).
+
+**Co chybí:**
+- Sledování je jen u her se zapnutým „Vyžadovat sdílení polohy“ a tlačítko je schované
+  v editoru – přidat přehled hráčů i do detailu hry pro tvůrce.
+- Anonymní hráči se nesledují (session není v DB) – souvisí s perzistencí hry výše
+  (anonymní session v DB nebo `signInAnonymously()`).
+- Bez polohy (sdílení vypnuté) ukazovat aspoň seznam rozehraných session a postup
+  z `game_sessions` (aktuální checkpoint, start, poslední aktivita).
+- Historie: kdo hru dokončil, za jak dlouho, se skóre.
+- Realtime refetchuje celé view při změně polohy kteréhokoli hráče v jakékoli hře
+  (`player_locations` nemá `game_id`) – přidat `game_id` do `player_locations`
+  a filtrovat realtime podle hry.
+- Soukromí: hráč musí před startem jasně vědět, že ho správce vidí (dnes upozornění
+  v úvodním dialogu jen u povinného sdílení).
+
+**Soubory:** `src/features/admin/components/LivePlayersMap.tsx`,
+`src/features/admin/pages/AdminEditPage.tsx`, `src/features/game/pages/GameDetailPage.tsx`,
+`src/lib/api.ts` (`subscribeToPlayerLocations`), nová migrace (`game_id` v `player_locations`,
+politika SELECT `game_sessions` pro tvůrce už existuje).
