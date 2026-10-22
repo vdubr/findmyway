@@ -19,11 +19,11 @@ GPS treasure hunt aplikace pro vytváření a hraní her s checkpointy v reáln�
 
 ## Tech stack
 
-- **Frontend**: React 18 + TypeScript + Vite
-- **UI**: Material-UI (MUI) v5, `sx` prop (NE styled-components)
-- **Mapy**: OpenLayers (NE Leaflet, NE Mapbox)
-- **State**: Zustand
-- **Routing**: React Router v6
+- **Frontend**: React 19 + TypeScript + Vite 8
+- **UI**: Material-UI (MUI) v7, `sx` prop (NE styled-components)
+- **Mapy**: OpenLayers 10 (NE Leaflet, NE Mapbox)
+- **State**: Zustand 5
+- **Routing**: React Router v7 (stránky lazy přes `React.lazy` v `App.tsx`)
 - **Backend**: Supabase (PostgreSQL + Auth + Storage)
 - **Linter/Formatter**: Biome (NE ESLint, NE Prettier)
 - **Deploy**: Vercel (auto z main branch)
@@ -51,16 +51,22 @@ src/
 
 ## Klíčové soubory
 
-- `src/lib/api.ts` – všechny DB operace, offline-first strategie
+- `src/lib/api.ts` – všechny DB operace, offline cache jen při výpadku sítě
+- `src/lib/mappers.ts` – jediné místo převodu řádků DB → aplikační typy (žádné `as unknown as` jinde)
+- `src/lib/errors.ts` – `toUserMessage()` pro hlášky v catch blocích
 - `src/lib/database.types.ts` – Supabase DB typy (generované přes Supabase MCP, ne ručně)
 - `src/types/index.ts` – aplikační typy
 - `src/lib/anonymousSessions.ts` – localStorage session pro nepřihlášené
+- `src/utils/answerCheck.ts` – ověřování odpovědí hráče proti SHA-256 hashům (offline),
+  normalizace musí sedět s SQL funkcemi v migraci 007
 - `supabase/migrations/` – DB migrace
 
 ## Databáze (Supabase)
 
-Tabulky: `profiles`, `games`, `checkpoints`, `game_sessions`, `checkpoint_completions`
-RLS enabled na všech tabulkách.
+Tabulky: `profiles`, `games`, `checkpoints`, `checkpoint_secrets`, `game_sessions`, `checkpoint_completions`, `player_locations`
+RLS enabled na všech tabulkách. Řešení úkolů je jen v `checkpoint_secrets` (čte tvůrce), hráč dostává
+hashe v `checkpoints`. Checkpointy se ukládají jedním RPC `save_game_checkpoints` (transakce).
+Nové tabulky musí mít v migraci explicitní GRANT (Supabase je od 30. 10. 2026 nepřidává).
 Supabase URL: `https://xhviegkjqxnrtkxirvnt.supabase.co`
 
 ## Environment

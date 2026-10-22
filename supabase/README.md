@@ -83,6 +83,20 @@ V Supabase Dashboard:
 - pevný `search_path` u SECURITY DEFINER funkcí
 - Před spuštěním porovnat s produkcí (`supabase db diff`), produkční schéma bylo měněno i mimo migrace
 
+#### Migration 007: Checkpoint Secrets
+
+- Soubor: `supabase/migrations/007_checkpoint_secrets.sql`
+- Řešení úkolů (souřadnice, odpověď na hádanku) přesouvá z `checkpoints` do `checkpoint_secrets`
+  (RLS: jen tvůrce hry); hráč dostává jen SHA-256 hashe (`answer_hash`, `solution_lat_hash`,
+  `solution_lng_hash`), plněné triggerem – ověření běží na klientovi i offline
+- RPC `save_game_checkpoints` ukládá všechny checkpointy hry v jedné transakci,
+  `UNIQUE(game_id, order_index)` je DEFERRABLE
+- explicitní GRANTy pro anon/authenticated/service_role na všech tabulkách
+  (od 30. 10. 2026 je Supabase novým tabulkám nepřidává)
+- **Po aplikaci přegenerovat `src/lib/database.types.ts`** – část typů je doplněná ručně podle migrace
+- Klient po migraci 007 už sloupec `secret_solution` nepoužívá – nasadit migraci a novou verzi
+  aplikace společně
+
 ### Krok 4: Ověření
 
 Zkontroluj v Supabase Dashboard:

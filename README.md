@@ -35,7 +35,7 @@ src/
 │   └── player/       # Herní rozhraní pro hráče
 ├── components/        # Sdílené komponenty
 ├── hooks/            # Custom React hooks
-├── lib/              # Knihovny (Supabase client, utils)
+├── lib/              # api.ts (DB operace), mappers.ts (řádky DB → typy), errors.ts, offline cache
 ├── types/            # TypeScript definice
 ├── utils/            # Utility funkce
 └── theme.ts          # MUI téma

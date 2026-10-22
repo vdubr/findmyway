@@ -29,6 +29,7 @@ V Supabase SQL Editoru postupně spusťte:
 4. `supabase/migrations/004_seed_data.sql` (volitelné - testovací data)
 5. `supabase/migrations/005_player_locations.sql`
 6. `supabase/migrations/006_security_fixes.sql`
+7. `supabase/migrations/007_checkpoint_secrets.sql`
 
 #### Nastavení Google OAuth (volitelné pro testování)
 1. V Supabase Dashboard > Authentication > Providers

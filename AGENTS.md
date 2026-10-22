@@ -5,13 +5,14 @@ GPS treasure hunt aplikace pro vytvareni a hrani her s checkpointy v realnem sve
 ## Stack
 
 ### Frontend
-- **Framework:** React 18
+- **Framework:** React 19
 - **Language:** TypeScript
-- **Build Tool:** Vite
-- **UI:** Material-UI (MUI)
-- **State Management:** Zustand
-- **Routing:** React Router
-- **Maps:** OpenLayers
+- **Build Tool:** Vite 8
+- **UI:** Material-UI (MUI) v7
+- **State Management:** Zustand 5
+- **Routing:** React Router v7
+- **Maps:** OpenLayers 10
+- **Linter/Formatter:** Biome
 
 ### Backend
 - **Service:** Supabase
@@ -79,5 +80,7 @@ GPS treasure hunt aplikace pro vytvareni a hrani her s checkpointy v realnem sve
 ## Database
 
 - Migrace: `supabase/migrations/`
-- Tabulky: profiles, games, checkpoints, game_sessions, checkpoint_completions
+- Tabulky: profiles, games, checkpoints, checkpoint_secrets, game_sessions, checkpoint_completions, player_locations
 - Row Level Security enabled na vsech tabulkach
+- Reseni ukolu jen v checkpoint_secrets (tvurce), hrac dostava SHA-256 hashe (utils/answerCheck.ts)
+- Ulozeni checkpointu jednim RPC save_game_checkpoints (transakce)
