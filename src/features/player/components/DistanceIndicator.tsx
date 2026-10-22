@@ -1,6 +1,7 @@
 // Komponenta pro zobrazení vzdálenosti a pokroku hry
 
 import { Box, Card, CardContent, LinearProgress, Stack, Typography } from '@mui/material';
+import { brandColors } from '../../../theme';
 import NavigationInfo from './NavigationInfo';
 
 interface DistanceIndicatorProps {
@@ -41,7 +42,7 @@ export default function DistanceIndicator({
       {/* Progress bar card */}
       <Card
         sx={{
-          bgcolor: checkpointReached ? 'success.light' : '#F1FAEE',
+          bgcolor: checkpointReached ? 'success.light' : brandColors.appBackground,
         }}
       >
         <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>

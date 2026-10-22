@@ -4,8 +4,8 @@
   "description": "Outdoor GPS treasure hunt game - vytvářejte a hrajte geocaching hry",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1B4332",
-  "theme_color": "#2D6A4F",
+  "background_color": "#0F4D30",
+  "theme_color": "#1E7A4F",
   "orientation": "portrait",
   "icons": [
     {

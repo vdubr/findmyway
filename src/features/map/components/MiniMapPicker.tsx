@@ -16,6 +16,7 @@ import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
 import View from 'ol/View';
 import { useCallback, useEffect, useRef } from 'react';
 import 'ol/ol.css';
+import { brandColors } from '../../../theme';
 
 interface MiniMapPickerProps {
   latitude: number;
@@ -30,7 +31,7 @@ function createCheckpointStyle(label?: string): Style {
   return new Style({
     image: new Circle({
       radius: 14,
-      fill: new Fill({ color: '#2D6A4F' }),
+      fill: new Fill({ color: brandColors.forest }),
       stroke: new Stroke({
         color: '#fff',
         width: 3,

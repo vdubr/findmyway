@@ -12,6 +12,7 @@ import { Circle, Fill, Icon, Stroke, Style, Text } from 'ol/style';
 import View from 'ol/View';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import 'ol/ol.css';
+import { brandColors } from '../../../theme';
 import type { GeoLocation } from '../../../types';
 import {
   DEFAULT_MAP_CENTER,
@@ -435,8 +436,8 @@ function createMarkerStyle(
         ctx.lineTo(8, 8); // Pravý roh
         ctx.closePath();
 
-        // Vyplnit zelenou
-        ctx.fillStyle = '#52B788';
+        // Vyplnit modrou (poloha hráče)
+        ctx.fillStyle = brandColors.sky;
         ctx.fill();
 
         // Bílý okraj
@@ -458,7 +459,7 @@ function createMarkerStyle(
     return new Style({
       image: new Circle({
         radius: 8,
-        fill: new Fill({ color: '#52B788' }), // Svěží zelená z theme
+        fill: new Fill({ color: brandColors.sky }), // Modrá – poloha hráče
         stroke: new Stroke({
           color: '#fff',
           width: 3,
@@ -471,16 +472,16 @@ function createMarkerStyle(
     return new Style({
       image: new Circle({
         radius: 10,
-        fill: new Fill({ color: '#E9C46A' }), // Písková žlutá z theme
+        fill: new Fill({ color: brandColors.sun }), // Sluneční žlutá – cíl
         stroke: new Stroke({
-          color: '#1B4332',
+          color: brandColors.forestDark,
           width: 2,
         }),
       }),
       text: label
         ? new Text({
             text: label,
-            fill: new Fill({ color: '#1B4332' }),
+            fill: new Fill({ color: brandColors.forestDark }),
             font: 'bold 11px sans-serif',
             offsetY: 1,
           })
@@ -506,7 +507,7 @@ function createMarkerStyle(
   return new Style({
     image: new Circle({
       radius: 12,
-      fill: new Fill({ color: '#2D6A4F' }), // Lesní zelená z theme
+      fill: new Fill({ color: brandColors.forest }), // Lesní zelená z theme
       stroke: new Stroke({
         color: '#fff',
         width: 3,

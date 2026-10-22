@@ -1,142 +1,169 @@
 import { createTheme } from '@mui/material/styles';
 
-// Přírodní zelené téma evokující cestu do přírody
+// Svěží a hravé téma podle návrhu redesignu (viz CLAUDE.md → Design).
+// Sémantické barvy mají „main“ dost tmavé pro bílý/tmavý text (WCAG AA);
+// světlé „light“ odstíny slouží jako pozadí pod tmavým textem z „dark“.
+
+// Barvy pro místa mimo MUI (OpenLayers styly, SVG, meta theme-color)
+export const brandColors = {
+  forest: '#1E7A4F', // primární zelená
+  forestDark: '#0F4D30',
+  fox: '#E8692C', // liščí oranžová – akcent, jen s tmavým textem
+  sun: '#FFC93C', // sluneční žlutá – checkpointy, hvězdy, odměny
+  sky: '#2E86AB', // modrá – poloha hráče
+  appBackground: '#F3FBF2',
+  hint: '#E4F3E8', // zvýrazněné bloky
+  text: '#163A24',
+} as const;
+
+const headingFont = '"Baloo 2", "Inter", system-ui, sans-serif';
+
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#2D6A4F', // Lesní zelená - pro hlavní akce
-      light: '#40916C',
-      dark: '#1B4332',
+      main: brandColors.forest,
+      light: '#4FAE7C',
+      dark: brandColors.forestDark,
       contrastText: '#fff',
     },
     secondary: {
-      main: '#52B788', // Svěží zelená - pro doplňkové prvky
-      light: '#74C69D',
-      dark: '#40916C',
-      contrastText: '#fff',
+      main: brandColors.fox,
+      light: '#FF9D52',
+      dark: '#B94F1C', // čitelný jako text na bílé
+      contrastText: '#3A1A0A',
     },
     success: {
-      main: '#95D5B2', // Světle zelená - pro úspěch
-      dark: '#74C69D',
-      contrastText: '#1B4332',
+      main: '#1A7F4B',
+      light: '#E4F7EA',
+      dark: '#0F5A34',
+      contrastText: '#fff',
     },
     warning: {
-      main: '#E9C46A', // Teplá písková žlutá
-      dark: '#E76F51',
-      contrastText: '#1B4332',
+      main: brandColors.sun,
+      light: '#FFF2D6',
+      dark: '#A35A05',
+      contrastText: '#3A2A00',
     },
     error: {
-      main: '#E76F51', // Teplá cihlová
-      dark: '#D64933',
+      main: '#C43A1F',
+      light: '#FDE6E0',
+      dark: '#9A2B15',
       contrastText: '#fff',
     },
     info: {
-      main: '#B7E4C7', // Jemná mátová
-      dark: '#95D5B2',
-      contrastText: '#1B4332',
+      main: '#1F6A8A', // modrá, aby se nepletla se zelenou
+      light: '#E3F2FA',
+      dark: '#164E66',
+      contrastText: '#fff',
     },
     background: {
       default: 'transparent', // Bez background na body – html zůstává zelená pro Safari toolbar detekci
       paper: '#FFFFFF',
     },
     text: {
-      primary: '#1B4332', // Tmavě lesní zelená pro text
-      secondary: '#2D6A4F',
+      primary: brandColors.text,
+      secondary: '#3F6B52',
     },
   },
   typography: {
-    fontFamily: [
-      '-apple-system',
-      'BlinkMacSystemFont',
-      '"Segoe UI"',
-      'Roboto',
-      '"Helvetica Neue"',
-      'Arial',
-      'sans-serif',
-      '"Apple Color Emoji"',
-      '"Segoe UI Emoji"',
-      '"Segoe UI Symbol"',
-    ].join(','),
-    h1: {
-      fontWeight: 700,
-      fontSize: '2.5rem',
-      letterSpacing: '-0.01em',
-    },
-    h2: {
-      fontWeight: 700,
-      fontSize: '2rem',
-      letterSpacing: '-0.01em',
-    },
-    h3: {
-      fontWeight: 600,
-      fontSize: '1.75rem',
-    },
-    h4: {
-      fontWeight: 600,
-      fontSize: '1.5rem',
-    },
-    h5: {
-      fontWeight: 600,
-      fontSize: '1.25rem',
-    },
-    h6: {
-      fontWeight: 600,
-      fontSize: '1rem',
-    },
+    fontFamily: '"Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+    h1: { fontFamily: headingFont, fontWeight: 800, fontSize: '2.5rem', lineHeight: 1.1 },
+    h2: { fontFamily: headingFont, fontWeight: 800, fontSize: '2rem', lineHeight: 1.1 },
+    h3: { fontFamily: headingFont, fontWeight: 700, fontSize: '1.75rem', lineHeight: 1.15 },
+    h4: { fontFamily: headingFont, fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.2 },
+    h5: { fontFamily: headingFont, fontWeight: 700, fontSize: '1.25rem', lineHeight: 1.2 },
+    h6: { fontFamily: headingFont, fontWeight: 700, fontSize: '1.125rem', lineHeight: 1.25 },
+    body2: { fontSize: '0.9375rem' }, // ne méně – čitelnost venku na slunci
     button: {
-      fontWeight: 600,
-      textTransform: 'none', // Vypnout uppercase pro přirozenější vzhled
+      fontWeight: 700,
+      textTransform: 'none',
       fontSize: '1rem',
     },
   },
   shape: {
-    borderRadius: 12, // Zaoblené rohy pro hravý vzhled
+    borderRadius: 16,
   },
   components: {
     MuiButton: {
+      defaultProps: {
+        disableElevation: true,
+      },
       styleOverrides: {
         root: {
-          borderRadius: 12,
+          borderRadius: 20,
           padding: '10px 24px',
-          fontSize: '1rem',
-          boxShadow: 'none',
-          '&:hover': {
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-          },
         },
         sizeLarge: {
           padding: '14px 32px',
           fontSize: '1.1rem',
+          borderRadius: 22,
+        },
+        // „Stisknutelné“ tlačítko: tmavší spodní hrana, při stisku se propadne
+        contained: ({ theme, ownerState }) => {
+          const color = ownerState.color;
+          const edge =
+            color && color !== 'inherit' && color in theme.palette
+              ? theme.palette[color].dark
+              : theme.palette.grey[500];
+          return {
+            boxShadow: `0 4px 0 ${edge}`,
+            transition: 'transform 0.08s ease-out, box-shadow 0.08s ease-out',
+            '&:hover': { boxShadow: `0 4px 0 ${edge}` },
+            '&:active': { transform: 'translateY(2px)', boxShadow: `0 2px 0 ${edge}` },
+            '&.Mui-disabled': { boxShadow: 'none' },
+          };
+        },
+        outlined: {
+          borderWidth: 2,
+          '&:hover': { borderWidth: 2 },
         },
       },
     },
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 16,
-          boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
+          borderRadius: 20,
+          boxShadow: '0 4px 14px rgba(30, 122, 79, 0.14)',
         },
       },
     },
     MuiPaper: {
       styleOverrides: {
         rounded: {
-          borderRadius: 12,
+          borderRadius: 16,
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          borderRadius: 24,
+        },
+      },
+    },
+    MuiAlert: {
+      styleOverrides: {
+        root: {
+          borderRadius: 16,
+          fontWeight: 500,
         },
       },
     },
     MuiChip: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
-          fontWeight: 600,
+          borderRadius: 999,
+          fontWeight: 700,
+        },
+        outlined: {
+          borderWidth: 1.5,
         },
       },
     },
     MuiFab: {
       styleOverrides: {
         root: {
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
+          boxShadow: '0 4px 16px rgba(15, 77, 48, 0.25)',
         },
       },
     },

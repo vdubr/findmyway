@@ -278,7 +278,7 @@ export default function ProfilePage() {
                     borderRadius: 2,
                   }}
                 >
-                  <TrophyIcon sx={{ fontSize: 40, color: '#E9C46A' }} />
+                  <TrophyIcon sx={{ fontSize: 40, color: 'warning.main' }} />
                   <Box>
                     <Typography variant="body2" color="text.secondary">
                       Dokončené hry

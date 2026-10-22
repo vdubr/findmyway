@@ -40,12 +40,9 @@ export default function NavigationInfo({
   const targetAngle = getArrowAngle(bearing, heading);
   const arrowAngle = useContinuousAngle(targetAngle);
 
-  const getDistanceColor = (): 'error' | 'warning' | 'success' => {
-    if (!distance) return 'error';
-    if (isInRadius) return 'success';
-    if (distance < 100) return 'warning';
-    return 'error';
-  };
+  // Stav se ukazuje plným štítkem s tmavým/bílým textem, ne barvou textu vzdálenosti –
+  // syté stavové barvy jako text na světlém pozadí nesplňují kontrast a na slunci mizí
+  const isNear = !isInRadius && distance !== null && distance < 100;
 
   if (checkpointReached) {
     return (
@@ -91,7 +88,7 @@ export default function NavigationInfo({
         left: '50%',
         transform: 'translateX(-50%)',
         width: 300,
-        bgcolor: '#F1FAEE',
+        bgcolor: 'background.paper',
         borderRadius: '50% 50% 0 0 / 100% 100% 0 0',
         px: 3,
         pt: 3,
@@ -111,13 +108,13 @@ export default function NavigationInfo({
           aria-hidden
           sx={{
             fontSize: 32,
-            color: getDistanceColor() + '.main',
+            color: 'primary.main',
             transform: arrowAngle !== null ? `rotate(${arrowAngle}deg)` : 'none',
             transition: 'transform 0.3s ease-out',
           }}
         />
         <Box>
-          <Typography variant="h5" color={getDistanceColor()} lineHeight={1.2}>
+          <Typography variant="h4" color="text.primary" lineHeight={1}>
             {distance !== null ? formatDistance(distance) : '---'}
           </Typography>
           <Typography variant="caption" color="text.secondary">
@@ -132,9 +129,10 @@ export default function NavigationInfo({
             label="V dosahu"
             color="success"
             size="small"
-            sx={{ fontWeight: 'bold', ml: 1 }}
+            sx={{ ml: 1 }}
           />
         )}
+        {isNear && <Chip label="Blízko" color="warning" size="small" sx={{ ml: 1 }} />}
       </Stack>
     </Box>
   );

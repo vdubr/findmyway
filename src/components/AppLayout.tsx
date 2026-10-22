@@ -1,7 +1,6 @@
 import {
   KeyboardArrowDown as ArrowDownIcon,
   ChevronRight as ChevronRightIcon,
-  InfoOutlined as InfoIcon,
   Login as LoginIcon,
   Logout as LogoutIcon,
   Person as PersonIcon,
@@ -18,7 +17,6 @@ import {
   ListItemText,
   Menu,
   MenuItem,
-  Popover,
   Toolbar,
   Tooltip,
   Typography,
@@ -32,6 +30,7 @@ import { useGameEditorStore } from '../features/admin/store/gameEditorStore';
 import { useAuth } from '../features/auth/AuthContext';
 import { useGameDetailStore } from '../features/game/store/gameDetailStore';
 import { useGamePlayStore } from '../features/player/store/gamePlayStore';
+import { brandColors } from '../theme';
 import FoxGuide from './FoxGuide';
 import OfflineIndicator from './OfflineIndicator';
 import PWAInstallPrompt from './PWAInstallPrompt';
@@ -61,9 +60,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   // Uživatelský dropdown (pravá část)
   const [userAnchorEl, setUserAnchorEl] = useState<null | HTMLElement>(null);
-
-  // Popover s verzí aplikace
-  const [versionAnchorEl, setVersionAnchorEl] = useState<null | HTMLElement>(null);
 
   const handleUserOpen = (event: React.MouseEvent<HTMLElement>) => {
     setUserAnchorEl(event.currentTarget);
@@ -280,6 +276,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   </ListItemIcon>
                   <ListItemText>Odhlásit se</ListItemText>
                 </MenuItem>
+
+                {/* Verze aplikace – dřív plovoucí ⓘ, které překrývalo obsah i ovládání hry */}
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  component="div"
+                  sx={{ px: 2, pt: 1, pb: 0.5 }}
+                >
+                  Verze {__BUILD_TIME__}
+                </Typography>
               </Menu>
             </>
           ) : (
@@ -316,7 +322,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             sm: 'calc(64px + env(safe-area-inset-top))',
           },
           pb: 'env(safe-area-inset-bottom)',
-          bgcolor: '#F1FAEE',
+          bgcolor: brandColors.appBackground,
           display: 'flex',
           flexDirection: 'column',
         }}
@@ -329,44 +335,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* PWA Update Prompt */}
       <PWAUpdatePrompt />
-
-      {/* Tlačítko verze – vpravo dole */}
-      <Tooltip title="Verze aplikace">
-        <IconButton
-          size="small"
-          onClick={(e) => setVersionAnchorEl(e.currentTarget)}
-          sx={{
-            position: 'fixed',
-            bottom: 12,
-            right: 12,
-            bgcolor: 'background.paper',
-            boxShadow: 2,
-            width: 32,
-            height: 32,
-            zIndex: 1200,
-            '&:hover': { bgcolor: 'action.hover' },
-          }}
-        >
-          <InfoIcon sx={{ fontSize: 18 }} />
-        </IconButton>
-      </Tooltip>
-
-      <Popover
-        open={Boolean(versionAnchorEl)}
-        anchorEl={versionAnchorEl}
-        onClose={() => setVersionAnchorEl(null)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Box sx={{ px: 2, py: 1.5 }}>
-          <Typography variant="caption" color="text.secondary">
-            Build
-          </Typography>
-          <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
-            {__BUILD_TIME__}
-          </Typography>
-        </Box>
-      </Popover>
     </Box>
   );
 }

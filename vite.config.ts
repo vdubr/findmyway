@@ -28,8 +28,8 @@ export default defineConfig({
         name: 'GeoQuest - GPS Treasure Hunt',
         short_name: 'GeoQuest',
         description: 'Outdoor GPS treasure hunt game - vytvářejte a hrajte geocaching hry',
-        theme_color: '#2D6A4F',
-        background_color: '#1B4332',
+        theme_color: '#1E7A4F',
+        background_color: '#0F4D30',
         display: 'standalone',
         orientation: 'portrait',
         icons: [

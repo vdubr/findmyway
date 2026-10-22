@@ -1,7 +1,12 @@
 // Sdilena komponenta pro zobrazeni karty hry
 // Pouziva se v adminu (editovatelna) i v prehledu her (jen pro cteni)
 
-import { Edit as EditIcon, Flag as FlagIcon, NearMe as NearMeIcon } from '@mui/icons-material';
+import {
+  Edit as EditIcon,
+  Flag as FlagIcon,
+  NearMe as NearMeIcon,
+  Route as RouteIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Card,
@@ -16,8 +21,10 @@ import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Game } from '../types';
 import { GAME_TAGS } from '../utils/constants';
+import { pluralCs } from '../utils/format';
 import { formatDistance } from '../utils/geo';
 import DifficultyIcon from './DifficultyIcon';
+import { awayChipSx, difficultyChipSx, routeChipSx, tagChipSx } from './gameChipStyles';
 
 interface GameCardProps {
   game: Game;
@@ -111,43 +118,42 @@ export default function GameCard({
           )}
 
           {/* Metadata - obtiznost, vzdalenost a tagy */}
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
             <Chip
               icon={<DifficultyIcon value={game.difficulty} />}
-              label=""
+              label={`${game.difficulty}/5`}
+              aria-label={`Obtížnost ${game.difficulty} z 5`}
               size="small"
-              color="primary"
-              variant="outlined"
+              sx={difficultyChipSx}
             />
             {distance !== undefined && (
               <Chip
                 icon={<NearMeIcon />}
-                label={formatDistance(distance)}
+                label={`${formatDistance(distance)} od tebe`}
                 size="small"
-                color="secondary"
-                variant="outlined"
+                sx={awayChipSx}
               />
             )}
             {checkpointCount !== undefined && (
               <Chip
                 icon={<FlagIcon />}
-                label={String(checkpointCount)}
+                label={`${checkpointCount} ${pluralCs(checkpointCount, 'bod', 'body', 'bodů')}`}
                 size="small"
-                variant="outlined"
+                sx={routeChipSx}
               />
             )}
             {routeDistance !== undefined && (
               <Chip
-                icon={<NearMeIcon />}
-                label={formatDistance(routeDistance)}
+                icon={<RouteIcon />}
+                label={`trasa ${formatDistance(routeDistance)}`}
                 size="small"
-                variant="outlined"
+                sx={routeChipSx}
               />
             )}
             {game.tags?.map((tagId) => {
               const tagDef = GAME_TAGS.find((t) => t.id === tagId);
               return tagDef ? (
-                <Chip key={tagId} label={tagDef.label} size="small" variant="outlined" />
+                <Chip key={tagId} label={tagDef.label} size="small" sx={tagChipSx} />
               ) : null;
             })}
           </Box>
@@ -155,7 +161,7 @@ export default function GameCard({
           {/* Volitelne datum vytvoreni */}
           {showDate && (
             <Typography variant="caption" color="text.secondary">
-              Vytvoreno: {new Date(game.created_at).toLocaleDateString('cs-CZ')}
+              Vytvořeno: {new Date(game.created_at).toLocaleDateString('cs-CZ')}
             </Typography>
           )}
         </Stack>

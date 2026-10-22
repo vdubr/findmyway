@@ -1,10 +1,10 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: "Inter", system-ui, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
   /* Zelená barva aplikace – Safari ji použije pro podbarvení hlavičky prohlížeče */
-  background-color: #2d6a4f;
+  background-color: #1e7a4f;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -23,7 +23,7 @@ a:hover {
 
 /* Safari detekuje barvu toolbaru z html elementu – musí být nastavena trvale */
 html {
-  background-color: #2d6a4f;
+  background-color: #1e7a4f;
 }
 
 body {

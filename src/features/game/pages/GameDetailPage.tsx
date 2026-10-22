@@ -1,6 +1,11 @@
 // Detail hry – popis, mapa checkpointů, info o tvůrci, tlačítka Hrát/Editovat
 
-import { Edit as EditIcon, Flag as FlagIcon, PlayArrow as PlayIcon } from '@mui/icons-material';
+import {
+  Edit as EditIcon,
+  Flag as FlagIcon,
+  PlayArrow as PlayIcon,
+  Route as RouteIcon,
+} from '@mui/icons-material';
 import {
   Alert,
   Box,
@@ -18,11 +23,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import DifficultyIcon from '../../../components/DifficultyIcon';
 import ErrorDisplay from '../../../components/ErrorDisplay';
+import { difficultyChipSx, routeChipSx, tagChipSx } from '../../../components/gameChipStyles';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 import { getGameById } from '../../../lib/api';
 import { toUserMessage } from '../../../lib/errors';
 import type { GameDetail } from '../../../types';
 import { GAME_TAGS } from '../../../utils/constants';
+import { pluralCs } from '../../../utils/format';
 import { calculateDistance, formatDistance } from '../../../utils/geo';
 import { useAuth } from '../../auth/AuthContext';
 import MapComponent, { type MapMarker } from '../../map/components/MapComponent';
@@ -145,19 +152,24 @@ export default function GameDetailPage() {
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <Chip
             icon={<DifficultyIcon value={game.difficulty} />}
-            label=""
-            color="primary"
-            variant="outlined"
+            label={`obtížnost ${game.difficulty}/5`}
+            sx={difficultyChipSx}
           />
-          <Chip icon={<FlagIcon />} label={String(game.checkpoints.length)} variant="outlined" />
+          <Chip
+            icon={<FlagIcon />}
+            label={`${game.checkpoints.length} ${pluralCs(game.checkpoints.length, 'bod', 'body', 'bodů')}`}
+            sx={routeChipSx}
+          />
           {routeDistance !== undefined && (
-            <Chip label={formatDistance(routeDistance)} variant="outlined" />
+            <Chip
+              icon={<RouteIcon />}
+              label={`trasa ${formatDistance(routeDistance)}`}
+              sx={routeChipSx}
+            />
           )}
           {game.tags?.map((tagId) => {
             const tagDef = GAME_TAGS.find((t) => t.id === tagId);
-            return tagDef ? (
-              <Chip key={tagId} label={tagDef.label} size="small" variant="outlined" />
-            ) : null;
+            return tagDef ? <Chip key={tagId} label={tagDef.label} sx={tagChipSx} /> : null;
           })}
         </Box>
 

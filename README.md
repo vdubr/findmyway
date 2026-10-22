@@ -95,6 +95,9 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 - **Připraveno pro React Native**: Separace logiky (hooks) od UI (components)
 - **Přístupnost**: Vysoký kontrast, čitelné fonty
 
+Návrh redesignu (revize UI, style tile, klikací prototyp mobilních obrazovek):
+https://claude.ai/artifact/APHy1PL9kCySd2YJS7jCsg – soukromé plátno na claude.ai, ostatním se zpřístupní přes Share.
+
 ## 📝 License
 
 Private project

@@ -28,6 +28,11 @@ GPS treasure hunt aplikace pro vytváření a hraní her s checkpointy v reáln�
 - **Linter/Formatter**: Biome (NE ESLint, NE Prettier)
 - **Deploy**: Vercel (auto z main branch)
 
+## Design
+
+Návrh redesignu (revize, style tile, prototyp obrazovek): https://claude.ai/artifact/APHy1PL9kCySd2YJS7jCsg
+Nové UI dělat podle něj – barvy, písma (Baloo 2 + Inter), tvary a stavy lišky jsou ve style tile.
+
 ## Coding standards
 
 - Striktní TypeScript, žádné `any` bez důvodu

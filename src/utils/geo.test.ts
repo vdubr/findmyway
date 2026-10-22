@@ -6,6 +6,7 @@ import {
   continuousAngle,
   decimalToDMS,
   dmsToDecimal,
+  formatDistance,
   isWithinRadius,
   relativeBearing,
 } from './geo';
@@ -48,6 +49,17 @@ describe('Geo Utils', () => {
       const radius = 10; // 10 metrů
 
       expect(isWithinRadius(user, checkpoint, radius)).toBe(false);
+    });
+  });
+
+  describe('formatDistance', () => {
+    it('pod kilometr v celých metrech', () => {
+      expect(formatDistance(340.4)).toBe('340 m');
+    });
+
+    it('od kilometru s českou desetinnou čárkou', () => {
+      expect(formatDistance(2500)).toBe('2,5 km');
+      expect(formatDistance(1000)).toBe('1,0 km');
     });
   });
 
