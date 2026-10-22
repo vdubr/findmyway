@@ -1,11 +1,12 @@
 // Editace existujici hry - wrapper s URL routovanim
 // Nacte hru podle gameId z URL a zobrazuje taby (base/checkpoints/demo)
 
-import { People as PeopleIcon } from '@mui/icons-material';
+import { Check as CheckIcon, Edit as EditIcon, People as PeopleIcon } from '@mui/icons-material';
 import {
   Alert,
   Box,
   Button,
+  Chip,
   Container,
   Dialog,
   DialogActions,
@@ -37,6 +38,47 @@ type TabValue = 'base' | 'checkpoints' | 'demo';
 
 // Validni URL segmenty pro taby
 const VALID_TABS: TabValue[] = ['base', 'checkpoints', 'demo'];
+
+// Krok tvorby hry v tabu: číslo v kolečku, po dokončení fajfka
+function StepLabel({ n, label, done }: { n: number; label: string; done: boolean }) {
+  return (
+    <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+      <Box
+        component="span"
+        sx={{
+          width: 28,
+          height: 28,
+          borderRadius: '50%',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontWeight: 800,
+          fontSize: '0.9rem',
+          bgcolor: done ? 'primary.main' : 'transparent',
+          color: done ? 'primary.contrastText' : 'inherit',
+          border: done ? 0 : 2,
+          borderColor: 'currentColor',
+          boxSizing: 'border-box',
+          '.Mui-selected &': done
+            ? {}
+            : {
+                bgcolor: 'secondary.main',
+                color: 'secondary.contrastText',
+                borderColor: 'transparent',
+              },
+        }}
+      >
+        {done ? <CheckIcon sx={{ fontSize: 18 }} /> : n}
+      </Box>
+      {label}
+    </Box>
+  );
+}
+
+const stepTabsSx = {
+  '& .MuiTab-root': { textTransform: 'none', fontWeight: 700, minHeight: 56 },
+  '& .MuiTabs-indicator': { bgcolor: 'secondary.main', height: 3, borderRadius: 3 },
+} as const;
 
 export default function AdminEditPage() {
   const { gameId, tab } = useParams<{ gameId: string; tab: string }>();
@@ -198,28 +240,37 @@ export default function AdminEditPage() {
         }),
       }}
     >
-      {/* Action bar – jen pro existujici hry */}
-      {!isNewGame && currentGame && (
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: 1,
-            py: 1.5,
-            flexShrink: 0,
-          }}
-        >
-          {currentGame.settings?.share_location_required && (
-            <Button
-              size="small"
-              startIcon={<PeopleIcon />}
-              onClick={() => setShowLivePlayers(true)}
-            >
-              Živí hráči
-            </Button>
-          )}
-        </Box>
-      )}
+      {/* Action bar – tvůrčí režim a akce existující hry */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          py: 1.5,
+          flexShrink: 0,
+        }}
+      >
+        <Chip
+          icon={<EditIcon />}
+          label="Tvůrčí režim"
+          size="small"
+          sx={{ bgcolor: '#FFE3D3', color: '#8A3A12', '& .MuiChip-icon': { color: '#8A3A12' } }}
+        />
+        <Box sx={{ flex: 1 }} />
+        {!isNewGame && currentGame && (
+          <>
+            {currentGame.settings?.share_location_required && (
+              <Button
+                size="small"
+                startIcon={<PeopleIcon />}
+                onClick={() => setShowLivePlayers(true)}
+              >
+                Živí hráči
+              </Button>
+            )}
+          </>
+        )}
+      </Box>
 
       {/* Taby navigace - zafixovane nahoze */}
       <Box
@@ -232,16 +283,31 @@ export default function AdminEditPage() {
       >
         {isNewGame ? (
           // Nova hra - jednosmerne taby (form -> checkpoints)
-          <Tabs value={currentTab} onChange={handleTabChange}>
-            <Tab label="1. Základní info" value="base" disabled={currentTab === 'checkpoints'} />
-            <Tab label="2. Checkpointy" value="checkpoints" disabled={currentTab === 'base'} />
+          <Tabs value={currentTab} onChange={handleTabChange} sx={stepTabsSx} variant="scrollable">
+            <Tab
+              label={<StepLabel n={1} label="Základní info" done={currentTab === 'checkpoints'} />}
+              value="base"
+              disabled={currentTab === 'checkpoints'}
+            />
+            <Tab
+              label={<StepLabel n={2} label="Body na stezce" done={false} />}
+              value="checkpoints"
+              disabled={currentTab === 'base'}
+            />
           </Tabs>
         ) : (
           // Existujici hra - volne prepinatelne taby
-          <Tabs value={currentTab} onChange={handleTabChange}>
-            <Tab label="1. Základní info" value="base" />
-            <Tab label="2. Checkpointy" value="checkpoints" />
-            <Tab label="3. Demo" value="demo" disabled={tempCheckpoints.length === 0} />
+          <Tabs value={currentTab} onChange={handleTabChange} sx={stepTabsSx} variant="scrollable">
+            <Tab label={<StepLabel n={1} label="Základní info" done />} value="base" />
+            <Tab
+              label={<StepLabel n={2} label="Body na stezce" done={tempCheckpoints.length > 0} />}
+              value="checkpoints"
+            />
+            <Tab
+              label={<StepLabel n={3} label="Vyzkoušet" done={false} />}
+              value="demo"
+              disabled={tempCheckpoints.length === 0}
+            />
           </Tabs>
         )}
       </Box>
