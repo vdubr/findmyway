@@ -63,7 +63,13 @@ const savedGame: Game = {
 
 function LocationProbe() {
   const location = useLocation();
-  return <div data-testid="location">{location.pathname}</div>;
+  const message = (location.state as { successMessage?: string } | null)?.successMessage;
+  return (
+    <>
+      <div data-testid="location">{`${location.pathname}${location.search}`}</div>
+      <div data-testid="message">{message ?? ''}</div>
+    </>
+  );
 }
 
 function renderEditor(path: string) {
@@ -72,6 +78,7 @@ function renderEditor(path: string) {
       <Routes>
         <Route path="/games/:gameId/edit/:tab" element={<AdminEditPage />} />
         <Route path="/games/:gameId" element={<div>detail hry</div>} />
+        <Route path="/games" element={<div>přehled her</div>} />
       </Routes>
       <LocationProbe />
     </MemoryRouter>
@@ -109,12 +116,11 @@ describe('AdminEditPage – uložení hry', () => {
     expect(mocked.saveGameCheckpoints).toHaveBeenCalledWith('game-1', [
       expect.objectContaining({ order_index: 0, latitude: 50.1, longitude: 14.2 }),
     ]);
-    // Uživatel skončí v editoru uložené hry (ne na prázdném formuláři nové hry)
+    // Uživatel skončí v přehledu na konceptech (ne na prázdném formuláři nové hry)
     await waitFor(() =>
-      expect(screen.getByTestId('location')).toHaveTextContent('/games/game-1/edit/base')
+      expect(screen.getByTestId('location')).toHaveTextContent(/^\/games\?draft=true$/)
     );
-    expect(mocked.getGameById).toHaveBeenCalledWith('game-1', expect.anything());
-    expect(await screen.findByDisplayValue('Testovací hra')).toBeInTheDocument();
+    expect(screen.getByTestId('message')).toHaveTextContent('byla úspěšně vytvořena');
   });
 
   it('nová hra: chyba při ukládání checkpointů smaže prázdnou hru, ale editor o body nepřijde', async () => {
@@ -133,7 +139,7 @@ describe('AdminEditPage – uložení hry', () => {
     expect(useGameEditorStore.getState().currentGame?.title).toBe('Testovací hra');
   });
 
-  it('existující hra: Uložit hru uloží údaje i checkpointy', async () => {
+  it('existující koncept: Uložit hru uloží údaje i checkpointy a vrátí do konceptů', async () => {
     mocked.updateGame.mockResolvedValue({ ...savedGame } as never);
     mocked.saveGameCheckpoints.mockResolvedValue([]);
     renderEditor('/games/game-1/edit/checkpoints');
@@ -150,6 +156,23 @@ describe('AdminEditPage – uložení hry', () => {
     expect(mocked.saveGameCheckpoints).toHaveBeenCalledWith('game-1', [
       expect.objectContaining({ latitude: 50.1, longitude: 14.2 }),
     ]);
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/games/game-1'));
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent(/^\/games\?draft=true$/)
+    );
+    expect(screen.getByTestId('message')).toHaveTextContent('byla úspěšně aktualizována');
+  });
+
+  it('publikovaná hra: po uložení přehled bez filtru konceptů', async () => {
+    mocked.getGameById.mockResolvedValue({ ...savedGame, status: 'published' } as never);
+    mocked.updateGame.mockResolvedValue({ ...savedGame } as never);
+    mocked.saveGameCheckpoints.mockResolvedValue([]);
+    renderEditor('/games/game-1/edit/checkpoints');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'mapa' }));
+    useGameEditorStore.getState().selectCheckpoint(null);
+    fireEvent.click(await screen.findByRole('button', { name: /Uložit hru/ }));
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/games$/));
+    expect(mocked.saveGameCheckpoints).toHaveBeenCalledTimes(1);
   });
 });

@@ -11,13 +11,14 @@ import {
   Chip,
   Container,
   InputAdornment,
+  Snackbar,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import ErrorDisplay from '../../../components/ErrorDisplay';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 import { useGeolocation } from '../../../hooks/useGeolocation';
@@ -43,7 +44,34 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTag, setActiveTag] = useState<string | null>(null);
+  // Filtr konceptů jde zapnout i z URL (?draft=true) – sem posílá editor po uložení hry
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTag, setActiveTagState] = useState<string | null>(() =>
+    searchParams.get('draft') === 'true' ? 'drafts' : null
+  );
+  const setActiveTag = (tag: string | null) => {
+    setActiveTagState(tag);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (tag === 'drafts') next.set('draft', 'true');
+        else next.delete('draft');
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
+  // Hláška z editoru po uložení. Zkopírovat do stavu a z historie smazat – jinak by se
+  // ukázala znovu po reloadu nebo návratu zpět (setSearchParams state stejně zahodí).
+  const location = useLocation();
+  const [successMessage, setSuccessMessage] = useState<string | null>(
+    () => (location.state as { successMessage?: string } | null)?.successMessage ?? null
+  );
+  // biome-ignore lint/correctness/useExhaustiveDependencies: jen při mountu
+  useEffect(() => {
+    if (successMessage) navigate(`${location.pathname}${location.search}`, { replace: true });
+  }, []);
 
   // Geolokace pro razeni podle vzdalenosti
   const { position, requestPermission } = useGeolocation();
@@ -77,6 +105,9 @@ export default function HomePage() {
       setViewMode(newMode);
     }
   };
+
+  // Má uživatel koncepty? Bez nich se filtr konceptů nezobrazí.
+  const hasDrafts = !!user && draftGames.length > 0;
 
   // Má uživatel vlastní hry?
   const hasOwnGames = useMemo(
@@ -139,7 +170,7 @@ export default function HomePage() {
   return (
     <>
       {/* Fixní toolbar pod AppBarem */}
-      {games.length > 0 && (
+      {(games.length > 0 || hasDrafts) && (
         <Box
           sx={{
             position: 'sticky',
@@ -210,7 +241,7 @@ export default function HomePage() {
                   onClick={() => setActiveTag(activeTag === 'my-games' ? null : 'my-games')}
                 />
               )}
-              {user && draftGames.length > 0 && (
+              {hasDrafts && (
                 <Chip
                   label={`Draftované (${draftGames.length})`}
                   color={activeTag === 'drafts' ? 'warning' : 'default'}
@@ -237,14 +268,16 @@ export default function HomePage() {
         {/* Při chybě načítání jen chyba – hláška o prázdném seznamu by byla zavádějící */}
         {error ? (
           <ErrorDisplay message={error} onRetry={loadGames} />
-        ) : games.length === 0 ? (
+        ) : games.length === 0 && !(activeTag === 'drafts' && hasDrafts) ? (
           <Alert severity="info">
             <Typography>Zatím nejsou k dispozici žádné veřejné hry.</Typography>
             {user && <Typography variant="body2">Buďte první a vytvořte hru!</Typography>}
           </Alert>
         ) : filteredGames.length === 0 ? (
           <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-            Žádná hra neodpovídá hledanému výrazu „{searchQuery}"
+            {searchQuery.trim()
+              ? `Žádná hra neodpovídá hledanému výrazu „${searchQuery}"`
+              : 'Žádná hra neodpovídá zvolenému filtru'}
           </Typography>
         ) : viewMode === 'cards' ? (
           <GamesCardView games={filteredGames} distances={distances} userId={user?.id} />
@@ -256,6 +289,16 @@ export default function HomePage() {
           />
         )}
       </Container>
+
+      <Snackbar
+        open={!!successMessage}
+        autoHideDuration={6000}
+        onClose={() => setSuccessMessage(null)}
+      >
+        <Alert severity="success" onClose={() => setSuccessMessage(null)}>
+          {successMessage}
+        </Alert>
+      </Snackbar>
     </>
   );
 }

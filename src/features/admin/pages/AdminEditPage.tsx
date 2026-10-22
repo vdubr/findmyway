@@ -41,8 +41,7 @@ const VALID_TABS: TabValue[] = ['base', 'checkpoints', 'demo'];
 export default function AdminEditPage() {
   const { gameId, tab } = useParams<{ gameId: string; tab: string }>();
   const navigate = useNavigate();
-  const { isSaving, successMessage, errorMessage, saveNewGame, updateExistingGame, clearMessages } =
-    useSaveGame();
+  const { isSaving, errorMessage, saveNewGame, updateExistingGame, clearMessages } = useSaveGame();
 
   // Stavy pro delete dialog a live players
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -308,13 +307,7 @@ export default function AdminEditPage() {
         </Box>
       )}
 
-      {/* Success/Error notifikace */}
-      <Snackbar open={!!successMessage} autoHideDuration={6000} onClose={clearMessages}>
-        <Alert severity="success" onClose={clearMessages}>
-          {successMessage}
-        </Alert>
-      </Snackbar>
-
+      {/* Chyby – hlášku o úspěšném uložení ukazuje přehled her, kam editor po uložení přejde */}
       <Snackbar open={!!errorMessage} autoHideDuration={6000} onClose={clearMessages}>
         <Alert severity="error" onClose={clearMessages}>
           {errorMessage}
