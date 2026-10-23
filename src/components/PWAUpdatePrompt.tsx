@@ -4,6 +4,11 @@ import { useRegisterSW } from 'virtual:pwa-register/react';
 import { Close as CloseIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import { Alert, Box, Button, IconButton, Slide, type SlideProps, Snackbar } from '@mui/material';
 
+// Pravidelná kontrola nové verze, když je aplikace otevřená
+const UPDATE_CHECK_INTERVAL = 60 * 60 * 1000;
+// Návrat do popředí může přijít často – kontrolovat nejvýš jednou za minutu
+const FOREGROUND_CHECK_THROTTLE = 60 * 1000;
+
 function SlideTransition(props: SlideProps) {
   return <Slide {...props} direction="up" />;
 }
@@ -14,16 +19,27 @@ export default function PWAUpdatePrompt() {
     updateServiceWorker,
   } = useRegisterSW({
     onRegisteredSW(swUrl, registration) {
-      // Kontrola aktualizaci kazdou hodinu
-      if (registration) {
-        setInterval(
-          () => {
-            registration.update();
-          },
-          60 * 60 * 1000
-        );
-      }
       console.log('Service Worker registrovan:', swUrl);
+      if (!registration) return;
+
+      let lastCheck = Date.now();
+      const checkForUpdate = () => {
+        if (!navigator.onLine) return;
+        lastCheck = Date.now();
+        registration.update().catch(() => {
+          // Chyba sítě není problém – zkusí se při další příležitosti
+        });
+      };
+      setInterval(checkForUpdate, UPDATE_CHECK_INTERVAL);
+
+      // Připnutá aplikace se na mobilu většinou jen probouzí z pozadí (bez načtení stránky)
+      // a interval je v pozadí uspaný – bez kontroly při návratu by novou verzi nenašla
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'visible') return;
+        // Nová verze už čeká (lišta byla zavřena křížkem) – nabídnout ji znovu
+        if (registration.waiting) setNeedRefresh(true);
+        if (Date.now() - lastCheck > FOREGROUND_CHECK_THROTTLE) checkForUpdate();
+      });
     },
     onRegisterError(error) {
       console.error('Chyba pri registraci Service Workeru:', error);
